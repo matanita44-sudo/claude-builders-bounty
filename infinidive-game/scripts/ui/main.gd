@@ -29,7 +29,7 @@ func _process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	if _qa_enabled and OS.has_feature("web"):
-		JavaScriptBridge.eval("delete globalThis.__INFINIDIVE_QA_STATE;")
+		JavaScriptBridge.eval("delete globalThis.__INFINIDIVE_QA_STATE;", true)
 
 func _clear_view() -> void:
 	if is_instance_valid(current_view):
@@ -61,8 +61,15 @@ func _on_run_finished(payload: Dictionary) -> void:
 func _qa_query_enabled() -> bool:
 	if not OS.has_feature("web"):
 		return false
-	var enabled: Variant = JavaScriptBridge.eval("new URLSearchParams(globalThis.location.search).get('infinidive_qa') === '1'")
-	return typeof(enabled) == TYPE_BOOL and bool(enabled)
+	var window: JavaScriptObject = JavaScriptBridge.get_interface("window")
+	if window == null:
+		return false
+	var query := String(window.location.search).trim_prefix("?")
+	for entry in query.split("&", false):
+		var pair := entry.split("=", true, 1)
+		if pair.size() == 2 and pair[0] == "infinidive_qa" and pair[1] == "1":
+			return true
+	return false
 
 func _publish_qa_state() -> void:
 	if not _qa_enabled or not OS.has_feature("web"):
@@ -76,4 +83,4 @@ func _publish_qa_state() -> void:
 	}
 	if is_instance_valid(current_view) and current_view is RunScene:
 		snapshot.merge((current_view as RunScene).qa_snapshot(), true)
-	JavaScriptBridge.eval("globalThis.__INFINIDIVE_QA_STATE = %s;" % JSON.stringify(snapshot))
+	JavaScriptBridge.eval("globalThis.__INFINIDIVE_QA_STATE = %s;" % JSON.stringify(snapshot), true)

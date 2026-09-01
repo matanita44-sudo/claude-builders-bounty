@@ -1,46 +1,46 @@
 {
 	"counts": {
-		"boss_restarts": 115,
-		"dive_transitions": 115,
-		"enemy_projectiles_spawned": 137588,
-		"iterations": 1141,
-		"offline_events_queued": 634,
+		"boss_restarts": 117,
+		"dive_transitions": 117,
+		"enemy_projectiles_spawned": 140575,
+		"iterations": 1166,
+		"offline_events_queued": 637,
 		"offline_queue_final_size": 500,
 		"offline_queue_reloads": 3,
-		"player_projectiles_spawned": 70038,
-		"projectile_cycles": 1141,
+		"player_projectiles_spawned": 71549,
+		"projectile_cycles": 1166,
 		"projectile_model_steps": {
-			"delayed_linear": 19652,
-			"expanding": 19652,
-			"linear": 19659,
-			"lunge": 19657,
-			"node_link": 19655,
-			"recorded_path": 19658,
-			"soft_homing": 19655
+			"delayed_linear": 20079,
+			"expanding": 20080,
+			"linear": 20086,
+			"lunge": 20083,
+			"node_link": 20082,
+			"recorded_path": 20083,
+			"soft_homing": 20082
 		},
 		"projectile_models_executed": {
-			"delayed_linear": 19652,
-			"expanding": 19652,
-			"linear": 19659,
-			"lunge": 19657,
-			"node_link": 19655,
-			"recorded_path": 19658,
-			"soft_homing": 19655
+			"delayed_linear": 20079,
+			"expanding": 20080,
+			"linear": 20086,
+			"lunge": 20083,
+			"node_link": 20082,
+			"recorded_path": 20083,
+			"soft_homing": 20082
 		},
 		"projectile_models_requested": {
-			"delayed_linear": 19652,
-			"expanding": 19652,
-			"linear": 19659,
-			"lunge": 19657,
-			"node_link": 19655,
-			"recorded_path": 19658,
-			"soft_homing": 19655
+			"delayed_linear": 20079,
+			"expanding": 20080,
+			"linear": 20086,
+			"lunge": 20083,
+			"node_link": 20082,
+			"recorded_path": 20083,
+			"soft_homing": 20082
 		},
-		"save_reloads": 0,
-		"save_writes": 58
+		"save_reloads": 1,
+		"save_writes": 60
 	},
 	"display_server": "headless",
-	"elapsed_wall_seconds": 90.184,
+	"elapsed_wall_seconds": 90.041,
 	"engine": {
 		"build": "official",
 		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
@@ -53,162 +53,162 @@
 		"timestamp": 0
 	},
 	"failures": [],
-	"finished_at_utc": "2026-09-01T23:14:01",
+	"finished_at_utc": "2026-09-01T23:37:55",
 	"memory": {
-		"end_bytes": 40844787,
-		"peak_bytes": 41000903,
+		"end_bytes": 40838259,
+		"peak_bytes": 41024007,
 		"sample_count": 21,
-		"slope_bytes_per_minute": 223392.732278109,
-		"stable_delta_bytes": 96380,
+		"slope_bytes_per_minute": 218771.80935953,
+		"stable_delta_bytes": 90604,
 		"stable_sample_count": 16,
-		"stable_start_bytes": 40748407,
-		"start_bytes": 34494787,
-		"warmup_seconds": 18.0368
+		"stable_start_bytes": 40747655,
+		"start_bytes": 34494511,
+		"warmup_seconds": 18.0082
 	},
 	"memory_samples": [
 		{
 			"elapsed_seconds": 0.0,
-			"memory_bytes": 34494787,
+			"memory_bytes": 34494511,
 			"node_count": 11,
 			"object_count": 1525,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 1.422,
-			"memory_bytes": 40675235,
+			"elapsed_seconds": 1.278,
+			"memory_bytes": 39626455,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 5.018,
-			"memory_bytes": 40751283,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 10.013,
-			"memory_bytes": 40795499,
+			"elapsed_seconds": 5.135,
+			"memory_bytes": 40773495,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 15.026,
-			"memory_bytes": 40764399,
+			"elapsed_seconds": 10.062,
+			"memory_bytes": 40791591,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 20.043,
-			"memory_bytes": 40748407,
+			"elapsed_seconds": 15.092,
+			"memory_bytes": 40760119,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 25.052,
-			"memory_bytes": 40720463,
+			"elapsed_seconds": 20.021,
+			"memory_bytes": 40747655,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 30.277,
-			"memory_bytes": 40691907,
+			"elapsed_seconds": 25.022,
+			"memory_bytes": 40716327,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 30.015,
+			"memory_bytes": 40688239,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 35.024,
+			"memory_bytes": 40687343,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 40.172,
+			"memory_bytes": 40658295,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 35.048,
-			"memory_bytes": 40696183,
+			"elapsed_seconds": 45.016,
+			"memory_bytes": 40627147,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 40.021,
-			"memory_bytes": 40664663,
+			"elapsed_seconds": 50.059,
+			"memory_bytes": 40609975,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 45.04,
-			"memory_bytes": 40636791,
+			"elapsed_seconds": 55.007,
+			"memory_bytes": 40610635,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 50.044,
-			"memory_bytes": 40610275,
+			"elapsed_seconds": 60.053,
+			"memory_bytes": 40611567,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 55.017,
-			"memory_bytes": 40610871,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 60.037,
-			"memory_bytes": 40611803,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 65.019,
-			"memory_bytes": 40976779,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 70.051,
-			"memory_bytes": 41000903,
+			"elapsed_seconds": 65.033,
+			"memory_bytes": 41024007,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 75.041,
-			"memory_bytes": 40961591,
+			"elapsed_seconds": 70.014,
+			"memory_bytes": 40984527,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 80.081,
-			"memory_bytes": 40924227,
+			"elapsed_seconds": 75.236,
+			"memory_bytes": 40947283,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 85.039,
-			"memory_bytes": 40884891,
+			"elapsed_seconds": 80.039,
+			"memory_bytes": 40911887,
+			"node_count": 11,
+			"object_count": 1537,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 85.198,
+			"memory_bytes": 40870583,
+			"node_count": 11,
+			"object_count": 1537,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 90.01,
+			"memory_bytes": 40838047,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 90.118,
-			"memory_bytes": 40847635,
-			"node_count": 11,
-			"object_count": 1537,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 90.184,
-			"memory_bytes": 40844787,
+			"elapsed_seconds": 90.041,
+			"memory_bytes": 40838259,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
@@ -229,15 +229,15 @@
 		"player_projectiles": 190,
 		"total_projectiles": 540
 	},
-	"report_markdown_sha256": "f0e4448d219ac2618c27e3369f0fb08d67d05555639a66989d5deb5fe41e2005",
+	"report_markdown_sha256": "c6a109f86f8ba63474b4456c3d265111f85759c82e5c6ad86f85efd8833d571c",
 	"report_transaction_complete": true,
-	"report_transaction_id": "1051aee6fe155c7309536e30",
+	"report_transaction_id": "98e69a9b42dd1314f6a16cb9",
 	"requested_duration_seconds": 90.0,
 	"schema": 1,
 	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
-	"seed": 203541,
+	"seed": 2039070,
 	"source_changed_during_run": false,
-	"source_fingerprint_end": "7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363",
-	"source_fingerprint_start": "7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363",
-	"started_at_utc": "2026-09-01T23:12:31"
+	"source_fingerprint_end": "1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e",
+	"source_fingerprint_start": "1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e",
+	"started_at_utc": "2026-09-01T23:36:25"
 }

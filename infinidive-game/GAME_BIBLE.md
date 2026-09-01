@@ -305,7 +305,7 @@ Not established by this snapshot:
 - Backend leaderboards, cloud saves or score validation
 - Monetization, purchases, ads or restore flow
 - Android or iOS signed builds
-- Complete semantic final-Web touch-gameplay validation, release-candidate device/performance QA, or physical-device control-feel testing. The remote workflow, public-host canvas boot, current-source 30-minute structural soak, and public-host synthetic canvas-touch gate pass. The touch gate proves 3/3/3 canvas-targeted touch events, a live post-input canvas, and a byte-verified rendered change; it does not by itself prove the full gameplay-state response, mobile-browser behavior, device ergonomics, or human comprehension.
+- Complete semantic final-Web touch-gameplay validation, release-candidate device/performance QA, or physical-device control-feel testing. The prior remote workflow/public-host canvas boot, prior-source 30-minute structural soak, and synthetic canvas-touch gate pass. The new candidate semantic movement/Dash gate exists but has not yet run remotely. The old touch gate proves 3/3/3 canvas-targeted touch events, a live post-input canvas, and a byte-verified rendered change; it does not by itself prove the full gameplay-state response, mobile-browser behavior, device ergonomics, or human comprehension.
 - Final Apple 6.9-inch screenshots, a supported-iPhone App Preview capture, store approval, or submission (five 1080×1920 development stills, an audio-complete 1080×1920 social trailer, and an 886×1920 Apple-format technical candidate exist; all are virtual-display evidence)
 
 ## Source precedence

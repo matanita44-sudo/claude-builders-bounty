@@ -308,7 +308,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
 
     result.semantic_touch.stage = 'run_start';
     await page.waitForFunction(
-      ({ schema, nestRevision }) => {
+      ({ schema, nestRevision, nestRunGeneration }) => {
         const state = globalThis.__INFINIDIVE_QA_STATE;
         return state?.schema === schema
           && Number.isInteger(state.revision)
@@ -321,18 +321,25 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
           && state.numeric_state_valid === true
           && state.movement_observed === false
           && Number.isInteger(state.run_generation)
-          && state.run_generation >= 1
+          && state.run_generation === nestRunGeneration + 1
           && Array.isArray(state.player_position)
           && state.player_position.length === 2
           && state.player_position.every(Number.isFinite);
       },
-      { schema: nestProbe.schema, nestRevision: nestProbe.revision },
+      {
+        schema: nestProbe.schema,
+        nestRevision: nestProbe.revision,
+        nestRunGeneration: nestProbe.run_generation,
+      },
       { timeout: 15_000 },
     );
     const runStartProbe = await qaSnapshot();
     assertRunProbe(runStartProbe, 'Run start');
     if (runStartProbe.schema !== nestProbe.schema || runStartProbe.revision <= nestProbe.revision) {
       throw new Error(`Run start did not continue the Nest probe revision: ${JSON.stringify({ nestProbe, runStartProbe })}`);
+    }
+    if (runStartProbe.run_generation !== nestProbe.run_generation + 1) {
+      throw new Error(`Run start did not create exactly one run generation: ${JSON.stringify({ nestProbe, runStartProbe })}`);
     }
     result.semantic_touch.snapshots.run_start = runStartProbe;
 

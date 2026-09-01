@@ -2,15 +2,16 @@
 
 This checklist is evidence-based. Check an item only after the artifact or test exists. A configured preset, authored data row, or code path is not equivalent to a validated build or feature.
 
-> Candidate source `7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363` and tests/CI `d30ece3bad7997b749dedce70ff636575425d92aac017f6c9204ac3d6e99bc58` pass local strict editor, `28,410/0`, and 8/90-second source-bound soaks. Existing checked package/public/30-minute items below are prior-source evidence until current CI, deploy, and packaging refresh complete.
+> Candidate source `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e` and tests/CI `ff2530d3aad779a21a3b775e8d973ba1b3e3c37a86b5b97cea133801c954dc59` pass local strict editor, `28,410/0`, and 8.049/90.041-second source-bound soaks. Existing checked package/public/30-minute items below are prior-source evidence until current CI, deploy, and packaging refresh complete.
 
 ## 0. Source and version control
 
 - [x] Godot project exists under `infinidive-game/`.
 - [x] Project version is declared as `0.1.0`.
 - [x] Source-of-truth README, architecture, status, issues, and release checklist exist.
-- [x] The exact production tree is committed and pushed on `infinidive-production` as `67e2c54`.
-- [x] The canonical production inventory is fingerprinted as `e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382`; the tracked tests/CI inventory, including the commit-bound public-host and synthetic-touch smoke workflow, is `e0af48b5b24e2333c928e685eccd12991c22f05d4cd8c37dc1c08f926bcb756b`. The production calculation deliberately excludes only `assets/store/gameplay/raw/`: its continuous provenance capture is local-only, untracked, and non-exported, so it cannot affect the shipped game.
+- [x] Prior frozen production tree `67e2c54` is committed and pushed on `infinidive-production`; it is historical evidence, not the active candidate.
+- [ ] The active `1db2d97a` / `ff2530d3` candidate tree is committed and pushed; this becomes checkable only after the pending source-control operation succeeds.
+- [x] The active candidate inventories are production `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e` and tracked tests/CI `ff2530d3aad779a21a3b775e8d973ba1b3e3c37a86b5b97cea133801c954dc59`. The production calculation deliberately excludes only `assets/store/gameplay/raw/`: its continuous provenance capture is local-only, untracked, and non-exported, so it cannot affect the shipped game.
 - [ ] Default/production branch is remotely playable and protected appropriately.
 - [ ] Risky migration work has a recoverable branch/tag/checkpoint.
 - [ ] Release version, changelog, and tag agree.
@@ -157,8 +158,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] The current CI workflow imports, tests, exports Web/Android, browser-smoke-tests the Web export, deploys Pages, and includes a post-deploy public-host smoke job.
 - [x] Actions run `33557365042`, attempt 2, passes overall for exact-tree commit `67e2c54`; deploy job `100024023277` also passes.
 - [x] Actions run `33559947112` completes fully `PASS`; its source-bound 30-minute job is `100030992601`, and artifact `9822001845` retains the validated JSON/Markdown pair.
-- [x] Runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` passes Actions run `33565500042`, including deploy job `100049011404` and public-smoke job `100049076641`. The optional long-soak job was skipped by design because validation accepted the retained current-source 30-minute pair.
-- [x] The current remote validate job passes the frozen 13-suite matrix at `28,410/0`.
+- [x] Prior runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` passes Actions run `33565500042`, including deploy job `100049011404` and public-smoke job `100049076641`. Its optional long-soak job skipped because validation accepted the then-current `e942db6f` 30-minute pair.
+- [ ] The current candidate remote validate job passes the frozen 13-suite matrix at `28,410/0`; local strict evidence passes and remote execution is pending.
 - [x] The Web export boots successfully in CI-served headless Chrome, and the current public export separately passes synthetic canvas delivery plus rendered-change checks; neither result asserts semantic gameplay state, Safari/mobile-browser behavior, or physical-device feel.
 - [x] The current Android debug export and structural validation pass in Actions run `33557365042`, attempt 2; this is not an install, lifecycle, release-signing, or Play internal-test result.
 - [x] The commit-bound public-host synthetic canvas automation passes in Actions run `33565500042`: HTTP 200, 540×960 canvas, zero page errors, and `3/3/3` canvas `touchstart` / `touchmove` / `touchend` events. Before SHA-256 `31212c7891fccbb64e3993062614178a854ac29b185878ee1a5db2963ccf2e23` differs from after SHA-256 `94e6d2654a466e0ecb37670e6621d2b873eb5c9c56c39a5565ea2f38afa0b6d8`, proving rendered change. Artifact `9823113363` is 90,667 bytes / `5038d055d8cf723b479424b4d099d0e3c036bb4e9eb325cb9c1ee6e00b750985`. This proves synthetic delivery and rendering only, not semantic gameplay state, mobile Safari/Chrome, or physical touch feel.
@@ -177,14 +178,14 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 - [x] Projectile pools have explicit caps and segment collision.
 - [ ] Cold start is measured against the target on representative devices.
-- [x] Current-source 30-minute Linux headless structural soak passes in Actions run `33559947112`, job `100030992601`, artifact `9822001845`: `1800.043s`, 26,676 cycles, 7/7 travel models, zero failures, transaction `5c047f1a630e8e1de5c5ffff`, JSON `2f8171e8317572f31fd479884edcaa441452082640a9be4f3fe9339da02710b4`, Markdown/bound hash `a508864e78c75981e8221df2c53f0ed97c82501295e999328fa86b78970f1856`.
-- [x] Current 8.031-second pair passes: 86 cycles, 9 restarts / 9 Dives, 6 saves, 529 queued events / 2 reloads / final 500, peak 540, 7/7, transaction `9ac05a1b4bcc696001e5a6e7`, JSON `d8d5c6c5b0667f3b53844839f5955841430e85842ea168220c1a0d8ca4b5c1e9`, Markdown/bound hash `9ba26093ba394c70b591130544a21094e719d0801d55755d82fd0e5c93814c27`.
-- [x] Current 90.048-second pair passes: 1,169 cycles, 117 restarts / 117 Dives, 60 saves / 1 reload, 637 queued events / 3 queue reloads / final 500, peak 540, 7/7, stable delta 90,040 bytes, slope 218,786.041893738 B/min, transaction `26dad83d28067418d76982a3`, JSON `2bc054556fe9e0c75813feb7e50dfcae5844c8140e4491bfd599e9129309c4c1`, Markdown/bound hash `026962ed338b02db99cfee0ecb08bc16b197c9b2abd1544214e11ed61e69ab83`.
-- [x] All three current pairs use unchanged production fingerprint `e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382`, complete their two-phase transactions, execute 7/7 travel models, and report zero failures.
-- [x] The current-source 30-minute soak completed 2,668 repeated restarts without retained run/projectile nodes; baseline/final nodes were 11/10 and orphan peak was 0.
-- [x] The current-source 30-minute soak completed 2,668 outside-inside-outside transitions without recorded duplicate/retained state.
+- [ ] Current-candidate 30-minute Linux headless structural soak passes; the retained `1800.043s` run `33559947112` / artifact `9822001845` belongs to prior fingerprint `e942db6f`.
+- [x] Current 8.049-second pair passes: 88 cycles, 9 restarts / 9 Dives, 6 saves, 529 queued events / 2 reloads / final 500, peak 540, 7/7, transaction `994142d36b9310b4523a7b2f`, JSON `4ed5331ef40095b482a3c15804a34f42e0c7be9fdd615ed125c4a020d652242c`, Markdown/bound hash `3ac976b10c77799e9c7ec8930e62d0f329cc36910cc18f6d3bc933f72cca7b85`.
+- [x] Current 90.041-second pair passes: 1,166 cycles, 117 restarts / 117 Dives, 60 saves / 1 reload, 637 queued events / 3 queue reloads / final 500, peak 540, 7/7, stable delta 90,604 bytes, slope 218,771.80935953 B/min, transaction `98e69a9b42dd1314f6a16cb9`, JSON `0033e18b7730513b977dadb9f275ad919ed24dc6c4e6545d31b1199c3d48e65b`, Markdown/bound hash `c6a109f86f8ba63474b4456c3d265111f85759c82e5c6ad86f85efd8833d571c`.
+- [x] Both current short pairs use unchanged production fingerprint `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e`, complete their two-phase transactions, execute 7/7 travel models, and report zero failures.
+- [x] The prior-source 30-minute soak completed 2,668 repeated restarts without retained run/projectile nodes; baseline/final nodes were 11/10 and orphan peak was 0. Candidate confirmation is pending.
+- [x] The prior-source 30-minute soak completed 2,668 outside-inside-outside transitions without recorded duplicate/retained state. Candidate confirmation is pending.
 - [ ] Maximum-projectile stress test passes at target frame rate.
-- [x] The current-source 30-minute soak completed 1,335 atomic saves and 22 reload/backup checks, plus 3,188 offline events / 24 queue reloads / final queue 500.
+- [x] The prior-source 30-minute soak completed 1,335 atomic saves and 22 reload/backup checks, plus 3,188 offline events / 24 queue reloads / final queue 500. Candidate confirmation is pending.
 - [ ] Offline/online transition test passes if networking is enabled.
 - [ ] Background return is fast and stable.
 - [ ] No blocking network or save operation occurs during combat.
