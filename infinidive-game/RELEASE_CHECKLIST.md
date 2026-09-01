@@ -7,7 +7,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Godot project exists under `infinidive-game/`.
 - [x] Project version is declared as `0.1.0`.
 - [x] Source-of-truth README, architecture, status, issues, and release checklist exist.
-- [x] Production source is committed on `infinidive-production`; Actions run 33498494206 tested commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`.
+- [x] Production source is committed on `infinidive-production`; Actions run 33514397476 tested commit `8e4be78267a043072827963d6492c7964239ae94`.
 - [ ] Default/production branch is remotely playable and protected appropriately.
 - [ ] Risky migration work has a recoverable branch/tag/checkpoint.
 - [ ] Release version, changelog, and tag agree.
@@ -149,9 +149,9 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.
 - [x] A committed CI workflow imports, tests, exports Web/Android, browser-smoke-tests Web, and attempts Pages deployment.
-- [ ] The complete CI workflow passes on GitHub. Run 33498494206 validates only commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`; Pages rerun job 99862926627 again failed because `Create Pages site` returned `Resource not accessible by integration`.
-- [x] Remote Actions run 33498494206 passed the mutation main suite plus focused permanent-upgrade, tutorial, room, backend, meta, and audio suites for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`; it does not validate the current working tree or new organ suite.
-- [x] The CI-served Playwright/Chromium boot smoke returned HTTP 200, started Godot 4.7.2 with WebGL2, created a 540×960 canvas, hid the loading status, and emitted no page errors.
+- [ ] The complete CI workflow passes on GitHub. Current run 33514397476 passed validate/Web/Android, but deploy job 99878161111 failed at Get Pages `Not Found` / Create Pages `Resource not accessible by integration`.
+- [x] Current-commit validate job 99877648950 passed all eight invocations: main 2,538; backend 82; upgrades 120; tutorial 198; rooms 2,583; organ 325; meta 111; audio 505; all zero failures.
+- [x] Current-commit Web job 99877839855 passed and its CI-served Chromium smoke returned HTTP 200, Godot 4.7.2, WebGL2, canvas 540×960, hidden loading status, and no page errors.
 - [x] Local complete-boss victory smoke tests pass for four bosses × six organ orders.
 - [x] Combined failure, 55-Bio banking, Forge upgrade, 110-HP new run, second failure, instant retry, and separate-process relaunch smoke passes.
 - [ ] A previously shipped-build update fixture, background/force-close reward timing, and repeated Abyss-depth smoke pass.
@@ -179,12 +179,12 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 - [x] A current-working-tree Godot Web evidence export exists under `../../build/web/`: HTML 2,618 bytes / `190b5852ff3c94b4d2e6ce2849bdbc92cb64e77c6cb972d35165b9cf544713b5`; PCK 440,384 / `f9acf67d893ab6513f2b7fde450fcd2129331ba8252b3464132d94892b85b9d4`; WASM 39,514,754 / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`. The checked-in preset's default target remains `../build/web/`.
 - [x] Static Web validation passes and confirms tooling/adaptive-icon sources are excluded from the package.
-- [x] The remote Pages artifact for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232` records HTML 2,618 bytes / `f86b5f1c0f8985d66056f47c4969f8ae8366b5fb256ebc1098900471188e4336`, PCK 423,872 bytes / `b0f971a5f56accfd8eec18683978e4da556c3a582ddfad30462db7ae5685a5a1`, and WASM 39,514,754 bytes / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`.
-- [x] The remote Web artifact boots through CI-served HTTP in headless Chromium with no page errors; this does not cover touch gameplay, Safari, or the public host.
+- [x] Current-commit remote Web output records HTML 2,618 bytes, PCK 440,384 bytes, and WASM 39,514,754 bytes in Pages artifact `9803007777`; smoke artifact `9803006599` retains the Chromium evidence. No remote hashes are inferred from the separately recorded local hashes.
+- [x] The current-commit remote Web artifact boots through CI-served HTTP in headless Chromium with no page errors; this does not cover touch gameplay, Safari, or the public host.
 - [ ] Export is smoke-tested in desktop Safari and Chrome.
 - [ ] Export is touch-tested in mobile Safari and mobile Chrome.
 - [ ] Hosting sends any headers required by the exported Godot configuration.
-- [ ] GitHub Pages workflow completes successfully; rerun job 99862926627 again stopped because the integration could not create the Pages site.
+- [ ] GitHub Pages workflow completes successfully; current deploy job 99878161111 stopped at Get Pages `Not Found` / Create Pages `Resource not accessible by integration`.
 - [ ] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opens the current game directly, returns HTTP 200, and passes runtime smoke.
 - [x] Fail-closed verification records HTTP 404 for the game, support, and privacy URLs and no canvas; no public deployment is claimed.
 - [ ] Public build displays current version and a working feedback link.
@@ -192,7 +192,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 ## 10. Android internal test
 
 - [x] A current-working-tree arm64 portrait debug APK exists at `../../build/android/infinidive-debug.apk`: 28,878,673 bytes / SHA-256 `2d3d5fa6f283381fd31aa1702df2cc697c80f12d0d7a96e6c1e22b59c33cdcef`; structural validation passes.
-- [x] The remote CI debug APK for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232` is 28,862,289 bytes (SHA-256 `45f1ebc82f1bae1d1cb767456c81fcf405d25b01d5e737c96b06f95084d0ef4c`).
+- [x] Current-commit Android job 99877839931 passed using build-tools 36 and produced remote debug APK SHA-256 `9b981f4d0accc600ef8f869e600b16f5585533ea1fe4cf8c71a983cfbdd87172` in artifact `9802998519`.
 - [x] Its manifest verifies `com.matan.infinidive`, version `0.1.0 (1)`, min SDK 24, target SDK 36, and exactly normal `android.permission.VIBRATE`.
 - [x] The APK passes zip alignment and v2/v3 signature verification with `CN=Android Debug`; it is not production-distributable evidence.
 - [x] Both reconciled Android presets request only normal `android.permission.VIBRATE` for optional haptics; it has no runtime prompt and does not collect data.
