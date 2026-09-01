@@ -1,0 +1,206 @@
+{
+	"counts": {
+		"boss_restarts": 161,
+		"dive_transitions": 161,
+		"enemy_projectiles_spawned": 193488,
+		"iterations": 1604,
+		"offline_events_queued": 680,
+		"offline_queue_final_size": 500,
+		"offline_queue_reloads": 3,
+		"player_projectiles_spawned": 98497,
+		"projectile_cycles": 1604,
+		"save_reloads": 1,
+		"save_writes": 81
+	},
+	"display_server": "headless",
+	"elapsed_wall_seconds": 90.023,
+	"engine": {
+		"build": "official",
+		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
+		"hex": 263938,
+		"major": 4,
+		"minor": 7,
+		"patch": 2,
+		"status": "stable",
+		"string": "4.7.2-stable (official)",
+		"timestamp": 0
+	},
+	"failures": [],
+	"finished_at_utc": "2026-09-01T10:02:19",
+	"memory": {
+		"end_bytes": 36848060,
+		"peak_bytes": 37156852,
+		"sample_count": 20,
+		"slope_bytes_per_minute": 25188.9365913707,
+		"stable_delta_bytes": -20844,
+		"stable_sample_count": 15,
+		"stable_start_bytes": 36868904,
+		"start_bytes": 31084580,
+		"warmup_seconds": 18.0046
+	},
+	"memory_samples": [
+		{
+			"elapsed_seconds": 0.0,
+			"memory_bytes": 31084580,
+			"node_count": 11,
+			"object_count": 1522,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 0.217,
+			"memory_bytes": 35940880,
+			"node_count": 11,
+			"object_count": 1534,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 5.006,
+			"memory_bytes": 36965204,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 10.058,
+			"memory_bytes": 36936240,
+			"node_count": 11,
+			"object_count": 1534,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 15.022,
+			"memory_bytes": 36911356,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 20.067,
+			"memory_bytes": 36868904,
+			"node_count": 11,
+			"object_count": 1534,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 25.036,
+			"memory_bytes": 36855024,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 30.017,
+			"memory_bytes": 36813412,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 35.026,
+			"memory_bytes": 36771800,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 40.014,
+			"memory_bytes": 36772428,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 45.018,
+			"memory_bytes": 37153752,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 50.043,
+			"memory_bytes": 37156852,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 55.036,
+			"memory_bytes": 37103480,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 60.027,
+			"memory_bytes": 37050276,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 65.04,
+			"memory_bytes": 36997460,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 70.039,
+			"memory_bytes": 36950648,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 75.056,
+			"memory_bytes": 36895272,
+			"node_count": 11,
+			"object_count": 1534,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 80.037,
+			"memory_bytes": 36846908,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 85.005,
+			"memory_bytes": 36847632,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 90.023,
+			"memory_bytes": 36848060,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		}
+	],
+	"object_counts": {
+		"baseline_nodes": 11,
+		"baseline_objects": 1522,
+		"final_nodes": 10,
+		"final_objects": 1530
+	},
+	"passed": true,
+	"peaks": {
+		"enemy_projectiles": 350,
+		"node_count": 32,
+		"object_count": 1594,
+		"orphan_node_count": 0,
+		"player_projectiles": 190,
+		"total_projectiles": 540
+	},
+	"requested_duration_seconds": 90.0,
+	"schema": 1,
+	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
+	"seed": 2039070,
+	"source_changed_during_run": false,
+	"source_fingerprint_end": "4d45d0198af8510b36f5eaf5e726ca1125828e354b724eb4d94d57abe509ce19",
+	"source_fingerprint_start": "4d45d0198af8510b36f5eaf5e726ca1125828e354b724eb4d94d57abe509ce19",
+	"started_at_utc": "2026-09-01T10:00:49"
+}

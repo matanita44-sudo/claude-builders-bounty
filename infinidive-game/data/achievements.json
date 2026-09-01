@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "achievements": [
+    {
+      "id": "first_incision",
+      "title": {"en": "First Incision", "he": "החתך הראשון"},
+      "description": {"en": "Destroy your first organ.", "he": "השמידו איבר ראשון."},
+      "event": "organ_destroyed",
+      "metric": "count",
+      "threshold": 1,
+      "match": {},
+      "reward": {"bio_matter": 60, "core_shards": 0}
+    },
+    {
+      "id": "anatomy_student",
+      "title": {"en": "Anatomy Student", "he": "תלמידי אנטומיה"},
+      "description": {"en": "Destroy three different organs.", "he": "השמידו שלושה איברים שונים."},
+      "event": "organ_destroyed",
+      "metric": "unique",
+      "value_key": "organ_id",
+      "threshold": 3,
+      "match": {},
+      "reward": {"bio_matter": 120, "core_shards": 0}
+    },
+    {
+      "id": "complete_anatomy",
+      "title": {"en": "Complete Anatomy", "he": "אנטומיה שלמה"},
+      "description": {"en": "Destroy all twelve launch organs.", "he": "השמידו את כל שנים־עשר איברי ההשקה."},
+      "event": "organ_destroyed",
+      "metric": "unique",
+      "value_key": "organ_id",
+      "threshold": 12,
+      "match": {},
+      "reward": {"bio_matter": 300, "core_shards": 2}
+    },
+    {
+      "id": "gravebreaker",
+      "title": {"en": "Gravebreaker", "he": "שוברי הקבר"},
+      "description": {"en": "Defeat Gravemaw.", "he": "הביסו את לוע־הקבר."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "boss_id": "gravemaw"},
+      "reward": {"bio_matter": 100, "core_shards": 1}
+    },
+    {
+      "id": "silence_the_choir",
+      "title": {"en": "Silence the Choir", "he": "השתקת המקהלה"},
+      "description": {"en": "Defeat Seraph-9.", "he": "הביסו את שרף־9."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "boss_id": "seraph_9"},
+      "reward": {"bio_matter": 140, "core_shards": 1}
+    },
+    {
+      "id": "harpoon_the_abyss",
+      "title": {"en": "Harpoon the Abyss", "he": "צלצל לתהום"},
+      "description": {"en": "Defeat the Abyss Leviathan.", "he": "הביסו את לווייתן התהום."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "boss_id": "abyss_leviathan"},
+      "reward": {"bio_matter": 180, "core_shards": 1}
+    },
+    {
+      "id": "break_the_mirror",
+      "title": {"en": "Break the Mirror", "he": "שבירת המראה"},
+      "description": {"en": "Defeat the Null Twin.", "he": "הביסו את תאום האפס."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "boss_id": "null_twin"},
+      "reward": {"bio_matter": 220, "core_shards": 2}
+    },
+    {
+      "id": "colossus_archive",
+      "title": {"en": "Colossus Archive", "he": "ארכיון הענקים"},
+      "description": {"en": "Defeat all four launch bosses.", "he": "הביסו את כל ארבעת ענקי ההשקה."},
+      "event": "run_complete",
+      "metric": "unique",
+      "value_key": "boss_id",
+      "threshold": 4,
+      "match": {"won": true},
+      "reward": {"bio_matter": 400, "core_shards": 3}
+    },
+    {
+      "id": "arsenal_master",
+      "title": {"en": "Arsenal Master", "he": "אמן הנשקייה"},
+      "description": {"en": "Win with all five weapons.", "he": "נצחו עם כל חמשת כלי הנשק."},
+      "event": "run_complete",
+      "metric": "unique",
+      "value_key": "weapon_id",
+      "threshold": 5,
+      "match": {"won": true},
+      "reward": {"bio_matter": 350, "core_shards": 2}
+    },
+    {
+      "id": "phase_practice",
+      "title": {"en": "Phase Practice", "he": "אימון פאזה"},
+      "description": {"en": "Use Phase Dash fifty times.", "he": "השתמשו בדילוג פאזה חמישים פעמים."},
+      "event": "dash_used",
+      "metric": "count",
+      "threshold": 50,
+      "match": {},
+      "reward": {"bio_matter": 150, "core_shards": 0}
+    },
+    {
+      "id": "between_the_bullets",
+      "title": {"en": "Between the Bullets", "he": "בין הקליעים"},
+      "description": {"en": "Perform ten perfectly timed dashes.", "he": "בצעו עשרה דילוגים בתזמון מושלם."},
+      "event": "perfect_dash",
+      "metric": "count",
+      "threshold": 10,
+      "match": {},
+      "reward": {"bio_matter": 200, "core_shards": 1}
+    },
+    {
+      "id": "seasoned_diver",
+      "title": {"en": "Seasoned Diver", "he": "צוללים מנוסים"},
+      "description": {"en": "Finish twenty-five runs, win or lose.", "he": "סיימו עשרים וחמש ריצות, בניצחון או בהפסד."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 25,
+      "match": {},
+      "reward": {"bio_matter": 300, "core_shards": 1}
+    },
+    {
+      "id": "deeper_water",
+      "title": {"en": "Deeper Water", "he": "מים עמוקים יותר"},
+      "description": {"en": "Win a run on Deep or Abyss difficulty.", "he": "נצחו ברמת עומק או תהום."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "difficulty": ["deep", "abyss"]},
+      "reward": {"bio_matter": 180, "core_shards": 1}
+    },
+    {
+      "id": "abyss_depth_ten",
+      "title": {"en": "No Bottom", "he": "ללא תחתית"},
+      "description": {"en": "Reach depth ten in Abyss Loop.", "he": "הגיעו לעומק עשר בלולאת התהום."},
+      "event": "abyss_depth_reached",
+      "metric": "max",
+      "value_key": "depth",
+      "threshold": 10,
+      "match": {},
+      "reward": {"bio_matter": 250, "core_shards": 2}
+    }
+  ]
+}

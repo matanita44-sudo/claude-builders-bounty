@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "contracts": [
+    {
+      "id": "hunt_gravemaw",
+      "slot": "hunt",
+      "title": {"en": "Gravemaw Hunt", "he": "ציד לוע־הקבר"},
+      "description": {"en": "Defeat Gravemaw once.", "he": "הביסו את לוע־הקבר פעם אחת."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "boss_id": "gravemaw"},
+      "reward": {"bio_matter": 100, "core_shards": 0}
+    },
+    {
+      "id": "hunt_seraph_9",
+      "slot": "hunt",
+      "title": {"en": "Fallen Seraph", "he": "שרף שנפל"},
+      "description": {"en": "Defeat Seraph-9 once.", "he": "הביסו את שרף־9 פעם אחת."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "boss_id": "seraph_9"},
+      "reward": {"bio_matter": 130, "core_shards": 0}
+    },
+    {
+      "id": "hunt_abyss_leviathan",
+      "slot": "hunt",
+      "title": {"en": "Leviathan Hunt", "he": "ציד הלווייתן"},
+      "description": {"en": "Defeat the Abyss Leviathan once.", "he": "הביסו את לווייתן התהום פעם אחת."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "boss_id": "abyss_leviathan"},
+      "reward": {"bio_matter": 150, "core_shards": 0}
+    },
+    {
+      "id": "hunt_null_twin",
+      "slot": "hunt",
+      "title": {"en": "Null Hunt", "he": "ציד האפס"},
+      "description": {"en": "Defeat the Null Twin once.", "he": "הביסו את תאום האפס פעם אחת."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "boss_id": "null_twin"},
+      "reward": {"bio_matter": 170, "core_shards": 0}
+    },
+    {
+      "id": "hunt_finish_two_runs",
+      "slot": "hunt",
+      "title": {"en": "Two Descents", "he": "שתי ירידות"},
+      "description": {"en": "Finish two runs, win or lose.", "he": "סיימו שתי ריצות, בניצחון או בהפסד."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 2,
+      "match": {},
+      "reward": {"bio_matter": 100, "core_shards": 0}
+    },
+    {
+      "id": "hunt_one_victory",
+      "slot": "hunt",
+      "title": {"en": "One Clean Kill", "he": "חיסול נקי אחד"},
+      "description": {"en": "Win one run against any boss.", "he": "נצחו ריצה אחת נגד ענק כלשהו."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true},
+      "reward": {"bio_matter": 120, "core_shards": 0}
+    },
+    {
+      "id": "build_pulse_needle",
+      "slot": "build",
+      "title": {"en": "Needle Work", "he": "עבודת מחט"},
+      "description": {"en": "Finish two runs with the Pulse Needle.", "he": "סיימו שתי ריצות עם מחט הדופק."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 2,
+      "match": {"weapon_id": "pulse_needle"},
+      "reward": {"bio_matter": 90, "core_shards": 0}
+    },
+    {
+      "id": "build_scatter_maw",
+      "slot": "build",
+      "title": {"en": "Close Enough", "he": "קרוב מספיק"},
+      "description": {"en": "Finish two runs with the Scatter Maw.", "he": "סיימו שתי ריצות עם לוע הפיזור."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 2,
+      "match": {"weapon_id": "scatter_maw"},
+      "reward": {"bio_matter": 100, "core_shards": 0}
+    },
+    {
+      "id": "build_rail_spine",
+      "slot": "build",
+      "title": {"en": "Thread the Giant", "he": "השחלת הענק"},
+      "description": {"en": "Finish two runs with the Rail Spine.", "he": "סיימו שתי ריצות עם עמוד מסילה."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 2,
+      "match": {"weapon_id": "rail_spine"},
+      "reward": {"bio_matter": 110, "core_shards": 0}
+    },
+    {
+      "id": "build_arc_swarm",
+      "slot": "build",
+      "title": {"en": "Arc Colony", "he": "מושבת קשת"},
+      "description": {"en": "Finish two runs with the Arc Swarm.", "he": "סיימו שתי ריצות עם נחיל הקשת."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 2,
+      "match": {"weapon_id": "arc_swarm"},
+      "reward": {"bio_matter": 110, "core_shards": 0}
+    },
+    {
+      "id": "build_void_orbitals",
+      "slot": "build",
+      "title": {"en": "Hold Orbit", "he": "שמירת מסלול"},
+      "description": {"en": "Finish two runs with the Void Orbitals.", "he": "סיימו שתי ריצות עם מסלולי הריק."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 2,
+      "match": {"weapon_id": "void_orbitals"},
+      "reward": {"bio_matter": 110, "core_shards": 0}
+    },
+    {
+      "id": "build_harvest_organs",
+      "slot": "build",
+      "title": {"en": "Tissue Harvest", "he": "קציר רקמות"},
+      "description": {"en": "Destroy four organs.", "he": "השמידו ארבעה איברים."},
+      "event": "organ_destroyed",
+      "metric": "count",
+      "threshold": 4,
+      "match": {},
+      "reward": {"bio_matter": 120, "core_shards": 0}
+    },
+    {
+      "id": "build_two_weapons",
+      "slot": "build",
+      "title": {"en": "Change the Tool", "he": "החלפת הכלי"},
+      "description": {"en": "Finish runs with two different weapons.", "he": "סיימו ריצות עם שני כלי נשק שונים."},
+      "event": "run_complete",
+      "metric": "unique",
+      "value_key": "weapon_id",
+      "threshold": 2,
+      "match": {},
+      "reward": {"bio_matter": 100, "core_shards": 0}
+    },
+    {
+      "id": "skill_phase_twenty",
+      "slot": "skill",
+      "title": {"en": "Phase Twenty", "he": "עשרים בפאזה"},
+      "description": {"en": "Use Phase Dash twenty times.", "he": "השתמשו בדילוג פאזה עשרים פעמים."},
+      "event": "dash_used",
+      "metric": "count",
+      "threshold": 20,
+      "match": {},
+      "reward": {"bio_matter": 90, "core_shards": 0}
+    },
+    {
+      "id": "skill_perfect_three",
+      "slot": "skill",
+      "title": {"en": "Perfect Three", "he": "שלושה מושלמים"},
+      "description": {"en": "Perform three perfectly timed dashes.", "he": "בצעו שלושה דילוגים בתזמון מושלם."},
+      "event": "perfect_dash",
+      "metric": "count",
+      "threshold": 3,
+      "match": {},
+      "reward": {"bio_matter": 110, "core_shards": 0}
+    },
+    {
+      "id": "skill_low_damage_win",
+      "slot": "skill",
+      "title": {"en": "Hull Discipline", "he": "משמעת גוף"},
+      "description": {"en": "Win while taking no more than twenty damage.", "he": "נצחו לאחר שספגתם לכל היותר עשרים נזק."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "damage_taken": {"lte": 20}},
+      "reward": {"bio_matter": 150, "core_shards": 0}
+    },
+    {
+      "id": "skill_fast_clear",
+      "slot": "skill",
+      "title": {"en": "Six-Minute Surgery", "he": "ניתוח בשש דקות"},
+      "description": {"en": "Win a run in six minutes or less.", "he": "נצחו ריצה בתוך שש דקות או פחות."},
+      "event": "run_complete",
+      "metric": "count",
+      "threshold": 1,
+      "match": {"won": true, "duration_ms": {"lte": 360000}},
+      "reward": {"bio_matter": 140, "core_shards": 0}
+    },
+    {
+      "id": "skill_abyss_five",
+      "slot": "skill",
+      "title": {"en": "Five Down", "he": "חמישה מטה"},
+      "description": {"en": "Reach depth five in Abyss Loop.", "he": "הגיעו לעומק חמש בלולאת התהום."},
+      "event": "abyss_depth_reached",
+      "metric": "max",
+      "value_key": "depth",
+      "threshold": 5,
+      "match": {},
+      "reward": {"bio_matter": 130, "core_shards": 0}
+    },
+    {
+      "id": "skill_retry_twice",
+      "slot": "skill",
+      "title": {"en": "One More Run", "he": "עוד ריצה אחת"},
+      "description": {"en": "Retry immediately twice.", "he": "נסו שוב מיד פעמיים."},
+      "event": "instant_retry",
+      "metric": "count",
+      "threshold": 2,
+      "match": {},
+      "reward": {"bio_matter": 80, "core_shards": 0}
+    }
+  ]
+}

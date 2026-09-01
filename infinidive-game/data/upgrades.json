@@ -1,0 +1,20 @@
+[
+  {"id":"reinforced_hull","branch":"hull","name":"REINFORCED HULL","description":"Add 10 maximum hull per level.","max_level":5,"base_cost":55,"cost_scale":1.55,"effects":{"max_health_add":10}},
+  {"id":"reactive_plating","branch":"hull","name":"REACTIVE PLATING","description":"First hit in every phase deals 40% less damage.","max_level":3,"base_cost":95,"cost_scale":1.8,"effects":{"phase_first_hit_reduction":0.4}},
+  {"id":"starting_sheath","branch":"hull","name":"STARTING SHEATH","description":"Begin each run with a one-hit shield.","max_level":1,"base_cost":260,"cost_scale":1.0,"effects":{"starting_shield":1},"requires":"reinforced_hull:2"},
+  {"id":"phase_coils","branch":"drive","name":"PHASE COILS","description":"Dash recharges 6% faster per level.","max_level":5,"base_cost":65,"cost_scale":1.55,"effects":{"dash_cooldown_mul":0.94}},
+  {"id":"wide_phase","branch":"drive","name":"WIDE PHASE","description":"Extend the invulnerability window by 0.035 seconds.","max_level":3,"base_cost":110,"cost_scale":1.75,"effects":{"dash_invuln_add":0.035}},
+  {"id":"breach_anchor","branch":"drive","name":"BREACH ANCHOR","description":"Breach openings remain stable 20% longer.","max_level":3,"base_cost":120,"cost_scale":1.7,"effects":{"breach_duration_mul":1.2}},
+  {"id":"weapon_calibration","branch":"weapons","name":"WEAPON CALIBRATION","description":"All weapons deal 5% more damage per level.","max_level":5,"base_cost":70,"cost_scale":1.6,"effects":{"damage_mul":1.05}},
+  {"id":"warm_chamber","branch":"weapons","name":"WARM CHAMBER","description":"First 4 seconds of a phase fire 12% faster.","max_level":3,"base_cost":105,"cost_scale":1.75,"effects":{"phase_open_rate_mul":1.12}},
+  {"id":"mastery_socket","branch":"weapons","name":"MASTERY SOCKET","description":"Equipped weapons reveal one extra synergy hint.","max_level":1,"base_cost":300,"cost_scale":1.0,"effects":{"synergy_preview":1}},
+  {"id":"grave_magnet","branch":"salvage","name":"GRAVE MAGNET","description":"Increase pickup range by 14% per level.","max_level":5,"base_cost":50,"cost_scale":1.55,"effects":{"magnet_mul":1.14}},
+  {"id":"failure_vault","branch":"salvage","name":"FAILURE VAULT","description":"Retain 6% more run Bio-Matter after death.","max_level":5,"base_cost":75,"cost_scale":1.65,"effects":{"death_retention_add":0.06}},
+  {"id":"core_dividend","branch":"salvage","name":"CORE DIVIDEND","description":"Boss victories grant 8% more Bio-Matter.","max_level":3,"base_cost":135,"cost_scale":1.8,"effects":{"victory_reward_mul":1.08}},
+  {"id":"organ_lining","branch":"depth","name":"ORGAN LINING","description":"Internal hazards deal 6% less damage per level.","max_level":5,"base_cost":65,"cost_scale":1.6,"effects":{"internal_damage_mul":0.94}},
+  {"id":"breach_surge","branch":"depth","name":"BREACH SURGE","description":"Entering an organ repairs 4 hull per level.","max_level":3,"base_cost":105,"cost_scale":1.7,"effects":{"dive_heal_add":4}},
+  {"id":"anatomy_scan","branch":"depth","name":"ANATOMY SCAN","description":"Reveal organ tissue strength and its internal hazard before choosing.","max_level":1,"base_cost":190,"cost_scale":1.0,"effects":{"organ_preview":1}},
+  {"id":"research_reroll","branch":"research","name":"RESEARCH REROLL","description":"Gain one mutation reroll per run.","max_level":2,"base_cost":170,"cost_scale":2.0,"effects":{"starting_rerolls_add":1}},
+  {"id":"rarity_filter","branch":"research","name":"RARITY FILTER","description":"Every third mutation choice includes a rare option.","max_level":1,"base_cost":360,"cost_scale":1.0,"effects":{"rare_protection":1}},
+  {"id":"rift_dividend","branch":"research","name":"RIFT DIVIDEND","description":"Daily and Friend Rifts award 12% more Bio-Matter per level.","max_level":3,"base_cost":120,"cost_scale":1.75,"effects":{"challenge_reward_mul":1.12}}
+]

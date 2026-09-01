@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">INFINIDIVE split-iris logo mark</title>
+  <desc id="desc">An original bone-armored colossus aperture with a cyan diver descending into a magenta three-lobed breach.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="512" cy="556" r="330" fill="#19101D" stroke="#070A0F" stroke-width="38"/>
+    <circle cx="512" cy="556" r="282" fill="#0D0A13" stroke="#59606B" stroke-width="38"/>
+    <circle cx="512" cy="556" r="220" stroke="#F32D83" stroke-opacity="0.24" stroke-width="52"/>
+
+    <g stroke="#070A0F" stroke-width="92">
+      <path d="M214 430 C252 315 346 235 465 218"/>
+      <path d="M586 228 C699 255 781 343 808 452"/>
+      <path d="M786 686 C719 803 592 859 461 840"/>
+      <path d="M356 810 C249 753 193 651 198 548"/>
+    </g>
+    <g stroke="#59606B" stroke-width="74">
+      <path d="M214 430 C252 315 346 235 465 218"/>
+      <path d="M586 228 C699 255 781 343 808 452"/>
+      <path d="M786 686 C719 803 592 859 461 840"/>
+      <path d="M356 810 C249 753 193 651 198 548"/>
+    </g>
+    <g stroke="#D7D0BD" stroke-width="52">
+      <path d="M214 430 C252 315 346 235 465 218"/>
+      <path d="M586 228 C699 255 781 343 808 452"/>
+      <path d="M786 686 C719 803 592 859 461 840"/>
+      <path d="M356 810 C249 753 193 651 198 548"/>
+    </g>
+  </g>
+
+  <g fill="#D7D0BD" stroke="#070A0F" stroke-width="16" stroke-linejoin="round">
+    <path d="M259 330 L205 277 L293 294 Z"/>
+    <path d="M374 236 L348 164 L431 217 Z"/>
+    <path d="M699 294 L731 221 L754 330 Z"/>
+    <path d="M807 421 L885 406 L817 489 Z"/>
+    <path d="M738 770 L779 837 L695 803 Z"/>
+    <path d="M545 845 L529 920 L487 841 Z"/>
+    <path d="M273 722 L198 755 L238 677 Z"/>
+    <path d="M201 558 L126 530 L201 500 Z"/>
+  </g>
+
+  <g fill="#F32D83" stroke="#070A0F" stroke-width="18" stroke-linejoin="round">
+    <path d="M512 326 C566 391 581 460 551 516 C540 537 526 554 512 572 C498 554 484 537 473 516 C443 460 458 391 512 326 Z"/>
+    <path d="M512 326 C566 391 581 460 551 516 C540 537 526 554 512 572 C498 554 484 537 473 516 C443 460 458 391 512 326 Z" transform="rotate(120 512 556)"/>
+    <path d="M512 326 C566 391 581 460 551 516 C540 537 526 554 512 572 C498 554 484 537 473 516 C443 460 458 391 512 326 Z" transform="rotate(240 512 556)"/>
+  </g>
+  <circle cx="512" cy="556" r="106" fill="#03050C" stroke="#A78BFA" stroke-width="12"/>
+  <circle cx="512" cy="556" r="73" fill="#070A0F" stroke="#F32D83" stroke-opacity="0.72" stroke-width="8"/>
+
+  <path d="M512 104 V333" fill="none" stroke="#54F2E7" stroke-opacity="0.18" stroke-width="34" stroke-linecap="round"/>
+  <path d="M512 126 V338" fill="none" stroke="#C9FFFB" stroke-opacity="0.7" stroke-width="8" stroke-linecap="round"/>
+  <g stroke="#070A0F" stroke-width="16" stroke-linejoin="round">
+    <path d="M512 177 L550 367 L530 407 L512 478 L494 407 L474 367 Z" fill="#54F2E7"/>
+    <path d="M487 345 L426 397 L490 417 Z" fill="#D7D0BD"/>
+    <path d="M537 345 L598 397 L534 417 Z" fill="#D7D0BD"/>
+  </g>
+  <path d="M512 222 L526 365 L512 426 L498 365 Z" fill="#C9FFFB"/>
+  <circle cx="512" cy="368" r="13" fill="#070A0F" stroke="#A78BFA" stroke-width="7"/>
+
+  <g fill="#F4F1E8">
+    <circle cx="148" cy="232" r="8"/>
+    <circle cx="842" cy="264" r="6"/>
+    <circle cx="876" cy="664" r="9"/>
+    <circle cx="153" cy="813" r="5"/>
+  </g>
+</svg>

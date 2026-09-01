@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432" role="img" aria-label="INFINIDIVE monochrome adaptive icon">
+  <g fill="#FFFFFF">
+    <path fill-rule="evenodd" d="M216 112 A120 120 0 1 1 215.9 112 M216 142 A90 90 0 1 0 216.1 142"/>
+    <path d="M216 151 C239 179 246 207 233 231 C228 240 222 247 216 255 C210 247 204 240 199 231 C186 207 193 179 216 151 Z"/>
+    <path d="M216 151 C239 179 246 207 233 231 C228 240 222 247 216 255 C210 247 204 240 199 231 C186 207 193 179 216 151 Z" transform="rotate(120 216 232)"/>
+    <path d="M216 151 C239 179 246 207 233 231 C228 240 222 247 216 255 C210 247 204 240 199 231 C186 207 193 179 216 151 Z" transform="rotate(240 216 232)"/>
+    <path d="M216 87 L233 172 L223 193 L216 221 L209 193 L199 172 Z"/>
+    <path d="M207 160 L177 187 L207 195 Z"/>
+    <path d="M225 160 L255 187 L225 195 Z"/>
+  </g>
+</svg>

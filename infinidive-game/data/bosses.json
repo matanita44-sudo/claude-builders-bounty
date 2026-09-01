@@ -1,0 +1,66 @@
+[
+  {
+    "id": "gravemaw",
+    "name": "GRAVEMAW",
+    "subtitle": "THE ORBITAL DEVOURER",
+    "fantasy": "A living asteroid that turns swallowed fleets into bone armor.",
+    "palette": ["#D7D0BD", "#F32D83", "#FFC857"],
+    "base_armor": 1750,
+    "core_health": 3600,
+    "reward_bio": 320,
+    "reward_shards": 1,
+    "organs": [
+      {"id":"hunter_eye","name":"HUNTER EYE","ability":"homing_eye","effect":"Homing salvos lose their lock and become straight shots.","hp":1450,"hazard":"seeking_cells","icon":"eye"},
+      {"id":"gravity_lung","name":"GRAVITY LUNG","ability":"gravity_ring","effect":"Gravity rings slow down and their safe gap widens.","hp":1650,"hazard":"suction","icon":"rings"},
+      {"id":"bone_forge","name":"BONE FORGE","ability":"bone_missiles","effect":"Bone missile vents crack shut for the rest of the fight.","hp":1850,"hazard":"bone_spikes","icon":"forge"}
+    ]
+  },
+  {
+    "id": "seraph_9",
+    "name": "SERAPH-9",
+    "subtitle": "THE DEAD GOD ENGINE",
+    "fantasy": "A biomechanical angel-machine whose worship became executable code.",
+    "palette": ["#F4F1E8", "#A78BFA", "#54F2E7"],
+    "base_armor": 2150,
+    "core_health": 4400,
+    "reward_bio": 430,
+    "reward_shards": 1,
+    "organs": [
+      {"id":"prism_cortex","name":"PRISM CORTEX","ability":"prism_lances","effect":"Prism lances lose one reflected beam and telegraph longer.","hp":1900,"hazard":"prism_grid","icon":"prism"},
+      {"id":"wing_reactor","name":"WING REACTOR","ability":"laser_wings","effect":"One laser wing collapses and leaves a permanent safe flank.","hp":2050,"hazard":"laser_sweep","icon":"wing"},
+      {"id":"halo_choir","name":"HALO CHOIR","ability":"halo_barrier","effect":"The halo barrier fractures and no longer closes completely.","hp":2200,"hazard":"choir_pulse","icon":"halo"}
+    ]
+  },
+  {
+    "id": "abyss_leviathan",
+    "name": "ABYSS LEVIATHAN",
+    "subtitle": "THE RIFT EEL",
+    "fantasy": "A cosmic eel that swims through ruptures in distance itself.",
+    "palette": ["#54F2E7", "#92E65D", "#4A7DFF"],
+    "base_armor": 2450,
+    "core_health": 5000,
+    "reward_bio": 560,
+    "reward_shards": 2,
+    "organs": [
+      {"id":"vortex_stomach","name":"VORTEX STOMACH","ability":"suction_waves","effect":"Suction waves weaken and leave a larger calm channel.","hp":2250,"hazard":"vortex_lane","icon":"vortex"},
+      {"id":"shock_gland","name":"SHOCK GLAND","ability":"chain_lightning","effect":"Electrical arcs stop chaining through nearby hazards.","hp":2350,"hazard":"shock_nodes","icon":"shock"},
+      {"id":"brood_sac","name":"BROOD SAC","ability":"parasite_swarm","effect":"Parasite vents seal and no new exterior swarms can spawn.","hp":2500,"hazard":"brood_rush","icon":"brood"}
+    ]
+  },
+  {
+    "id": "null_twin",
+    "name": "NULL TWIN",
+    "subtitle": "THE MIRROR ORGANISM",
+    "fantasy": "A paired lifeform that learns the Diver and grows a weaponized reflection.",
+    "palette": ["#A78BFA", "#F32D83", "#F4F1E8"],
+    "base_armor": 2850,
+    "core_health": 6200,
+    "reward_bio": 750,
+    "reward_shards": 3,
+    "organs": [
+      {"id":"memory_cortex","name":"MEMORY CORTEX","ability":"weapon_copy","effect":"The Twin forgets the equipped weapon and stops copying its shots.","hp":2700,"hazard":"memory_echo","icon":"memory"},
+      {"id":"echo_heart","name":"ECHO HEART","ability":"echo_dash","effect":"Echo paths fade; the Twin can no longer replay the last dash.","hp":2850,"hazard":"echo_paths","icon":"heart"},
+      {"id":"reflection_lattice","name":"REFLECTION LATTICE","ability":"false_weakpoints","effect":"False wounds collapse and the true vulnerable tissue stays visible.","hp":3050,"hazard":"mirror_walls","icon":"lattice"}
+    ]
+  }
+]

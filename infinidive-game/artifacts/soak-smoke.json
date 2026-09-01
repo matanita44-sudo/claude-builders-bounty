@@ -1,0 +1,96 @@
+{
+	"counts": {
+		"boss_restarts": 17,
+		"dive_transitions": 17,
+		"enemy_projectiles_spawned": 19483,
+		"iterations": 161,
+		"offline_events_queued": 536,
+		"offline_queue_final_size": 500,
+		"offline_queue_reloads": 2,
+		"player_projectiles_spawned": 9908,
+		"projectile_cycles": 161,
+		"save_reloads": 0,
+		"save_writes": 8
+	},
+	"display_server": "headless",
+	"elapsed_wall_seconds": 10.072,
+	"engine": {
+		"build": "official",
+		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
+		"hex": 263938,
+		"major": 4,
+		"minor": 7,
+		"patch": 2,
+		"status": "stable",
+		"string": "4.7.2-stable (official)",
+		"timestamp": 0
+	},
+	"failures": [],
+	"memory": {
+		"end_bytes": 35901001,
+		"peak_bytes": 35936665,
+		"sample_count": 5,
+		"slope_bytes_per_minute": -414720.700957987,
+		"stable_delta_bytes": -35664,
+		"stable_sample_count": 3,
+		"stable_start_bytes": 35936665,
+		"start_bytes": 29115777,
+		"warmup_seconds": 2.0144
+	},
+	"memory_samples": [
+		{
+			"elapsed_seconds": 0.0,
+			"memory_bytes": 29115777,
+			"node_count": 9,
+			"object_count": 1514,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 0.3,
+			"memory_bytes": 34917609,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 5.051,
+			"memory_bytes": 35936665,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 10.013,
+			"memory_bytes": 35903361,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 10.072,
+			"memory_bytes": 35901001,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		}
+	],
+	"object_counts": {
+		"baseline_nodes": 9,
+		"baseline_objects": 1514,
+		"final_nodes": 8,
+		"final_objects": 1522
+	},
+	"passed": true,
+	"peaks": {
+		"enemy_projectiles": 350,
+		"node_count": 30,
+		"object_count": 1588,
+		"orphan_node_count": 0,
+		"player_projectiles": 190,
+		"total_projectiles": 540
+	},
+	"requested_duration_seconds": 10.0,
+	"schema": 1,
+	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
+	"seed": 203541
+}

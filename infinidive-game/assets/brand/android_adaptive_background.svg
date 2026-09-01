@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432" role="img" aria-label="INFINIDIVE adaptive icon background">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="48%" r="76%">
+      <stop offset="0" stop-color="#241326"/>
+      <stop offset="0.58" stop-color="#090B13"/>
+      <stop offset="1" stop-color="#03050C"/>
+    </radialGradient>
+  </defs>
+  <rect width="432" height="432" fill="url(#bg)"/>
+  <circle cx="216" cy="232" r="160" fill="none" stroke="#F32D83" stroke-opacity="0.10" stroke-width="28"/>
+  <path d="M0 355 C83 315 128 379 206 338 C296 291 344 364 432 316 V432 H0 Z" fill="#19101D" fill-opacity="0.64"/>
+</svg>

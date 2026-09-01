@@ -1,0 +1,87 @@
+{
+	"counts": {
+		"boss_restarts": 8,
+		"dive_transitions": 8,
+		"enemy_projectiles_spawned": 9609,
+		"iterations": 79,
+		"offline_events_queued": 528,
+		"offline_queue_final_size": 500,
+		"offline_queue_reloads": 2,
+		"player_projectiles_spawned": 4928,
+		"projectile_cycles": 79,
+		"save_reloads": 0,
+		"save_writes": 4
+	},
+	"display_server": "headless",
+	"elapsed_wall_seconds": 5.01,
+	"engine": {
+		"build": "official",
+		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
+		"hex": 263938,
+		"major": 4,
+		"minor": 7,
+		"patch": 2,
+		"status": "stable",
+		"string": "4.7.2-stable (official)",
+		"timestamp": 0
+	},
+	"failures": [],
+	"finished_at_utc": "2026-09-01T08:45:49",
+	"memory": {
+		"end_bytes": 36418310,
+		"peak_bytes": 36443010,
+		"sample_count": 3,
+		"slope_bytes_per_minute": 0.0,
+		"stable_delta_bytes": 0,
+		"stable_sample_count": 1,
+		"stable_start_bytes": 36418310,
+		"start_bytes": 30539218,
+		"warmup_seconds": 1.002
+	},
+	"memory_samples": [
+		{
+			"elapsed_seconds": 0.0,
+			"memory_bytes": 30539218,
+			"node_count": 11,
+			"object_count": 1522,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 0.242,
+			"memory_bytes": 36443010,
+			"node_count": 11,
+			"object_count": 1534,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 5.01,
+			"memory_bytes": 36418310,
+			"node_count": 11,
+			"object_count": 1532,
+			"orphan_node_count": 0
+		}
+	],
+	"object_counts": {
+		"baseline_nodes": 11,
+		"baseline_objects": 1522,
+		"final_nodes": 10,
+		"final_objects": 1530
+	},
+	"passed": true,
+	"peaks": {
+		"enemy_projectiles": 350,
+		"node_count": 32,
+		"object_count": 1598,
+		"orphan_node_count": 0,
+		"player_projectiles": 190,
+		"total_projectiles": 540
+	},
+	"requested_duration_seconds": 5.0,
+	"schema": 1,
+	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
+	"seed": 203541,
+	"source_changed_during_run": false,
+	"source_fingerprint_end": "e923b9cf0a069639e6754eb16a1cffcbf5518bf3ac10b9b13f08d130a48dac3b",
+	"source_fingerprint_start": "e923b9cf0a069639e6754eb16a1cffcbf5518bf3ac10b9b13f08d130a48dac3b",
+	"started_at_utc": "2026-09-01T08:45:44"
+}

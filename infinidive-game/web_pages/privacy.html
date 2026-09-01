@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050812">
+  <meta name="description" content="Privacy policy for the pre-release INFINIDIVE game.">
+  <title>INFINIDIVE — Privacy Policy</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --space: #050812;
+      --panel: #0b1424;
+      --panel-2: #101c31;
+      --text: #edf8ff;
+      --muted: #a8b9ca;
+      --cyan: #74f3e3;
+      --amber: #ffc66d;
+      --line: rgba(116, 243, 227, 0.2);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--space); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% -10%, rgba(42, 113, 145, 0.33), transparent 34rem),
+        linear-gradient(180deg, #07101d 0%, var(--space) 42%);
+      line-height: 1.65;
+    }
+    a { color: var(--cyan); }
+    a:focus-visible {
+      outline: 3px solid var(--amber);
+      outline-offset: 4px;
+      border-radius: 4px;
+    }
+    .skip {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+    }
+    .skip:focus {
+      left: 1rem;
+      top: 1rem;
+      z-index: 10;
+      padding: .7rem 1rem;
+      color: #07101d;
+      background: var(--amber);
+    }
+    header, main, footer {
+      width: min(100% - 2rem, 56rem);
+      margin-inline: auto;
+    }
+    header { padding: max(2rem, env(safe-area-inset-top)) 0 1.25rem; }
+    .eyebrow {
+      margin: 0 0 .35rem;
+      color: var(--cyan);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { line-height: 1.2; }
+    h1 { margin: 0; font-size: clamp(2.1rem, 8vw, 4.5rem); letter-spacing: -.04em; }
+    h2 { margin-top: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
+    h3 { margin-bottom: .25rem; font-size: 1.05rem; color: var(--cyan); }
+    p, ul { margin-top: .45rem; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .65rem;
+      margin-top: 1.25rem;
+    }
+    nav a {
+      display: inline-block;
+      padding: .58rem .82rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      text-decoration: none;
+      background: rgba(11, 20, 36, .75);
+    }
+    .notice {
+      margin: .5rem 0 1.25rem;
+      padding: .9rem 1rem;
+      border-left: 4px solid var(--amber);
+      border-radius: .4rem;
+      color: #ffe6b7;
+      background: rgba(255, 198, 109, .08);
+    }
+    .card {
+      margin: 1rem 0;
+      padding: clamp(1.1rem, 4vw, 2rem);
+      border: 1px solid var(--line);
+      border-radius: 1.2rem;
+      background: linear-gradient(145deg, rgba(16, 28, 49, .96), rgba(8, 16, 29, .96));
+      box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, .2);
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+      gap: .65rem;
+      margin: 1.1rem 0 0;
+    }
+    .summary div {
+      padding: .8rem;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: .8rem;
+      background: rgba(5, 8, 18, .52);
+    }
+    .summary strong { display: block; color: var(--cyan); }
+    .muted, footer { color: var(--muted); }
+    .rtl { direction: rtl; text-align: right; }
+    .rtl .notice { border-left: 0; border-right: 4px solid var(--amber); }
+    footer {
+      padding: 1.5rem 0 max(2rem, env(safe-area-inset-bottom));
+      text-align: center;
+      font-size: .9rem;
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#english">Skip to policy</a>
+  <header>
+    <p class="eyebrow">INFINIDIVE · PRE-RELEASE</p>
+    <h1>Privacy Policy</h1>
+    <p class="muted">Effective and last updated: September 1, 2026</p>
+    <nav aria-label="Page navigation">
+      <a href="#english">English</a>
+      <a href="#hebrew" lang="he" dir="rtl">עברית</a>
+      <a href="support.html">Support / תמיכה</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="notice" role="note">
+      This policy describes the current version 0.1.0 pre-release code. No public deployment or store release is claimed by this page.
+    </div>
+
+    <section class="card" id="english" aria-labelledby="english-title">
+      <p class="eyebrow">English</p>
+      <h2 id="english-title">Your game stays on your device</h2>
+      <p>INFINIDIVE is operated by Matan. The current game is designed to work offline and does not require an account. Its progress, settings, deterministic challenges, and gameplay state are processed locally on your device.</p>
+
+      <div class="summary" aria-label="Privacy summary">
+        <div><strong>No account</strong>No login, name, or email is required to play.</div>
+        <div><strong>No tracking</strong>No advertising or cross-app tracking SDK is included.</div>
+        <div><strong>No upload</strong>The current game code has no gameplay analytics transport.</div>
+      </div>
+
+      <h3>1. Local game data</h3>
+      <p>The game stores progress and settings in its local app storage. This can include currencies, unlocked content, upgrades, Nest state, boss progress, achievement completion/progress, contract progress, high scores, tutorial state, selected cosmetic, audio and control preferences, accessibility preferences, language, run-reward identifiers, meta-goal reward-ledger keys, and bounded SHA-256 event receipts (up to 4,096) used to prevent the same local reward from being banked twice.</p>
+      <p>The save system keeps a primary file and a local backup. It uses a checksum to detect damaged data. The checksum is not encryption, so local files may be readable by someone who can access your device, browser profile, or app storage.</p>
+
+      <h3>2. Analytics in the current build</h3>
+      <p>The code contains an optional analytics event queue for possible future testing. It is disabled by default and can be enabled or disabled in Settings. When enabled, events are written only to a local file capped at 500 entries. There is no uploader, analytics vendor, or backend endpoint in the current game. Turning the setting off stops new events but does not erase an existing local queue; confirmed Reset Progress or clearing local app/site data deletes it.</p>
+      <p>Possible local events describe gameplay, such as a boss, weapon, mutation, run time, destroyed organ, death cause, or changed setting. They do not include your name, email address, contacts, precise location, or advertising identifier.</p>
+
+      <h3>3. Daily and Friend Rifts</h3>
+      <p>The Daily Rift uses the current UTC date to create a deterministic challenge locally. Friend Rift codes can contain a boss, random seed, weapon, difficulty, modifiers, target score, and target time. When you choose a copy/share action, the game writes the code to your system clipboard. The game does not send it anywhere. If you paste it into another app, that app's privacy practices apply.</p>
+      <p>Every completed run is validated by a local result service. Only accepted Daily and Friend Rift results store a bounded, checksummed summary—such as canonical challenge ID, boss, weapon, seed, modifiers or targets, score, time, win state, organs, mutations, and event counters—in a leaderboard staging outbox. Story and Abyss results do not enter that outbox. Queued records are marked unverified and remain on your device. The send function always sends zero records because no network transport, account, provider, endpoint, or online leaderboard exists. A bundled local configuration keeps all online and monetization features disabled and does not fetch remote values.</p>
+
+      <h3>4. Device access</h3>
+      <p>The game processes touch or mouse input, screen size, safe-area insets, focus changes, audio settings, and optional vibration requests to operate the game. Android declares only the normal <code>android.permission.VIBRATE</code> permission for optional haptics; it causes no runtime permission prompt and does not collect or transmit data. The current code does not request contacts, location, camera, microphone, photo library, advertising ID, payment information, or health data.</p>
+
+      <h3>5. Support email</h3>
+      <p>If you email <a href="mailto:matanita44@gmail.com?subject=INFINIDIVE%20Support">matanita44@gmail.com</a>, we receive the address, message, and attachments you choose to send. We use them to answer the request and diagnose the issue. Do not send passwords, two-factor codes, signing keys, or payment information. You may ask us to delete a support conversation, subject to any legal or security need to retain a limited record.</p>
+
+      <h3>6. Support links and Web hosting</h3>
+      <p>The native Settings screen is configured to open Support and Privacy pages at <strong>matanita44-sudo.github.io/claude-builders-bounty/infinidive/</strong> in your system browser. It adds no gameplay data or identifier to the URL. That GitHub Pages deployment is not verified as available as of the effective date. If the pages or Web game are served there, GitHub may process standard request information such as IP address, timestamp, requested URL, and browser user-agent under its privacy terms. We must verify the deployment and current host terms before production publication.</p>
+
+      <h3>7. Retention and deletion</h3>
+      <p>Local data remains until you use a deletion control. Settings offers Reset Progress after confirmation; it replaces the profile and recovery backup with clean defaults and idempotently deletes the local analytics queue plus the Daily/Friend result outbox primary, backup, and temporary files. Uninstalling the native app, clearing its storage, or clearing stored site data for the exact Web origin also removes local progress, settings, backups, and queues, and remains the broadest way to clear platform-managed or future files. The reviewed build has no cloud copy to restore and no server-side player record to delete.</p>
+
+      <h3>8. Children</h3>
+      <p>INFINIDIVE is not specifically directed at young children. The current game does not create player accounts or knowingly request personal information from children.</p>
+
+      <h3>9. Changes and contact</h3>
+      <p>We will update this policy before enabling any data upload, backend, account, online leaderboard, cloud save, advertising, purchase, crash-reporting, or third-party analytics feature. Questions and deletion requests for support correspondence can be sent to <a href="mailto:matanita44@gmail.com?subject=INFINIDIVE%20Privacy">matanita44@gmail.com</a>.</p>
+    </section>
+
+    <section class="card rtl" id="hebrew" lang="he" dir="rtl" aria-labelledby="hebrew-title">
+      <p class="eyebrow">עברית</p>
+      <h2 id="hebrew-title">נתוני המשחק נשארים במכשיר</h2>
+      <p>INFINIDIVE מופעל על ידי מתן. המשחק הנוכחי נועד לפעול ללא חיבור לרשת ואינו דורש חשבון. ההתקדמות, ההגדרות, האתגרים הדטרמיניסטיים ומצב המשחק מעובדים מקומית במכשיר.</p>
+
+      <div class="summary" aria-label="תקציר פרטיות">
+        <div><strong>ללא חשבון</strong>אין צורך בהתחברות, בשם או בדוא״ל כדי לשחק.</div>
+        <div><strong>ללא מעקב</strong>המשחק אינו כולל SDK לפרסום או למעקב בין אפליקציות.</div>
+        <div><strong>ללא העלאה</strong>בקוד הנוכחי אין מנגנון לשליחת ניתוחי משחק.</div>
+      </div>
+
+      <h3>1. נתוני משחק מקומיים</h3>
+      <p>המשחק שומר התקדמות והגדרות באחסון המקומי של האפליקציה. המידע עשוי לכלול מטבעות, תוכן שנפתח, שדרוגים, מצב הקן, התקדמות מול בוסים, השלמת הישגים והתקדמותם, התקדמות בחוזים, שיאים, מצב ההדרכה, פריט קוסמטי נבחר, הגדרות שמע ושליטה, העדפות נגישות, שפה, מזהי תגמולי ריצה, מפתחות יומן תגמולי יעדים וטביעות SHA-256 מוגבלות של אירועים (עד 4,096) שנועדו למנוע קבלת תגמול מקומי פעמיים.</p>
+      <p>מערכת השמירה מחזיקה קובץ ראשי וגיבוי מקומי ומשתמשת בסכום ביקורת כדי לזהות מידע שנפגם. סכום הביקורת אינו הצפנה, ולכן אדם בעל גישה למכשיר, לפרופיל הדפדפן או לאחסון האפליקציה עשוי לקרוא את הקבצים המקומיים.</p>
+
+      <h3>2. ניתוח נתונים בגרסה הנוכחית</h3>
+      <p>הקוד כולל תור אופציונלי של אירועי ניתוח שנועד לאפשר בדיקות עתידיות. הוא כבוי כברירת מחדל וניתן להפעיל או לכבות אותו בהגדרות. כשהוא מופעל, האירועים נכתבים רק לקובץ מקומי שמוגבל ל־500 רשומות. במשחק הנוכחי אין מנגנון העלאה, ספק ניתוח או נקודת קצה של שרת. כיבוי ההגדרה עוצר אירועים חדשים אך אינו מוחק תור מקומי שכבר נוצר; איפוס התקדמות מאושר או מחיקת נתוני האפליקציה/האתר מוחקים אותו.</p>
+      <p>אירועים מקומיים אפשריים מתארים משחקיות, למשל בוס, נשק, מוטציה, משך ריצה, איבר שהושמד, סיבת מוות או הגדרה ששונתה. הם אינם כוללים שם, כתובת דוא״ל, אנשי קשר, מיקום מדויק או מזהה פרסומי.</p>
+
+      <h3>3. אתגרי Daily ו־Friend Rift</h3>
+      <p>אתגר Daily Rift משתמש בתאריך UTC הנוכחי כדי ליצור אתגר דטרמיניסטי באופן מקומי. קוד Friend Rift עשוי לכלול בוס, זרע אקראי, נשק, דרגת קושי, משנים, ניקוד יעד וזמן יעד. כאשר בוחרים פעולת העתקה או שיתוף, המשחק כותב את הקוד ללוח המכשיר. המשחק אינו שולח אותו לשום מקום. אם מדביקים אותו באפליקציה אחרת, חלים נוהלי הפרטיות של אותה אפליקציה.</p>
+      <p>כל ריצה שהושלמה נבדקת בשירות תוצאות מקומי. רק תוצאות Daily ו־Friend Rift שהתקבלו שומרות בתור מקומי להכנת לוח תוצאות תקציר מוגבל עם סכום ביקורת, כגון מזהה אתגר קנוני, בוס, נשק, זרע, משנים או יעדים, ניקוד, זמן, ניצחון, איברים, מוטציות ומוני אירועים. תוצאות Story ו־Abyss אינן נכנסות לתור. הרשומות המסודרות בתור מסומנות כלא מאומתות ונשארות במכשיר. פעולת השליחה תמיד שולחת אפס רשומות, משום שאין מנגנון רשת, חשבון, ספק, נקודת קצה או לוח תוצאות מקוון. קובץ הגדרות מקומי ארוז משאיר את כל תכונות הרשת והמונטיזציה כבויות ואינו מוריד ערכים מרחוק.</p>
+
+      <h3>4. גישה למכשיר</h3>
+      <p>המשחק מעבד קלט מגע או עכבר, גודל מסך, אזורים בטוחים, שינויי מיקוד, הגדרות שמע ובקשות רטט אופציונליות כדי להפעיל את המשחק. ב־Android מוצהרת רק ההרשאה הרגילה <code>android.permission.VIBRATE</code> עבור משוב רטט אופציונלי; היא אינה מציגה בקשת הרשאה בזמן ריצה ואינה אוספת או משדרת מידע. הקוד הנוכחי אינו מבקש אנשי קשר, מיקום, מצלמה, מיקרופון, ספריית תמונות, מזהה פרסומי, פרטי תשלום או נתוני בריאות.</p>
+
+      <h3>5. תמיכה בדוא״ל</h3>
+      <p>אם תישלח הודעה אל <a href="mailto:matanita44@gmail.com?subject=INFINIDIVE%20Support">matanita44@gmail.com</a>, נקבל את הכתובת, תוכן ההודעה והקבצים שבחרת לצרף. נשתמש בהם כדי לענות לבקשה ולאבחן את התקלה. אין לשלוח סיסמאות, קודי אימות דו־שלבי, מפתחות חתימה או פרטי תשלום. אפשר לבקש למחוק התכתבות תמיכה, בכפוף לצורך משפטי או אבטחתי לשמור רשומה מוגבלת.</p>
+
+      <h3>6. קישורי תמיכה ואחסון האתר</h3>
+      <p>מסך ההגדרות בגרסה הנייטיבית מוגדר לפתוח בדפדפן המערכת עמודי תמיכה ופרטיות בכתובת <strong>matanita44-sudo.github.io/claude-builders-bounty/infinidive/</strong>. המשחק אינו מוסיף לכתובת נתוני משחק או מזהה. נכון לתאריך התחולה פריסת GitHub Pages זו לא אומתה כזמינה. אם העמודים או גרסת הדפדפן יוגשו שם, GitHub עשויה לעבד מידע רגיל של בקשות רשת, כגון כתובת IP, זמן, כתובת העמוד ומזהה הדפדפן, בהתאם לתנאי הפרטיות שלה. יש לאמת את הפריסה ואת תנאי הספק העדכניים לפני פרסום ייצור.</p>
+
+      <h3>7. שמירה ומחיקה</h3>
+      <p>המידע המקומי נשמר עד לשימוש בבקרת מחיקה. בהגדרות קיימת פעולת איפוס התקדמות עם אישור; היא מחליפה את הפרופיל ואת גיבוי השחזור בברירות מחדל נקיות ומוחקת באופן אידמפוטנטי את תור הניתוח המקומי ואת קובצי תור תוצאות Daily/Friend הראשי, הגיבוי והקובץ הזמני. גם הסרת האפליקציה, מחיקת נתוני האפליקציה או מחיקת נתוני האתר עבור כתובת המקור המדויקת מוחקות התקדמות, הגדרות, גיבויים ותורים, ונשארות הדרך הרחבה ביותר למחיקת קבצים שמנוהלים בידי הפלטפורמה או שיתווספו בעתיד. בגרסה שנבדקה אין עותק ענן לשחזור ואין רשומת שחקן בצד שרת למחיקה.</p>
+
+      <h3>8. ילדים</h3>
+      <p>INFINIDIVE אינו מיועד במיוחד לילדים צעירים. המשחק הנוכחי אינו יוצר חשבונות שחקן ואינו מבקש ביודעין מידע אישי מילדים.</p>
+
+      <h3>9. שינויים ויצירת קשר</h3>
+      <p>נעדכן את המדיניות לפני הפעלת העלאת נתונים, שרת, חשבון, לוח תוצאות מקוון, שמירת ענן, פרסום, רכישות, דיווח קריסות או ספק ניתוח חיצוני. לשאלות ולבקשות מחיקת התכתבות תמיכה אפשר לכתוב אל <a href="mailto:matanita44@gmail.com?subject=INFINIDIVE%20Privacy">matanita44@gmail.com</a>.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>INFINIDIVE · Version 0.1.0 pre-release · <a href="support.html">Support / תמיכה</a></p>
+  </footer>
+</body>
+</html>

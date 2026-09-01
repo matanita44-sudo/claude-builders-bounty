@@ -1,0 +1,2596 @@
+{
+	"counts": {
+		"boss_restarts": 3239,
+		"dive_transitions": 3239,
+		"enemy_projectiles_spawned": 3904733,
+		"iterations": 32388,
+		"offline_events_queued": 3759,
+		"offline_queue_final_size": 500,
+		"offline_queue_reloads": 29,
+		"player_projectiles_spawned": 1987372,
+		"projectile_cycles": 32388,
+		"save_reloads": 27,
+		"save_writes": 1620
+	},
+	"display_server": "headless",
+	"elapsed_wall_seconds": 1800.019,
+	"engine": {
+		"build": "official",
+		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
+		"hex": 263938,
+		"major": 4,
+		"minor": 7,
+		"patch": 2,
+		"status": "stable",
+		"string": "4.7.2-stable (official)",
+		"timestamp": 0
+	},
+	"failures": [],
+	"memory": {
+		"end_bytes": 40005673,
+		"peak_bytes": 40216593,
+		"sample_count": 362,
+		"slope_bytes_per_minute": 146896.150493661,
+		"stable_delta_bytes": 3792384,
+		"stable_sample_count": 301,
+		"stable_start_bytes": 36213289,
+		"start_bytes": 29115777,
+		"warmup_seconds": 300.0
+	},
+	"memory_samples": [
+		{
+			"elapsed_seconds": 0.0,
+			"memory_bytes": 29115777,
+			"node_count": 9,
+			"object_count": 1514,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 0.285,
+			"memory_bytes": 34917609,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 5.026,
+			"memory_bytes": 35936665,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 10.027,
+			"memory_bytes": 35904757,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 15.016,
+			"memory_bytes": 35890889,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 20.004,
+			"memory_bytes": 35851333,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 25.024,
+			"memory_bytes": 35811777,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 30.022,
+			"memory_bytes": 35802869,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 35.026,
+			"memory_bytes": 35764045,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 40.036,
+			"memory_bytes": 35724513,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 45.007,
+			"memory_bytes": 35722425,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 50.044,
+			"memory_bytes": 35723085,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 55.205,
+			"memory_bytes": 36121349,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 60.027,
+			"memory_bytes": 36075613,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 65.046,
+			"memory_bytes": 36034349,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 70.041,
+			"memory_bytes": 35987553,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 75.073,
+			"memory_bytes": 35940541,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 80.016,
+			"memory_bytes": 35900661,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 85.043,
+			"memory_bytes": 35847889,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 90.035,
+			"memory_bytes": 35798185,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 95.024,
+			"memory_bytes": 35798909,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 100.037,
+			"memory_bytes": 35799633,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 105.007,
+			"memory_bytes": 35926241,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 110.082,
+			"memory_bytes": 35926965,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 115.057,
+			"memory_bytes": 35924629,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 120.001,
+			"memory_bytes": 35925353,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 125.002,
+			"memory_bytes": 36286705,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 130.038,
+			"memory_bytes": 36238861,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 135.018,
+			"memory_bytes": 36192425,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 140.014,
+			"memory_bytes": 36145569,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 145.036,
+			"memory_bytes": 36093821,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 150.022,
+			"memory_bytes": 36050049,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 155.04,
+			"memory_bytes": 36000229,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 160.025,
+			"memory_bytes": 35952349,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 165.049,
+			"memory_bytes": 35932141,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 170.038,
+			"memory_bytes": 35932929,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 175.018,
+			"memory_bytes": 35933653,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 180.002,
+			"memory_bytes": 35937437,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 185.022,
+			"memory_bytes": 35935037,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 190.039,
+			"memory_bytes": 35935761,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 195.038,
+			"memory_bytes": 35936549,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 200.04,
+			"memory_bytes": 36280201,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 205.086,
+			"memory_bytes": 36476977,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 210.017,
+			"memory_bytes": 36427109,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 215.015,
+			"memory_bytes": 36377433,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 220.039,
+			"memory_bytes": 36327637,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 225.002,
+			"memory_bytes": 36283697,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 230.045,
+			"memory_bytes": 36238841,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 235.056,
+			"memory_bytes": 36188861,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 240.036,
+			"memory_bytes": 36189585,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 245.035,
+			"memory_bytes": 36190309,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 250.011,
+			"memory_bytes": 36191033,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 255.038,
+			"memory_bytes": 36191821,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 260.043,
+			"memory_bytes": 36192545,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 265.046,
+			"memory_bytes": 36193205,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 270.002,
+			"memory_bytes": 36531029,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 275.009,
+			"memory_bytes": 36478245,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 280.025,
+			"memory_bytes": 36425389,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 285.004,
+			"memory_bytes": 36371737,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 290.027,
+			"memory_bytes": 36319845,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 295.001,
+			"memory_bytes": 36267085,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 300.047,
+			"memory_bytes": 36213289,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 305.024,
+			"memory_bytes": 36198997,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 310.049,
+			"memory_bytes": 36200529,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 315.029,
+			"memory_bytes": 36204313,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 320.034,
+			"memory_bytes": 36201977,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 325.035,
+			"memory_bytes": 36202637,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 330.03,
+			"memory_bytes": 36203361,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 335.01,
+			"memory_bytes": 36547017,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 340.023,
+			"memory_bytes": 36499089,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 345.02,
+			"memory_bytes": 36446329,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 350.069,
+			"memory_bytes": 36391761,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 355.039,
+			"memory_bytes": 36339265,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 360.01,
+			"memory_bytes": 36283145,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 365.016,
+			"memory_bytes": 36230349,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 370.021,
+			"memory_bytes": 36209217,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 375.026,
+			"memory_bytes": 36209877,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 380.031,
+			"memory_bytes": 36213725,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 385.006,
+			"memory_bytes": 36211389,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 390.0,
+			"memory_bytes": 36703393,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 395.038,
+			"memory_bytes": 36704053,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 400.025,
+			"memory_bytes": 37053745,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 405.029,
+			"memory_bytes": 37000865,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 410.037,
+			"memory_bytes": 36948105,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 415.019,
+			"memory_bytes": 36894453,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 420.031,
+			"memory_bytes": 36841885,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 425.028,
+			"memory_bytes": 36783813,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 430.03,
+			"memory_bytes": 36737017,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 435.005,
+			"memory_bytes": 36709845,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 440.036,
+			"memory_bytes": 36710569,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 445.004,
+			"memory_bytes": 36711293,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 450.05,
+			"memory_bytes": 36715141,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 455.001,
+			"memory_bytes": 36712805,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 460.142,
+			"memory_bytes": 36713529,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 465.035,
+			"memory_bytes": 37080985,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 470.009,
+			"memory_bytes": 37028237,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 475.014,
+			"memory_bytes": 36975537,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 480.076,
+			"memory_bytes": 36920849,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 485.033,
+			"memory_bytes": 36864921,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 490.036,
+			"memory_bytes": 36812053,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 495.034,
+			"memory_bytes": 36758425,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 500.022,
+			"memory_bytes": 36723509,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 505.018,
+			"memory_bytes": 36721173,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 510.035,
+			"memory_bytes": 36721833,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 515.034,
+			"memory_bytes": 36722557,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 520.021,
+			"memory_bytes": 36723281,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 525.018,
+			"memory_bytes": 36724005,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 530.039,
+			"memory_bytes": 37094217,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 535.029,
+			"memory_bytes": 37038421,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 540.048,
+			"memory_bytes": 36985745,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 545.036,
+			"memory_bytes": 36933069,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 550.047,
+			"memory_bytes": 36880225,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 555.045,
+			"memory_bytes": 36827501,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 560.025,
+			"memory_bytes": 36774849,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 565.029,
+			"memory_bytes": 36729797,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 570.07,
+			"memory_bytes": 36733645,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 575.045,
+			"memory_bytes": 36731309,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 580.032,
+			"memory_bytes": 36732033,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 585.042,
+			"memory_bytes": 36732693,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 590.071,
+			"memory_bytes": 36736541,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 595.051,
+			"memory_bytes": 36734205,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 600.045,
+			"memory_bytes": 37053013,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 605.018,
+			"memory_bytes": 36995301,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 610.017,
+			"memory_bytes": 36945649,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 615.045,
+			"memory_bytes": 36889793,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 620.022,
+			"memory_bytes": 36837069,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 625.041,
+			"memory_bytes": 36783345,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 630.02,
+			"memory_bytes": 36739209,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 635.017,
+			"memory_bytes": 36743057,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 640.038,
+			"memory_bytes": 36740721,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 645.06,
+			"memory_bytes": 36741381,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 650.004,
+			"memory_bytes": 36742105,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 655.043,
+			"memory_bytes": 36745953,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 660.008,
+			"memory_bytes": 36746677,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 665.036,
+			"memory_bytes": 37069569,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 670.032,
+			"memory_bytes": 37015881,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 675.016,
+			"memory_bytes": 36961013,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 680.033,
+			"memory_bytes": 36905145,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 685.045,
+			"memory_bytes": 36851373,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 690.043,
+			"memory_bytes": 36798625,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 695.102,
+			"memory_bytes": 36751745,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 700.04,
+			"memory_bytes": 36751025,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 705.004,
+			"memory_bytes": 36751813,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 710.01,
+			"memory_bytes": 36752537,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 715.016,
+			"memory_bytes": 36753197,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 720.013,
+			"memory_bytes": 36753921,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 725.038,
+			"memory_bytes": 36757769,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 730.031,
+			"memory_bytes": 37086289,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 735.043,
+			"memory_bytes": 37033589,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 740.023,
+			"memory_bytes": 36980793,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 745.005,
+			"memory_bytes": 36927009,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 750.013,
+			"memory_bytes": 37858449,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 755.028,
+			"memory_bytes": 37808773,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 760.016,
+			"memory_bytes": 37752917,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 765.039,
+			"memory_bytes": 37743637,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 770.026,
+			"memory_bytes": 37744361,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 775.001,
+			"memory_bytes": 37745085,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 780.0,
+			"memory_bytes": 37748933,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 785.043,
+			"memory_bytes": 37746597,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 790.03,
+			"memory_bytes": 37747257,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 795.094,
+			"memory_bytes": 38094153,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 800.075,
+			"memory_bytes": 38041333,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 805.025,
+			"memory_bytes": 37985429,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 810.034,
+			"memory_bytes": 37932681,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 815.034,
+			"memory_bytes": 37879981,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 820.009,
+			"memory_bytes": 37826981,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 825.041,
+			"memory_bytes": 37774209,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 830.046,
+			"memory_bytes": 37753049,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 835.011,
+			"memory_bytes": 37753773,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 840.029,
+			"memory_bytes": 37754497,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 845.039,
+			"memory_bytes": 37755285,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 850.018,
+			"memory_bytes": 37756009,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 855.033,
+			"memory_bytes": 37756669,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 860.038,
+			"memory_bytes": 38109217,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 865.036,
+			"memory_bytes": 38053337,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 870.017,
+			"memory_bytes": 38000565,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 875.013,
+			"memory_bytes": 37947865,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 880.028,
+			"memory_bytes": 37894321,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 885.001,
+			"memory_bytes": 37841273,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 890.034,
+			"memory_bytes": 37788597,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 895.045,
+			"memory_bytes": 37762525,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 900.001,
+			"memory_bytes": 37763185,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 905.015,
+			"memory_bytes": 37763909,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 910.022,
+			"memory_bytes": 37764633,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 915.058,
+			"memory_bytes": 37768481,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 920.039,
+			"memory_bytes": 37766145,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 925.048,
+			"memory_bytes": 38127653,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 930.036,
+			"memory_bytes": 38073833,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 935.055,
+			"memory_bytes": 38019217,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 940.038,
+			"memory_bytes": 37963325,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 945.009,
+			"memory_bytes": 37909697,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 950.005,
+			"memory_bytes": 37856745,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 955.021,
+			"memory_bytes": 37799009,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 960.049,
+			"memory_bytes": 37771873,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 965.024,
+			"memory_bytes": 37772597,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 970.012,
+			"memory_bytes": 37773385,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 975.044,
+			"memory_bytes": 37774045,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 980.036,
+			"memory_bytes": 37774833,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 985.042,
+			"memory_bytes": 37775493,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 990.034,
+			"memory_bytes": 38142005,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 995.005,
+			"memory_bytes": 38087389,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1000.017,
+			"memory_bytes": 38031533,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1005.044,
+			"memory_bytes": 37977821,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1010.007,
+			"memory_bytes": 37924917,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1015.052,
+			"memory_bytes": 37872109,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1020.011,
+			"memory_bytes": 37819361,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1025.044,
+			"memory_bytes": 37781349,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1030.029,
+			"memory_bytes": 37782073,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1035.017,
+			"memory_bytes": 37782797,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1040.008,
+			"memory_bytes": 37783521,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1045.031,
+			"memory_bytes": 37784245,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1050.044,
+			"memory_bytes": 37787489,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1055.017,
+			"memory_bytes": 37788149,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1060.029,
+			"memory_bytes": 38113153,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1065.003,
+			"memory_bytes": 38060393,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1070.023,
+			"memory_bytes": 38002561,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1075.001,
+			"memory_bytes": 37949705,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1080.041,
+			"memory_bytes": 37895957,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1085.005,
+			"memory_bytes": 37844197,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1090.042,
+			"memory_bytes": 37793281,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1095.013,
+			"memory_bytes": 37794005,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1100.033,
+			"memory_bytes": 37794729,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1105.02,
+			"memory_bytes": 37795453,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1110.027,
+			"memory_bytes": 37796113,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1115.039,
+			"memory_bytes": 37796837,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1120.025,
+			"memory_bytes": 37797625,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1125.045,
+			"memory_bytes": 38132337,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1130.019,
+			"memory_bytes": 38076565,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1135.037,
+			"memory_bytes": 38022757,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1140.022,
+			"memory_bytes": 37969937,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1145.022,
+			"memory_bytes": 37912309,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1150.033,
+			"memory_bytes": 37858657,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1155.033,
+			"memory_bytes": 37805753,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1160.012,
+			"memory_bytes": 37803417,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1165.021,
+			"memory_bytes": 37804077,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1170.061,
+			"memory_bytes": 37807925,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1175.025,
+			"memory_bytes": 37805589,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1180.025,
+			"memory_bytes": 37806249,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1185.048,
+			"memory_bytes": 37806973,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1190.01,
+			"memory_bytes": 38132929,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1195.02,
+			"memory_bytes": 38079181,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1200.007,
+			"memory_bytes": 38026289,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1205.016,
+			"memory_bytes": 37974493,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1210.04,
+			"memory_bytes": 37920841,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1215.017,
+			"memory_bytes": 37869021,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1220.037,
+			"memory_bytes": 37815201,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1225.034,
+			"memory_bytes": 37812765,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1230.007,
+			"memory_bytes": 37813489,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1235.002,
+			"memory_bytes": 37814213,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1240.042,
+			"memory_bytes": 37815001,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1245.169,
+			"memory_bytes": 37818785,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1250.024,
+			"memory_bytes": 37816385,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1255.028,
+			"memory_bytes": 38154185,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1260.123,
+			"memory_bytes": 38104533,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1265.016,
+			"memory_bytes": 38053605,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1270.028,
+			"memory_bytes": 38000869,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1275.023,
+			"memory_bytes": 37948145,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1280.049,
+			"memory_bytes": 37895229,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1285.005,
+			"memory_bytes": 37848385,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1290.042,
+			"memory_bytes": 37822241,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1295.023,
+			"memory_bytes": 37822901,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1300.006,
+			"memory_bytes": 37823625,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1305.029,
+			"memory_bytes": 37824413,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1310.024,
+			"memory_bytes": 37825073,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1315.016,
+			"memory_bytes": 37825797,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1320.01,
+			"memory_bytes": 38181201,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1325.017,
+			"memory_bytes": 38127465,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1330.044,
+			"memory_bytes": 38075753,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1335.022,
+			"memory_bytes": 38026041,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1340.004,
+			"memory_bytes": 37973161,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1345.039,
+			"memory_bytes": 37917329,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1350.033,
+			"memory_bytes": 37864701,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1355.017,
+			"memory_bytes": 37831589,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1360.05,
+			"memory_bytes": 37832377,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1365.008,
+			"memory_bytes": 37833101,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1370.029,
+			"memory_bytes": 37833761,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1375.037,
+			"memory_bytes": 37834485,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1380.032,
+			"memory_bytes": 37835273,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1385.069,
+			"memory_bytes": 38199589,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1390.022,
+			"memory_bytes": 38143829,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1395.01,
+			"memory_bytes": 38091177,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1400.016,
+			"memory_bytes": 38037405,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1405.043,
+			"memory_bytes": 37979537,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1410.004,
+			"memory_bytes": 37926837,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1415.035,
+			"memory_bytes": 37873125,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1420.076,
+			"memory_bytes": 37844125,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1425.008,
+			"memory_bytes": 37841789,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1430.04,
+			"memory_bytes": 37842449,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1435.04,
+			"memory_bytes": 37843173,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1440.043,
+			"memory_bytes": 37843961,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1445.051,
+			"memory_bytes": 37844621,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1450.003,
+			"memory_bytes": 38205073,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1455.0,
+			"memory_bytes": 38150361,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1460.039,
+			"memory_bytes": 38097685,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1465.012,
+			"memory_bytes": 38041877,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1470.031,
+			"memory_bytes": 39954217,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1475.026,
+			"memory_bytes": 39899373,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1480.03,
+			"memory_bytes": 39843469,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1485.045,
+			"memory_bytes": 39816397,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1490.032,
+			"memory_bytes": 39817057,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1495.023,
+			"memory_bytes": 39817781,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1500.05,
+			"memory_bytes": 39818569,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1505.08,
+			"memory_bytes": 39822353,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1510.013,
+			"memory_bytes": 39820017,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1515.006,
+			"memory_bytes": 40180453,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1520.007,
+			"memory_bytes": 40127681,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1525.011,
+			"memory_bytes": 40075957,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1530.0,
+			"memory_bytes": 40022245,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1535.077,
+			"memory_bytes": 39967461,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1540.031,
+			"memory_bytes": 39914605,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1545.042,
+			"memory_bytes": 39858857,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1550.037,
+			"memory_bytes": 39825809,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1555.045,
+			"memory_bytes": 39826469,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1560.056,
+			"memory_bytes": 39830317,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1565.031,
+			"memory_bytes": 39827981,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1570.023,
+			"memory_bytes": 39828641,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1575.034,
+			"memory_bytes": 39833221,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1580.01,
+			"memory_bytes": 40210325,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1585.08,
+			"memory_bytes": 40150717,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1590.043,
+			"memory_bytes": 40099957,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1595.011,
+			"memory_bytes": 40047209,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1600.049,
+			"memory_bytes": 39989449,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1605.0,
+			"memory_bytes": 39936665,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1610.007,
+			"memory_bytes": 39883941,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1615.033,
+			"memory_bytes": 39838949,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1620.046,
+			"memory_bytes": 39839673,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1625.042,
+			"memory_bytes": 39843521,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1630.039,
+			"memory_bytes": 39844245,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1635.033,
+			"memory_bytes": 39841845,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1640.031,
+			"memory_bytes": 39842569,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1645.021,
+			"memory_bytes": 39843293,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1650.041,
+			"memory_bytes": 40175045,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1655.084,
+			"memory_bytes": 40125381,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1660.019,
+			"memory_bytes": 40074393,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1665.019,
+			"memory_bytes": 40021621,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1670.032,
+			"memory_bytes": 39968849,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1675.044,
+			"memory_bytes": 39914257,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1680.017,
+			"memory_bytes": 39858365,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1685.043,
+			"memory_bytes": 39849085,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1690.016,
+			"memory_bytes": 39849809,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1695.001,
+			"memory_bytes": 39850533,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1700.078,
+			"memory_bytes": 39854381,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1705.003,
+			"memory_bytes": 39855105,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1710.038,
+			"memory_bytes": 39852769,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1715.048,
+			"memory_bytes": 40195565,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1720.021,
+			"memory_bytes": 40142661,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1725.005,
+			"memory_bytes": 40088021,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1730.037,
+			"memory_bytes": 40032189,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1735.041,
+			"memory_bytes": 39978417,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1740.014,
+			"memory_bytes": 39923765,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1745.175,
+			"memory_bytes": 39870861,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1750.022,
+			"memory_bytes": 39858497,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1755.019,
+			"memory_bytes": 39859285,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1760.005,
+			"memory_bytes": 39863069,
+			"node_count": 9,
+			"object_count": 1526,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1765.039,
+			"memory_bytes": 39860733,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1770.056,
+			"memory_bytes": 39861393,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1775.029,
+			"memory_bytes": 39862117,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1780.0,
+			"memory_bytes": 40216593,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1785.026,
+			"memory_bytes": 40158821,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1790.02,
+			"memory_bytes": 40105121,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1795.013,
+			"memory_bytes": 40058313,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1800.019,
+			"memory_bytes": 40005673,
+			"node_count": 9,
+			"object_count": 1524,
+			"orphan_node_count": 0
+		}
+	],
+	"object_counts": {
+		"baseline_nodes": 9,
+		"baseline_objects": 1514,
+		"final_nodes": 8,
+		"final_objects": 1522
+	},
+	"passed": true,
+	"peaks": {
+		"enemy_projectiles": 350,
+		"node_count": 30,
+		"object_count": 1588,
+		"orphan_node_count": 0,
+		"player_projectiles": 190,
+		"total_projectiles": 540
+	},
+	"requested_duration_seconds": 1800.0,
+	"schema": 1,
+	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
+	"source_snapshot_note": "Godot validated the production snapshot loaded when the process started. Production files were edited concurrently later in the run, so this report does not validate those later edits; repeat after code freeze for Release Candidate evidence.",
+	"seed": 203541
+}

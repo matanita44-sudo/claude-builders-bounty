@@ -1,0 +1,13 @@
+/.godot/
+/build/
+artifacts/*.avi
+artifacts/*.png
+artifacts/*.png.import
+artifacts/*.avi.import
+*.tmp
+*.bak
+*.translation
+export_credentials.cfg
+/android/
+/ios/
+/assets/store/gameplay/raw/

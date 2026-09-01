@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050812">
+  <meta name="description" content="Support information for the pre-release INFINIDIVE game.">
+  <title>INFINIDIVE — Support</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --space: #050812;
+      --panel: #0b1424;
+      --text: #edf8ff;
+      --muted: #a8b9ca;
+      --cyan: #74f3e3;
+      --violet: #c7a6ff;
+      --amber: #ffc66d;
+      --line: rgba(116, 243, 227, 0.2);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--space); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(98, 67, 151, .3), transparent 34rem),
+        linear-gradient(180deg, #0a0e1e 0%, var(--space) 42%);
+    }
+    a { color: var(--cyan); }
+    a:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--amber);
+      outline-offset: 4px;
+      border-radius: 4px;
+    }
+    .skip { position: absolute; left: -9999px; top: 0; }
+    .skip:focus {
+      left: 1rem;
+      top: 1rem;
+      z-index: 10;
+      padding: .7rem 1rem;
+      color: #07101d;
+      background: var(--amber);
+    }
+    header, main, footer {
+      width: min(100% - 2rem, 56rem);
+      margin-inline: auto;
+    }
+    header { padding: max(2rem, env(safe-area-inset-top)) 0 1.25rem; }
+    .eyebrow {
+      margin: 0 0 .35rem;
+      color: var(--violet);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { line-height: 1.2; }
+    h1 { margin: 0; font-size: clamp(2.1rem, 8vw, 4.5rem); letter-spacing: -.04em; }
+    h2 { margin-top: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
+    h3 { color: var(--cyan); font-size: 1.05rem; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .65rem;
+      margin-top: 1.25rem;
+    }
+    nav a {
+      display: inline-block;
+      padding: .58rem .82rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      text-decoration: none;
+      background: rgba(11, 20, 36, .75);
+    }
+    .contact {
+      display: inline-block;
+      margin: .65rem 0 .35rem;
+      padding: .85rem 1.1rem;
+      border: 1px solid rgba(116, 243, 227, .45);
+      border-radius: .8rem;
+      color: #041018;
+      font-weight: 800;
+      text-decoration: none;
+      background: var(--cyan);
+    }
+    .notice {
+      margin: .5rem 0 1.25rem;
+      padding: .9rem 1rem;
+      border-left: 4px solid var(--amber);
+      border-radius: .4rem;
+      color: #ffe6b7;
+      background: rgba(255, 198, 109, .08);
+    }
+    .card {
+      margin: 1rem 0;
+      padding: clamp(1.1rem, 4vw, 2rem);
+      border: 1px solid var(--line);
+      border-radius: 1.2rem;
+      background: linear-gradient(145deg, rgba(16, 28, 49, .96), rgba(8, 16, 29, .96));
+      box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, .2);
+    }
+    details {
+      margin: .7rem 0;
+      padding: .8rem 1rem;
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: .8rem;
+      background: rgba(5, 8, 18, .48);
+    }
+    summary { cursor: pointer; font-weight: 750; color: var(--cyan); }
+    .warning { color: var(--amber); font-weight: 700; }
+    .muted, footer { color: var(--muted); }
+    .rtl { direction: rtl; text-align: right; }
+    .rtl .notice { border-left: 0; border-right: 4px solid var(--amber); }
+    footer {
+      padding: 1.5rem 0 max(2rem, env(safe-area-inset-bottom));
+      text-align: center;
+      font-size: .9rem;
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#english">Skip to support</a>
+  <header>
+    <p class="eyebrow">INFINIDIVE · PRE-RELEASE</p>
+    <h1>Support</h1>
+    <p class="muted">Version 0.1.0 · Updated September 1, 2026</p>
+    <nav aria-label="Page navigation">
+      <a href="#english">English</a>
+      <a href="#hebrew" lang="he" dir="rtl">עברית</a>
+      <a href="privacy.html">Privacy / פרטיות</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="notice" role="note">
+      INFINIDIVE 0.1.0 is a pre-release build. This page does not claim a public game deployment, signed native build, TestFlight/Play test, or store release.
+    </div>
+
+    <section class="card" id="english" aria-labelledby="english-title">
+      <p class="eyebrow">English</p>
+      <h2 id="english-title">Need help with a dive?</h2>
+      <p>Email the support address with the game version, platform, and the shortest reliable steps that reproduce the problem.</p>
+      <p><a class="contact" href="mailto:matanita44@gmail.com?subject=INFINIDIVE%20Support%20-%200.1.0">Email INFINIDIVE support</a></p>
+      <p class="muted">Support email: <a href="mailto:matanita44@gmail.com">matanita44@gmail.com</a>. Messages are reviewed as availability permits; no response-time promise is made.</p>
+
+      <h3>Helpful report details</h3>
+      <ul>
+        <li>Version shown in the game, currently 0.1.0</li>
+        <li>Platform: iPhone, Android, or Web</li>
+        <li>Device model and operating-system or browser version, if known</li>
+        <li>Mode, boss, weapon, and what happened immediately before the issue</li>
+        <li>Whether the issue repeats after reopening the game</li>
+        <li>An optional screenshot that you choose to send</li>
+      </ul>
+      <p class="warning">Never send a password, two-factor code, private signing key, provisioning credential, or payment information.</p>
+
+      <h3>Quick troubleshooting</h3>
+      <details>
+        <summary>The game does not fit my screen</summary>
+        <p>Use portrait orientation. Reopen the game after rotating. Browser zoom should remain at its default value. Include your device model and a screenshot if controls still overlap a notch or system area.</p>
+      </details>
+      <details>
+        <summary>There is no sound</summary>
+        <p>Interact with the page once, then check Master, Music, and Sound Effects in Settings. Mobile browsers can block audio until the first user interaction. Also check the device's silent mode and connected audio output.</p>
+      </details>
+      <details>
+        <summary>Touch movement or dash feels wrong</summary>
+        <p>Adjust Control Sensitivity and try Dedicated Button, Double Tap, or Quick Flick in Settings. Include the selected method and handedness in the report.</p>
+      </details>
+      <details>
+        <summary>A Friend Rift code will not open</summary>
+        <p>Copy and paste the complete code beginning with <strong>ID1.</strong>, with no surrounding message text. Invalid or altered codes are intentionally rejected. Friend Rifts are local codes; the current build has no remote invitation service.</p>
+      </details>
+      <details>
+        <summary>My progress appears damaged</summary>
+        <p>Close and reopen the game once. The save system can recover from one local backup. Do not clear app or site data before contacting support if you want us to help diagnose the problem.</p>
+      </details>
+      <details>
+        <summary>I want to delete local progress</summary>
+        <p>Settings includes <strong>Reset Progress</strong> with a confirmation. It replaces currencies, unlocks, settings, tutorial and other profile progress—and its recovery backup—with clean defaults, and deletes the local analytics queue plus the Daily/Friend result primary, backup, and temporary files. Uninstalling or clearing the native app's storage, or clearing stored site data for the exact Web origin, remains the broadest way to remove platform-managed or future local files. <span class="warning">Reset and platform/site-storage deletion are permanent; the current build has no cloud copy to restore.</span></p>
+      </details>
+
+      <h3>Current pre-release limitations</h3>
+      <ul>
+        <li>No account, cloud save, online leaderboard, or remote friend service is connected.</li>
+        <li>No advertising, in-app purchase, subscription, or restore-purchase flow exists.</li>
+        <li>Android declares only the normal vibration permission for optional haptics; it has no runtime prompt and does not collect data.</li>
+        <li>No verified public game URL, production-signed Android/iOS test build, or physical-device QA result is claimed here. The configured target, <strong>matanita44-sudo.github.io/claude-builders-bounty/infinidive/</strong>, is not yet verified as deployed.</li>
+        <li>Hebrew runtime UI and right-to-left text layout are implemented; physical-device text-fit testing is still pending.</li>
+      </ul>
+
+      <h3>Privacy</h3>
+      <p>Read the <a href="privacy.html">INFINIDIVE Privacy Policy</a> before sending diagnostic information. Send only the information you choose and that is needed to explain the problem.</p>
+    </section>
+
+    <section class="card rtl" id="hebrew" lang="he" dir="rtl" aria-labelledby="hebrew-title">
+      <p class="eyebrow">עברית</p>
+      <h2 id="hebrew-title">צריכים עזרה בצלילה?</h2>
+      <p>שלחו הודעה לכתובת התמיכה וציינו את גרסת המשחק, הפלטפורמה והצעדים הקצרים ביותר שמשחזרים את התקלה באופן עקבי.</p>
+      <p><a class="contact" href="mailto:matanita44@gmail.com?subject=INFINIDIVE%20Support%20-%200.1.0">שליחת דוא״ל לתמיכה</a></p>
+      <p class="muted">כתובת התמיכה: <a href="mailto:matanita44@gmail.com">matanita44@gmail.com</a>. ההודעות נבדקות בהתאם לזמינות; אין התחייבות לזמן מענה.</p>
+
+      <h3>פרטים שיעזרו בדיווח</h3>
+      <ul>
+        <li>הגרסה שמופיעה במשחק, כרגע 0.1.0</li>
+        <li>פלטפורמה: iPhone, Android או דפדפן</li>
+        <li>דגם המכשיר וגרסת מערכת ההפעלה או הדפדפן, אם ידועים</li>
+        <li>מצב המשחק, הבוס, הנשק ומה קרה מיד לפני התקלה</li>
+        <li>האם התקלה חוזרת לאחר פתיחה מחדש של המשחק</li>
+        <li>צילום מסך אופציונלי שבחרת לשלוח</li>
+      </ul>
+      <p class="warning">לעולם אין לשלוח סיסמה, קוד אימות דו־שלבי, מפתח חתימה פרטי, פרטי הקצאה או פרטי תשלום.</p>
+
+      <h3>פתרון תקלות מהיר</h3>
+      <details>
+        <summary>המשחק אינו מתאים למסך</summary>
+        <p>השתמשו בכיוון אנכי. פתחו מחדש את המשחק לאחר סיבוב. יש להשאיר את זום הדפדפן בערך ברירת המחדל. אם פקדים עדיין חופפים למגרעת או לאזור מערכת, צרפו את דגם המכשיר וצילום מסך.</p>
+      </details>
+      <details>
+        <summary>אין שמע</summary>
+        <p>בצעו פעולה אחת בעמוד ולאחר מכן בדקו בהגדרות את עוצמת השמע הראשית, המוזיקה והאפקטים. דפדפנים בנייד עשויים לחסום שמע עד לאינטראקציה הראשונה. בדקו גם מצב שקט ואת התקן השמע המחובר.</p>
+      </details>
+      <details>
+        <summary>התנועה או הדאש אינם מרגישים נכון</summary>
+        <p>כוונו את רגישות השליטה ונסו כפתור ייעודי, הקשה כפולה או החלקה מהירה בהגדרות. בדיווח ציינו את השיטה ואת העדפת היד שנבחרו.</p>
+      </details>
+      <details>
+        <summary>קוד Friend Rift אינו נפתח</summary>
+        <p>העתיקו והדביקו את הקוד המלא שמתחיל ב־<strong>ID1.</strong>, ללא טקסט נוסף מסביב. קוד לא תקין או ששונה נדחה בכוונה. אתגרי Friend Rift הם קודים מקומיים; בגרסה הנוכחית אין שירות הזמנות מרוחק.</p>
+      </details>
+      <details>
+        <summary>נראה שההתקדמות נפגמה</summary>
+        <p>סגרו ופתחו את המשחק פעם אחת. מערכת השמירה יכולה להתאושש מגיבוי מקומי אחד. אל תמחקו את נתוני האפליקציה או האתר לפני פנייה לתמיכה אם ברצונכם שננסה לאבחן את הבעיה.</p>
+      </details>
+      <details>
+        <summary>ברצוני למחוק את ההתקדמות המקומית</summary>
+        <p>בהגדרות קיימת פעולת <strong>איפוס התקדמות</strong> עם אישור. היא מחליפה מטבעות, פתיחות, הגדרות, הדרכה, התקדמות פרופיל וגיבוי שחזור בברירות מחדל נקיות, ומוחקת את תור הניתוח המקומי ואת קובצי תוצאות Daily/Friend הראשי, הגיבוי והקובץ הזמני. הסרת האפליקציה או מחיקת האחסון שלה, ובדפדפן מחיקת נתוני האתר עבור כתובת המקור המדויקת, נשארות הדרך הרחבה ביותר למחיקת קבצים שמנוהלים בידי הפלטפורמה או שיתווספו בעתיד. <span class="warning">האיפוס ומחיקת אחסון המערכת/האתר הם קבועים; בגרסה הנוכחית אין עותק ענן לשחזור.</span></p>
+      </details>
+
+      <h3>מגבלות גרסת טרום־ההשקה</h3>
+      <ul>
+        <li>אין חשבון, שמירת ענן, לוח תוצאות מקוון או שירות חברים מרוחק.</li>
+        <li>אין פרסומות, רכישות בתוך האפליקציה, מנויים או שחזור רכישות.</li>
+        <li>ב־Android מוצהרת רק הרשאת הרטט הרגילה עבור משוב אופציונלי; היא אינה מציגה בקשת הרשאה בזמן ריצה ואינה אוספת מידע.</li>
+        <li>עמוד זה אינו טוען שקיימים כתובת משחק ציבורית מאומתת, מבנה Android/iOS חתום לייצור או תוצאות בדיקה במכשיר פיזי. היעד המוגדר, <strong>matanita44-sudo.github.io/claude-builders-bounty/infinidive/</strong>, טרם אומת כפרוס.</li>
+        <li>ממשק המשחק תורגם לעברית וכולל פריסת טקסט מימין לשמאל; בדיקת התאמת הטקסט במכשירים פיזיים עדיין ממתינה.</li>
+      </ul>
+
+      <h3>פרטיות</h3>
+      <p>לפני שליחת מידע אבחוני, קראו את <a href="privacy.html">מדיניות הפרטיות של INFINIDIVE</a>. שלחו רק מידע שבחרתם ושנחוץ להסבר התקלה.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>INFINIDIVE · Version 0.1.0 pre-release · <a href="privacy.html">Privacy / פרטיות</a></p>
+  </footer>
+</body>
+</html>

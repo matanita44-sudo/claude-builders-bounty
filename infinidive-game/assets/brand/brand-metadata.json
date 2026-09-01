@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "brand": "INFINIDIVE",
+  "owner": "Matan",
+  "copyright": "Copyright 2026 Matan. All rights reserved.",
+  "tagline": "Fight giants outside. Destroy them within.",
+  "visual_concept": "A cyan Diver crosses a bone-armored boundary and enters a magenta split iris. The mark represents the outside-to-inside-to-outside gameplay hook without depicting or claiming a gameplay screen.",
+  "palette": {
+    "space": "#070A0F",
+    "deep_space": "#03050C",
+    "tissue": "#19101D",
+    "armor": "#D7D0BD",
+    "armor_shadow": "#59606B",
+    "friendly": "#54F2E7",
+    "friendly_highlight": "#C9FFFB",
+    "vulnerable": "#F32D83",
+    "core_shard": "#A78BFA",
+    "text": "#F4F1E8"
+  },
+  "assets": [
+    {
+      "file": "logo_mark.svg",
+      "source_dimensions": "1024x1024",
+      "background": "transparent",
+      "intended_use": ["brand mark", "press kit", "in-game identity"],
+      "gameplay_representation": false
+    },
+    {
+      "file": "app_icon.svg",
+      "source_dimensions": "1024x1024",
+      "background": "opaque",
+      "intended_use": ["App Store icon source", "Google Play icon source"],
+      "gameplay_representation": false
+    },
+    {
+      "file": "wordmark.svg",
+      "source_dimensions": "1600x420",
+      "background": "transparent",
+      "intended_use": ["logo lockup", "press kit", "title treatment"],
+      "gameplay_representation": false,
+      "typography": "Custom vector paths; no font dependency"
+    },
+    {
+      "file": "feature_graphic.svg",
+      "source_dimensions": "1024x500",
+      "background": "opaque",
+      "intended_use": ["Google Play feature graphic source", "store editorial key art"],
+      "gameplay_representation": false,
+      "disclosure": "Illustrative key art, not a gameplay screenshot"
+    },
+    {
+      "file": "social_card.svg",
+      "source_dimensions": "1200x630",
+      "background": "opaque",
+      "intended_use": ["Open Graph image source", "social sharing card", "press kit"],
+      "gameplay_representation": false,
+      "disclosure": "Illustrative key art, not a gameplay screenshot"
+    }
+  ],
+  "production_rules": {
+    "app_icon": "Export opaque at 1024x1024 in sRGB. Do not add rounded corners; store platforms apply their own masks.",
+    "wordmark": "Preserve the original proportions and clear space equal to at least one glyph-I width.",
+    "store_graphics": "Verify current platform dimensions and file-size requirements immediately before submission.",
+    "screenshots": "Never use the feature graphic or social card as a gameplay screenshot.",
+    "edits": "Do not recolor semantic cyan, magenta, bone, or violet independently of the game palette."
+  },
+  "provenance": {
+    "method": "Original hand-authored SVG geometry created as project source code",
+    "external_images": false,
+    "external_fonts": false,
+    "external_icons": false,
+    "embedded_raster_data": false
+  }
+}

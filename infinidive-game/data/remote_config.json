@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "environment": "production",
+  "features": {
+    "backend_transport_enabled": false,
+    "remote_config_transport_enabled": false,
+    "analytics_transport_enabled": false,
+    "leaderboard_remote_enabled": false,
+    "daily_remote_sync_enabled": false,
+    "friend_rift_remote_enabled": false,
+    "cloud_save_enabled": false,
+    "monetization_enabled": false,
+    "ads_enabled": false,
+    "iap_enabled": false,
+    "rewarded_revive_enabled": false,
+    "rewarded_bio_bonus_enabled": false
+  },
+  "limits": {
+    "offline_submission_queue": 256,
+    "leaderboard_page_size": 50,
+    "maximum_score": 50000000,
+    "maximum_run_duration_ms": 14400000
+  },
+  "transport": {
+    "provider": "none",
+    "endpoint": ""
+  }
+}

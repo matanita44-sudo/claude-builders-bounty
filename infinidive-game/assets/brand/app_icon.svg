@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">INFINIDIVE app icon</title>
+  <desc id="desc">An opaque original app icon showing a cyan diver entering the magenta split iris of a bone-armored colossus.</desc>
+  <defs>
+    <radialGradient id="space" cx="50%" cy="48%" r="74%">
+      <stop offset="0" stop-color="#19101D"/>
+      <stop offset="0.58" stop-color="#070A0F"/>
+      <stop offset="1" stop-color="#03050C"/>
+    </radialGradient>
+    <linearGradient id="flesh" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2A1027"/>
+      <stop offset="1" stop-color="#100A16"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#space)"/>
+  <path d="M0 820 C180 744 249 882 413 808 C607 720 739 872 1024 728 V1024 H0 Z" fill="#19101D" fill-opacity="0.52"/>
+  <circle cx="512" cy="556" r="350" fill="#03050C" fill-opacity="0.38"/>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="512" cy="556" r="316" fill="url(#flesh)" stroke="#070A0F" stroke-width="34"/>
+    <circle cx="512" cy="556" r="268" fill="#0D0A13" stroke="#59606B" stroke-width="34"/>
+    <circle cx="512" cy="556" r="208" stroke="#F32D83" stroke-opacity="0.22" stroke-width="50"/>
+    <g stroke="#070A0F" stroke-width="90">
+      <path d="M229 432 C266 321 355 247 469 230"/>
+      <path d="M582 239 C691 266 768 349 794 454"/>
+      <path d="M774 682 C710 793 589 845 465 827"/>
+      <path d="M363 798 C261 744 207 647 212 550"/>
+    </g>
+    <g stroke="#59606B" stroke-width="72">
+      <path d="M229 432 C266 321 355 247 469 230"/>
+      <path d="M582 239 C691 266 768 349 794 454"/>
+      <path d="M774 682 C710 793 589 845 465 827"/>
+      <path d="M363 798 C261 744 207 647 212 550"/>
+    </g>
+    <g stroke="#D7D0BD" stroke-width="50">
+      <path d="M229 432 C266 321 355 247 469 230"/>
+      <path d="M582 239 C691 266 768 349 794 454"/>
+      <path d="M774 682 C710 793 589 845 465 827"/>
+      <path d="M363 798 C261 744 207 647 212 550"/>
+    </g>
+  </g>
+
+  <g fill="#D7D0BD" stroke="#070A0F" stroke-width="15" stroke-linejoin="round">
+    <path d="M273 336 L221 286 L305 302 Z"/>
+    <path d="M384 248 L359 180 L438 230 Z"/>
+    <path d="M690 307 L721 238 L743 341 Z"/>
+    <path d="M793 426 L867 412 L802 491 Z"/>
+    <path d="M727 761 L766 825 L686 793 Z"/>
+    <path d="M544 830 L529 901 L489 827 Z"/>
+    <path d="M285 715 L214 746 L252 672 Z"/>
+    <path d="M214 560 L143 533 L214 505 Z"/>
+  </g>
+
+  <g fill="#F32D83" stroke="#070A0F" stroke-width="18" stroke-linejoin="round">
+    <path d="M512 342 C563 402 577 466 549 518 C539 538 525 554 512 571 C499 554 485 538 475 518 C447 466 461 402 512 342 Z"/>
+    <path d="M512 342 C563 402 577 466 549 518 C539 538 525 554 512 571 C499 554 485 538 475 518 C447 466 461 402 512 342 Z" transform="rotate(120 512 556)"/>
+    <path d="M512 342 C563 402 577 466 549 518 C539 538 525 554 512 571 C499 554 485 538 475 518 C447 466 461 402 512 342 Z" transform="rotate(240 512 556)"/>
+  </g>
+  <circle cx="512" cy="556" r="101" fill="#03050C" stroke="#A78BFA" stroke-width="12"/>
+  <circle cx="512" cy="556" r="68" fill="#070A0F" stroke="#F32D83" stroke-opacity="0.72" stroke-width="8"/>
+
+  <path d="M512 93 V337" fill="none" stroke="#54F2E7" stroke-opacity="0.15" stroke-width="36" stroke-linecap="round"/>
+  <path d="M512 111 V342" fill="none" stroke="#C9FFFB" stroke-opacity="0.76" stroke-width="8" stroke-linecap="round"/>
+  <g stroke="#070A0F" stroke-width="16" stroke-linejoin="round">
+    <path d="M512 168 L548 365 L529 405 L512 474 L495 405 L476 365 Z" fill="#54F2E7"/>
+    <path d="M489 343 L431 393 L491 413 Z" fill="#D7D0BD"/>
+    <path d="M535 343 L593 393 L533 413 Z" fill="#D7D0BD"/>
+  </g>
+  <path d="M512 213 L525 363 L512 423 L499 363 Z" fill="#C9FFFB"/>
+  <circle cx="512" cy="367" r="12" fill="#070A0F" stroke="#A78BFA" stroke-width="7"/>
+
+  <g fill="#F4F1E8">
+    <circle cx="105" cy="181" r="7"/>
+    <circle cx="880" cy="196" r="5"/>
+    <circle cx="913" cy="686" r="8"/>
+    <circle cx="122" cy="835" r="5"/>
+  </g>
+</svg>

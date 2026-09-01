@@ -1,0 +1,240 @@
+name: INFINIDIVE CI and Web Pages
+
+on:
+  push:
+    branches: [main, infinidive-production]
+    paths:
+      - "infinidive-game/**"
+      - ".github/scripts/**"
+      - ".github/workflows/infinidive-ci.yml"
+  pull_request:
+    paths:
+      - "infinidive-game/**"
+      - ".github/scripts/**"
+      - ".github/workflows/infinidive-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: infinidive-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_STATUS: "stable"
+  GODOT_LINUX_SHA256: "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4"
+  GODOT_TEMPLATES_SHA256: "f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download Godot
+        shell: bash
+        run: |
+          test "$(tr -d '[:space:]' < infinidive-game/.godot-version)" = "${GODOT_VERSION}"
+          curl -L --fail --retry 3 -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          echo "${GODOT_LINUX_SHA256}  godot.zip" | sha256sum --check --strict
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" godot
+          chmod +x godot
+          ./godot --version | grep -F "${GODOT_VERSION}.${GODOT_STATUS}"
+      - name: Parse and import project
+        run: ./godot --headless --path infinidive-game --import
+      - name: Run headless tests
+        run: ./godot --headless --path infinidive-game --scene res://tests/TestRunner.tscn
+      - name: Run offline service tests
+        run: ./godot --headless --path infinidive-game --scene res://tests/backend/BackendOfflineTest.tscn
+      - name: Run permanent upgrade contract tests
+        run: ./godot --headless --path infinidive-game --scene res://tests/upgrades/PermanentUpgradeEngineTest.tscn
+      - name: Run tutorial flow tests
+        run: ./godot --headless --path infinidive-game --scene res://tests/tutorial/TutorialFlowTest.tscn
+      - name: Run authored room mechanics tests
+        run: ./godot --headless --path infinidive-game --scene res://tests/rooms/RoomMechanicsTest.tscn
+      - name: Run achievement and contract tests
+        run: ./godot --headless --path infinidive-game --scene res://tests/meta/MetaGoalServiceTest.tscn
+      - name: Run procedural audio contract tests
+        run: ./godot --headless --path infinidive-game --scene res://tests/audio/ProceduralAudioTest.tscn
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-test-evidence
+          path: infinidive-game/artifacts
+          if-no-files-found: warn
+          retention-days: 14
+
+  web-export:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install verified Godot and export templates
+        shell: bash
+        run: bash .github/scripts/install_godot.sh
+      - name: Export actual Godot project
+        shell: bash
+        run: |
+          mkdir -p build/web
+          ./godot --headless --path infinidive-game --export-release Web "${GITHUB_WORKSPACE}/build/web/index.html"
+      - name: Validate exported game
+        shell: bash
+        run: |
+          cp infinidive-game/web_pages/privacy.html build/web/privacy.html
+          cp infinidive-game/web_pages/support.html build/web/support.html
+          touch build/web/.nojekyll
+          mkdir -p build/pages/infinidive
+          cp -a build/web/. build/pages/infinidive/
+          touch build/pages/.nojekyll
+          bash .github/scripts/validate_web_export.sh build/web build/pages
+      - name: Boot exported game in headless Chrome
+        shell: bash
+        run: |
+          chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [[ -z "${chrome_bin}" ]]; then
+            echo "No Chrome/Chromium binary is available on the runner" >&2
+            exit 1
+          fi
+
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory build/pages > "${RUNNER_TEMP}/infinidive-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+
+          server_ready=false
+          for _ in {1..40}; do
+            if curl --silent --show-error --fail http://127.0.0.1:4173/infinidive/index.html > /dev/null; then
+              server_ready=true
+              break
+            fi
+            sleep 0.25
+          done
+          test "${server_ready}" = true
+
+          "${chrome_bin}" \
+            --headless=new \
+            --no-sandbox \
+            --disable-dev-shm-usage \
+            --use-angle=swiftshader \
+            --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --virtual-time-budget=20000 \
+            --dump-dom \
+            http://127.0.0.1:4173/infinidive/ \
+            > "${RUNNER_TEMP}/infinidive-dom.html" \
+            2> "${RUNNER_TEMP}/infinidive-chrome.log"
+
+          if ! grep -Eq 'id="status"[^>]*class="hidden"|class="hidden"[^>]*id="status"' "${RUNNER_TEMP}/infinidive-dom.html"; then
+            echo "Godot Web boot did not reach the running state" >&2
+            cat "${RUNNER_TEMP}/infinidive-chrome.log" >&2
+            exit 1
+          fi
+          if grep -Eqi 'Uncaught|RuntimeError|WebAssembly.*(failed|error)|Failed to fetch|ERR_' "${RUNNER_TEMP}/infinidive-chrome.log"; then
+            echo "Chrome reported a Web boot failure" >&2
+            cat "${RUNNER_TEMP}/infinidive-chrome.log" >&2
+            exit 1
+          fi
+      - name: Upload Web smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-web-smoke-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/infinidive-dom.html
+            ${{ runner.temp }}/infinidive-chrome.log
+            ${{ runner.temp }}/infinidive-http.log
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Guard repository-root Pages ownership
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
+        shell: bash
+        run: |
+          pages_owner="${GITHUB_REPOSITORY_OWNER,,}"
+          pages_repo="${GITHUB_REPOSITORY#*/}"
+          pages_root="https://${pages_owner}.github.io/${pages_repo}/"
+          status="$(curl --location --silent --show-error --output "${RUNNER_TEMP}/pages-root.html" --write-out '%{http_code}' --max-time 20 "${pages_root}")"
+          case "${status}" in
+            404)
+              echo "Pages root is unclaimed (HTTP 404); deployment remains isolated to /infinidive/."
+              ;;
+            2*|3*)
+              echo "Refusing to replace an existing Pages site at ${pages_root}; merge its root artifact explicitly first." >&2
+              exit 1
+              ;;
+            *)
+              echo "Could not prove Pages-root ownership safely (HTTP ${status}); refusing deployment." >&2
+              exit 1
+              ;;
+          esac
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/pages
+
+  android-debug:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Select Java 17 for Android export
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install verified Godot and export templates
+        shell: bash
+        run: bash .github/scripts/install_godot.sh
+      - name: Configure Android export tools and debug signing
+        shell: bash
+        run: bash .github/scripts/configure_android_ci.sh
+      - name: Export Android debug APK
+        shell: bash
+        run: |
+          mkdir -p build/android
+          ./godot --headless --path infinidive-game --install-android-build-template --export-debug Android "${GITHUB_WORKSPACE}/build/android/infinidive-ci-debug.apk"
+          test -s infinidive-game/android/build/build.gradle
+          test -s infinidive-game/android/build/gradlew
+      - name: Validate Android debug APK
+        shell: bash
+        run: bash .github/scripts/validate_android_debug.sh build/android/infinidive-ci-debug.apk
+      - name: Upload Android debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-android-debug-${{ github.run_attempt }}
+          path: build/android/infinidive-ci-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
+    needs: [web-export, android-debug]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: infinidive-pages-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ format('{0}infinidive/', steps.deployment.outputs.page_url) }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">INFINIDIVE social sharing card</title>
+  <desc id="desc">Original illustrative social key art with the split-iris diver mark and a custom path-only INFINIDIVE wordmark. This is not a gameplay screenshot.</desc>
+  <defs>
+    <radialGradient id="space" cx="27%" cy="48%" r="84%">
+      <stop offset="0" stop-color="#2B1128"/>
+      <stop offset="0.46" stop-color="#070A0F"/>
+      <stop offset="1" stop-color="#03050C"/>
+    </radialGradient>
+    <linearGradient id="lower" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#19101D" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#070A0F" stop-opacity="0"/>
+    </linearGradient>
+    <path id="glyph-i" d="M0 0 H80 V26 H54 V154 H80 V180 H0 V154 H26 V26 H0 Z"/>
+    <path id="glyph-n" d="M0 180 V0 H29 L91 126 V0 H120 V180 H91 L29 54 V180 Z"/>
+    <path id="glyph-f" d="M0 180 V0 H112 V28 H32 V74 H99 V102 H32 V180 Z"/>
+    <path id="glyph-d" fill-rule="evenodd" d="M0 0 H57 C105 0 130 31 130 90 C130 149 105 180 57 180 H0 Z M32 28 V152 H55 C83 152 98 132 98 90 C98 48 83 28 55 28 Z"/>
+    <path id="glyph-v" d="M0 0 H34 L60 132 L86 0 H120 L82 180 H38 Z"/>
+    <path id="glyph-e" d="M0 0 H112 V28 H32 V74 H99 V102 H32 V152 H112 V180 H0 Z"/>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#space)"/>
+  <path d="M0 462 C137 408 246 532 386 455 C559 360 706 532 909 430 C1012 378 1110 383 1200 346 V630 H0 Z" fill="url(#lower)"/>
+  <path d="M710 0 C851 83 1038 73 1200 25 V0 Z" fill="#59606B" fill-opacity="0.1"/>
+  <path d="M0 88 C145 48 194 116 316 52" fill="none" stroke="#A78BFA" stroke-opacity="0.15" stroke-width="18"/>
+
+  <g transform="translate(18 10) scale(0.59)">
+    <circle cx="512" cy="512" r="349" fill="#19101D" stroke="#070A0F" stroke-width="42"/>
+    <circle cx="512" cy="512" r="282" fill="#0D0A13" stroke="#59606B" stroke-width="38"/>
+    <circle cx="512" cy="512" r="221" fill="none" stroke="#F32D83" stroke-opacity="0.25" stroke-width="52"/>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke="#070A0F" stroke-width="110">
+        <path d="M205 421 C249 299 347 221 470 209"/>
+        <path d="M590 222 C714 252 799 348 821 466"/>
+        <path d="M796 698 C719 816 588 864 453 837"/>
+        <path d="M339 811 C236 751 182 648 188 540"/>
+      </g>
+      <g stroke="#D7D0BD" stroke-width="67">
+        <path d="M205 421 C249 299 347 221 470 209"/>
+        <path d="M590 222 C714 252 799 348 821 466"/>
+        <path d="M796 698 C719 816 588 864 453 837"/>
+        <path d="M339 811 C236 751 182 648 188 540"/>
+      </g>
+    </g>
+    <g fill="#F32D83" stroke="#070A0F" stroke-width="20" stroke-linejoin="round">
+      <path d="M512 281 C571 352 586 430 553 494 C541 517 527 535 512 554 C497 535 483 517 471 494 C438 430 453 352 512 281 Z"/>
+      <path d="M512 281 C571 352 586 430 553 494 C541 517 527 535 512 554 C497 535 483 517 471 494 C438 430 453 352 512 281 Z" transform="rotate(120 512 512)"/>
+      <path d="M512 281 C571 352 586 430 553 494 C541 517 527 535 512 554 C497 535 483 517 471 494 C438 430 453 352 512 281 Z" transform="rotate(240 512 512)"/>
+    </g>
+    <circle cx="512" cy="512" r="103" fill="#03050C" stroke="#A78BFA" stroke-width="13"/>
+    <path d="M512 63 V327" fill="none" stroke="#54F2E7" stroke-opacity="0.2" stroke-width="44" stroke-linecap="round"/>
+    <path d="M512 95 V332" fill="none" stroke="#C9FFFB" stroke-opacity="0.78" stroke-width="8" stroke-linecap="round"/>
+    <g stroke="#070A0F" stroke-width="18" stroke-linejoin="round">
+      <path d="M512 131 L550 348 L530 391 L512 464 L494 391 L474 348 Z" fill="#54F2E7"/>
+      <path d="M489 329 L426 383 L490 403 Z" fill="#D7D0BD"/>
+      <path d="M535 329 L598 383 L534 403 Z" fill="#D7D0BD"/>
+    </g>
+  </g>
+
+  <g transform="translate(526 220) scale(0.54)">
+    <g fill="#D7D0BD">
+      <use href="#glyph-i" xlink:href="#glyph-i" x="0"/>
+      <use href="#glyph-n" xlink:href="#glyph-n" x="96"/>
+      <use href="#glyph-f" xlink:href="#glyph-f" x="232"/>
+      <use href="#glyph-i" xlink:href="#glyph-i" x="360"/>
+      <use href="#glyph-n" xlink:href="#glyph-n" x="456"/>
+      <use href="#glyph-i" xlink:href="#glyph-i" x="592"/>
+    </g>
+    <g fill="#54F2E7">
+      <use href="#glyph-d" xlink:href="#glyph-d" x="688"/>
+      <use href="#glyph-i" xlink:href="#glyph-i" x="834"/>
+      <use href="#glyph-v" xlink:href="#glyph-v" x="930"/>
+      <use href="#glyph-e" xlink:href="#glyph-e" x="1066"/>
+    </g>
+  </g>
+
+  <g transform="translate(550 382)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="30" cy="34" r="27" stroke="#D7D0BD" stroke-width="8"/>
+    <path d="M72 34 H139" stroke="#59606B" stroke-width="6" stroke-dasharray="10 12"/>
+    <path d="M174 4 C199 30 200 56 174 82 C148 56 149 30 174 4 Z" stroke="#F32D83" stroke-width="8"/>
+    <path d="M209 34 H276" stroke="#59606B" stroke-width="6" stroke-dasharray="10 12"/>
+    <circle cx="317" cy="34" r="29" stroke="#A78BFA" stroke-width="8"/>
+    <path d="M317 14 V54 M297 34 H337" stroke="#54F2E7" stroke-width="6"/>
+  </g>
+
+  <g fill="#F4F1E8" fill-opacity="0.78">
+    <circle cx="480" cy="89" r="5"/>
+    <circle cx="1088" cy="116" r="6"/>
+    <circle cx="1120" cy="508" r="4"/>
+    <circle cx="755" cy="538" r="5"/>
+  </g>
+</svg>

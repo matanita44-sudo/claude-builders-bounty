@@ -1,0 +1,217 @@
+{
+  "schema_version": 2,
+  "status": "android_social_ready_apple_technical_candidate_only",
+  "captured_at_utc": "2026-09-01",
+  "game": {
+    "name": "INFINIDIVE",
+    "application_version": "0.1.0",
+    "repository_head_at_audit": "26427758c6aa171495c2a76df0455d0cf957c153",
+    "working_tree_clean": false,
+    "revision_caveat": "The Godot project was uncommitted in the working tree, so the repository HEAD is not an exact reproducible source revision for this capture."
+  },
+  "capture": {
+    "runtime": "Godot 4.7.2-stable",
+    "display": "TCP-only Xvfb",
+    "renderer": "Godot GL Compatibility through OpenGL 3 on Mesa llvmpipe",
+    "window_resolution": "1080x1920",
+    "project_design_viewport": "540x960",
+    "scaling_truth": "Godot rendered the live window at 1080x1920 using its configured canvas scaling. The delivered images and video were not enlarged after capture.",
+    "interaction": "xdotool mouse input through Godot's mouse-to-touch emulation",
+    "state_control": "No debug state injection, save editing, gameplay editing, or scripted state forcing was used.",
+    "still_capture": "ImageMagick import from the live Godot X11 window",
+    "video_capture": "FFmpeg x11grab from the live 1080x1920 X display at 30 fps",
+    "audio": "Godot used the Dummy audio driver in this virtual-display run. The raw session and preserved development trailer are intentionally silent.",
+    "audio_postproduction": "The deliverable trailers add only a deterministic stereo arrangement rendered from the shipped ProceduralAudio implementation. No external samples, music, voices, or audio libraries were used.",
+    "device_qa": "Simulator/virtual-display evidence only; not a physical iPhone or Android device test."
+  },
+  "assets": [
+    {
+      "file": "nest-1080x1920.png",
+      "kind": "actual_runtime_still",
+      "state": "The Last Nest, Broken Shell",
+      "resolution": "1080x1920",
+      "post_capture_scaling": false,
+      "bytes": 116855,
+      "sha256": "33abd2489bdf89dc711fca8f5fbcba6ad14213a0a25ed7693e2f9f5f29f7bae5"
+    },
+    {
+      "file": "exterior-combat-1080x1920.png",
+      "kind": "actual_runtime_still",
+      "state": "Gravemaw exterior combat",
+      "visible_run_time": "00:06",
+      "resolution": "1080x1920",
+      "post_capture_scaling": false,
+      "bytes": 73138,
+      "sha256": "85d8af7de4639dd6f9b491ef608575d22af6d8356d049b4d9953300f89fcf506"
+    },
+    {
+      "file": "breach-open-1080x1920.png",
+      "kind": "actual_runtime_still",
+      "state": "Gravemaw breach open with DIVE NOW enabled",
+      "visible_run_time": "00:32",
+      "resolution": "1080x1920",
+      "post_capture_scaling": false,
+      "bytes": 71682,
+      "sha256": "b8ff52af2ba2d6de079ac0b883a4dbc697c346032d15cdc4970fbbeefcbd7d2b"
+    },
+    {
+      "file": "organ-choice-1080x1920.png",
+      "kind": "actual_runtime_still",
+      "state": "Live organ-order choice",
+      "visible_run_time": "00:33",
+      "resolution": "1080x1920",
+      "post_capture_scaling": false,
+      "bytes": 142698,
+      "sha256": "5e06d55349bcfa2b743eff96d00057c11e9a9baa27386c97e3ca74bb040705d1"
+    },
+    {
+      "file": "internal-zone-1080x1920.png",
+      "kind": "actual_runtime_still",
+      "state": "Hunter Eye internal entrance room",
+      "visible_run_time": "00:35",
+      "resolution": "1080x1920",
+      "post_capture_scaling": false,
+      "bytes": 74385,
+      "sha256": "d586b9dda9662427cdef01cfe7c1b6e2da11c1219e77d5b580a196cd219a7844"
+    },
+    {
+      "file": "trailer-runtime-dev-17s.mp4",
+      "kind": "actual_runtime_development_trailer",
+      "resolution": "1080x1920",
+      "codec": "H.264 yuv420p",
+      "frame_rate": "30 fps",
+      "frame_count": 516,
+      "duration_seconds": 17.2,
+      "audio": false,
+      "post_capture_scaling": false,
+      "editing": "Hard cuts only. No overlays, key art, captions, speed changes, fabricated UI, or generated frames.",
+      "source_segments_seconds": [
+        "0.0-1.0",
+        "2.0-6.0",
+        "18.0-21.0",
+        "35.0-37.4",
+        "37.4-38.6",
+        "38.6-40.2",
+        "40.2-44.2"
+      ],
+      "bytes": 2601937,
+      "sha256": "29fa9cafa52f2b2236983985fee70f1f2a183026d423a84c29f60c607506f400"
+    },
+    {
+      "file": "trailer-runtime-social-17s.mp4",
+      "kind": "actual_runtime_android_social_trailer",
+      "resolution": "1080x1920",
+      "video": {
+        "codec": "H.264 High Profile Level 4.0 yuv420p",
+        "frame_rate": "30 fps",
+        "frame_count": 516,
+        "bit_rate_bps": 1206979,
+        "transform": "The compressed video stream was copied from trailer-runtime-dev-17s.mp4 without re-encoding, scaling, padding, cropping, speed changes, overlays, or generated frames."
+      },
+      "audio": {
+        "codec": "AAC-LC",
+        "channels": 2,
+        "channel_layout": "stereo",
+        "sample_rate_hz": 48000,
+        "configured_bit_rate_bps": 256000,
+        "measured_bit_rate_bps": 264014,
+        "source": "Offline arrangement rendered exclusively by the shipped ProceduralAudio implementation."
+      },
+      "duration_seconds": 17.2,
+      "bytes": 3183616,
+      "sha256": "3950107d8ef89abffd42fec303f96ef5931a1c4139dcc771d91c17c7fa9c7103"
+    },
+    {
+      "file": "trailer-runtime-apple-candidate-886x1920-17s.mp4",
+      "kind": "actual_runtime_apple_technical_format_candidate",
+      "submission_ready": false,
+      "submission_blocker": "The underlying gameplay was captured on Linux/Xvfb rather than a supported iPhone. Technical stream validation cannot establish App Store Connect acceptance or satisfy device-capture provenance.",
+      "resolution": "886x1920",
+      "video": {
+        "codec": "H.264 High Profile Level 4.0 yuv420p",
+        "frame_rate": "30 fps",
+        "frame_count": 516,
+        "bit_rate_bps": 10123384,
+        "source_transform": "The complete 1080x1920 runtime frame was proportionally scaled to 886x1576. FFmpeg then added 172 pixels of black padding above and 172 below to reach Apple's accepted 886x1920 portrait resolution. No gameplay was cropped."
+      },
+      "audio": {
+        "codec": "AAC-LC",
+        "channels": 2,
+        "channel_layout": "stereo",
+        "sample_rate_hz": 48000,
+        "configured_bit_rate_bps": 256000,
+        "measured_bit_rate_bps": 264014,
+        "source": "Offline arrangement rendered exclusively by the shipped ProceduralAudio implementation."
+      },
+      "duration_seconds": 17.2,
+      "bytes": 22353991,
+      "sha256": "7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8"
+    },
+    {
+      "file": "trailer-runtime-apple-poster-5s-886x1920.jpg",
+      "kind": "actual_runtime_candidate_poster_frame",
+      "source_time_seconds": 5.0,
+      "resolution": "886x1920",
+      "color_type": "sRGB TrueColor without alpha",
+      "bytes": 78842,
+      "sha256": "f04c066c4cc3e8124984bd78a3c3c8d11fae59d5f6e332d17c288dcb01b466a5"
+    },
+    {
+      "file": "raw/session-1080x1920.mp4",
+      "kind": "continuous_actual_runtime_capture",
+      "resolution": "1080x1920",
+      "frame_rate": "30 fps",
+      "duration_seconds": 44.4,
+      "audio": false,
+      "committed": false,
+      "retention": "Local-only provenance source; excluded from version control. Integrity remains recorded by SHA-256.",
+      "post_capture_scaling": false,
+      "bytes": 27224766,
+      "sha256": "cee21abab99b03e49df107cc6559b0f9167daa9df1eb17104c1d8f59f685a296"
+    }
+  ],
+  "audio_build": {
+    "generated_pcm_retained": false,
+    "generated_pcm_format": "signed 16-bit little-endian stereo WAV, 44100 Hz",
+    "generated_pcm_frames": 758520,
+    "generated_pcm_duration_seconds": 17.2,
+    "generated_pcm_bytes": 3034124,
+    "generated_pcm_sha256": "55b5ba47f24979915ab207b9f0ddc995e993c9a2fb04404f6a436caf1573cada",
+    "procedural_audio_source_sha256": "87c841d59aec278f66db4690fac7c55fa1ede964dc5601453a6396f252496b8e",
+    "renderer_tool_sha256": "de1f2a9de4cadd12ec0a11956b3fc48ca46e266127752dddc21daa13ae80be2d",
+    "build_tool_sha256": "bb65741367d8fe1646bd242e92d839d528ae818215326c5a1c97a0bea73b0302"
+  },
+  "validation": {
+    "checked_at_utc": "2026-09-01",
+    "apple_specification_url": "https://developer.apple.com/help/app-store-connect/reference/app-information/app-preview-specifications",
+    "apple_current_contract_checked": "15-30 seconds; <=500MB; H.264 progressive up to High Profile Level 4.0; <=30fps; target 10-12Mbps; stereo 256kbps AAC at 44.1kHz or 48kHz; accepted current portrait iPhone preview resolution 886x1920.",
+    "local_checks": [
+      "ffprobe stream-contract assertions passed for both deliverables",
+      "ffmpeg decoded both deliverables end-to-end with no reported errors",
+      "Left/right decoded audio channel MD5 values differ, confirming non-duplicated stereo content",
+      "No silence interval longer than 0.5 seconds was detected below -45 dB",
+      "Decoded audio peak levels measured -8.36 dBFS left and -8.54 dBFS right; no clipping was detected",
+      "candidate poster is 886x1920 sRGB TrueColor JPEG without alpha"
+    ],
+    "not_verified": [
+      "App Store Connect upload or processing",
+      "Google Play Console upload or processing",
+      "Physical-device capture or playback",
+      "Store-review acceptance"
+    ]
+  },
+  "truthfulness": {
+    "contains_key_art": false,
+    "contains_mockups": false,
+    "contains_fabricated_gameplay": false,
+    "contains_unimplemented_feature_claims": false,
+    "store_submission_approved": false,
+    "limitations": [
+      "Development build version 0.1.0",
+      "Virtual X display and software renderer rather than a physical phone",
+      "The original capture is silent because the virtual run used the Dummy audio driver; deliverable audio is an offline render from shipped game code",
+      "The Apple file is only a locally validated technical-format candidate and still requires supported iPhone recapture",
+      "No store-console upload has been attempted or claimed"
+    ]
+  }
+}
