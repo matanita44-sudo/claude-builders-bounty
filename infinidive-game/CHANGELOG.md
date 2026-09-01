@@ -6,7 +6,13 @@ The current project version is 0.1.0. This is a development snapshot, not a clai
 
 ## [Unreleased]
 
-No changes are recorded after the 0.1.0 development snapshot below.
+### Evidence updates
+
+- GitHub Actions run [33498494206](https://github.com/matanita44-sudo/claude-builders-bounty/actions/runs/33498494206) validated commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`: `validate`, `web-export`, and `android-debug` succeeded.
+- The CI-served Playwright/Chromium smoke returned HTTP 200, started Godot 4.7.2 with WebGL2, created a 540×960 canvas, hid the loading status, and emitted no page errors. This is browser boot automation, not public-host, touch-gameplay, or device evidence.
+- The remote Pages artifact records `index.html` at 2,618 bytes / SHA-256 `f86b5f1c0f8985d66056f47c4969f8ae8366b5fb256ebc1098900471188e4336`, `index.pck` at 423,872 bytes / `b0f971a5f56accfd8eec18683978e4da556c3a582ddfad30462db7ae5685a5a1`, and `index.wasm` at 39,514,754 bytes / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`.
+- The remote Android debug artifact is 28,862,289 bytes / SHA-256 `45f1ebc82f1bae1d1cb767456c81fcf405d25b01d5e737c96b06f95084d0ef4c`; CI validated its package/version, min 24/target 36, arm64 ABI, exact normal `android.permission.VIBRATE`, Debug v2/v3 signature, and adaptive icon. It is not an AAB and was not installed.
+- Pages deployment did not complete: Configure Pages failed because `Create Pages site` returned `Resource not accessible by integration`. The configured public URL remains undeployed and unverified.
 
 ## [0.1.0-dev] — 2026-09-01
 
@@ -81,6 +87,6 @@ No changes are recorded after the 0.1.0 development snapshot below.
 - Projectile-speed, telegraph, dash-window, and aim-assist controls are exposed and consumed. Damage-flash intensity and reduced-motion coverage remain incomplete.
 - Analytics remains local, defaults off, and has a Settings control; there is no analytics upload transport.
 - Completed Daily/Friend runs queue challenge-separated, validated, unverified local summaries; Story/Abyss results do not consume the outbox. There is no backend transport, account, online leaderboard UI, fetched config, or cloud save.
-- Fresh reconciled-tree Web, debug-signed Android, and unsigned iPhone-targeted Xcode outputs were structurally validated with recorded hashes. No browser runtime/public deployment, release-signed AAB, Xcode compile/archive, native install, or store upload exists.
-- A headless-Chrome boot smoke is configured in CI, but no successful remote run, touch-gameplay browser automation or physical-device test is claimed.
+- Fresh reconciled-tree Web, debug-signed Android, and unsigned iPhone-targeted Xcode outputs were structurally validated with recorded hashes. A remote CI-served Chromium boot smoke passed, but no public deployment, touch-gameplay browser automation, release-signed AAB, Xcode compile/archive, native install, or store upload exists.
+- Remote validation/Web/Android jobs pass for the recorded commit. Pages remains blocked until the repository owner enables GitHub Actions as the Pages source; no mobile-browser or physical-device test is claimed.
 - Development icon/brand exports, five real-runtime stills, a 1080×1920 audio-complete social trailer, an 886×1920 audio-complete Apple-format technical candidate/poster, and bilingual privacy/support drafts exist with provenance and hashes. The Apple candidate still requires supported-iPhone recapture; none of these is final legal approval, public deployment, store acceptance, or submission.

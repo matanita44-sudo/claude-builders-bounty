@@ -120,12 +120,12 @@ XDG_DATA_HOME="$soak_data_root" \
 
 | Target | Scope | Status | Notes |
 |---|---|---|---|
-| Web export artifact | HTML, JavaScript, WASM, PCK presence, excluded tooling/adaptive sources, and unresolved-shell token checks | PASS (static) | Reconciled-tree export and validation script pass; no browser runtime claim |
-| Headless Chromium | Serve export over HTTP and wait for Godot `startGame()` completion | NOT RUN | CI workflow is implemented and awaits its first Actions execution; this is browser automation, not a physical device |
+| Web export artifact | HTML, JavaScript, WASM, PCK presence, excluded tooling/adaptive sources, and unresolved-shell token checks | PASS (remote + local static) | Actions run [33498494206](https://github.com/matanita44-sudo/claude-builders-bounty/actions/runs/33498494206) passed `web-export` for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`; remote hashes: HTML `f86b5f1c0f8985d66056f47c4969f8ae8366b5fb256ebc1098900471188e4336`, PCK `b0f971a5f56accfd8eec18683978e4da556c3a582ddfad30462db7ae5685a5a1`, WASM `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` |
+| Headless Chromium | Serve export over HTTP and wait for Godot `startGame()` completion | PASS (CI boot smoke) | HTTP 200; Godot 4.7.2; WebGL2; canvas 540×960; loading status hidden; no Playwright page errors. This is browser boot automation, not touch-gameplay, public-host, or physical-device evidence. |
 | Chromium mobile viewport | Real canvas pointer drag, dash, core hook, and reload persistence | NOT RUN | Requires semantic QA probe or equivalent observable state |
 | WebKit mobile viewport | Boot, canvas resize, safe-area layout, and basic pointer path | NOT RUN | Playwright WebKit is not physical Mobile Safari |
-| Public GitHub Pages URL | Post-deploy HTTP and runtime smoke at `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` | NOT RUN | Isolated branch fallback is configured but not verified as deployed |
-| Android debug APK | Manifest, permission, alignment, signature, then install/launch/lifecycle smoke | PARTIAL | Reconciled-tree APK passes structure: arm64, identity/version, min 24/target 36, exactly `android.permission.VIBRATE`, zipaligned, Debug v2/v3. No emulator/device install occurred. |
+| Public GitHub Pages URL | Post-deploy HTTP and runtime smoke at `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` | BLOCKED / NOT RUN | `deploy` failed only at Configure Pages because `Create Pages site` returned `Resource not accessible by integration`; the public URL is not deployed or verified. |
+| Android debug APK | Manifest, permission, alignment, signature, then install/launch/lifecycle smoke | PARTIAL | Remote CI artifact is 28,862,289 bytes / SHA-256 `45f1ebc82f1bae1d1cb767456c81fcf405d25b01d5e737c96b06f95084d0ef4c` and passes arm64, identity/version, min 24/target 36, exact `android.permission.VIBRATE`, zip alignment, Debug v2/v3, and adaptive-icon validation. No emulator/device install occurred; it is not an AAB. |
 | Android Gradle template path | Verified template install and Gradle project generation | PASS (structural) | Verified installer extracts `android_source.zip`; integrated debug export with `--install-android-build-template` creates `android/build`. This does not prove bundle compilation or signing. |
 | Android release AAB | Release export and Play internal-test install | BLOCKED | Separate Gradle/AAB preset exists; artifact still needs resolvable Gradle dependencies, complete SDK/build-tools 36, private signing, and Play access |
 | iOS Xcode project | Unsigned iPhone-targeted project structure and compile | PARTIAL | Reconciled-tree 47-file/~368 MB export verifies iPhone family, identity/plists/frameworks, exact RGB icons, and no Team/placeholder value; no Xcode compile occurred and owner Team/signing configuration remains required |
@@ -208,7 +208,7 @@ Production files were edited by other active workstreams while the 30-minute pro
 
 ## Next executable QA work
 
-1. Boot the real Web export through local HTTP in headless Chromium and fail on loader, page, console, WASM, or PCK errors.
+1. Enable GitHub Pages for GitHub Actions, rerun deployment, and repeat the HTTP/runtime smoke against the public URL.
 2. Add a QA-only observable snapshot and drive actual exported-canvas pointer input through the first core hook.
 3. Add one UI-driven death, bank, Forge purchase, relaunch, and immediate-retry flow.
 4. Add real-time attack-pattern safety and balance runs; the completed soak deliberately accelerates combat state transitions.
