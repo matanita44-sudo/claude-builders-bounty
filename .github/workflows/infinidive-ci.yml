@@ -382,7 +382,10 @@ jobs:
         uses: actions/deploy-pages@v4
 
   public-smoke:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
+    if: >-
+      !cancelled() && needs.deploy.result == 'success' &&
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/infinidive-production'
     needs: deploy
     runs-on: ubuntu-latest
     timeout-minutes: 10

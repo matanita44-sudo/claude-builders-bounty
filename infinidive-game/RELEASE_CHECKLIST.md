@@ -8,7 +8,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Project version is declared as `0.1.0`.
 - [x] Source-of-truth README, architecture, status, issues, and release checklist exist.
 - [x] The exact production tree is committed and pushed on `infinidive-production` as `67e2c54`.
-- [x] The canonical production inventory is fingerprinted as `e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382`; the tracked tests/CI inventory, including the commit-bound public-host and synthetic-touch smoke workflow, is `4aadf79562b34b616e445ab30408ad91a627cb0926d3b0185735ce89ac44219a`. The production calculation deliberately excludes only `assets/store/gameplay/raw/`: its continuous provenance capture is local-only, untracked, and non-exported, so it cannot affect the shipped game.
+- [x] The canonical production inventory is fingerprinted as `e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382`; the tracked tests/CI inventory, including the commit-bound public-host and synthetic-touch smoke workflow, is `e0af48b5b24e2333c928e685eccd12991c22f05d4cd8c37dc1c08f926bcb756b`. The production calculation deliberately excludes only `assets/store/gameplay/raw/`: its continuous provenance capture is local-only, untracked, and non-exported, so it cannot affect the shipped game.
 - [ ] Default/production branch is remotely playable and protected appropriately.
 - [ ] Risky migration work has a recoverable branch/tag/checkpoint.
 - [ ] Release version, changelog, and tag agree.
