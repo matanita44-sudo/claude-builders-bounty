@@ -174,7 +174,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 9. Web release
 
-- [x] A reconciled-tree Godot Web export exists under `../build/web/` with HTML, JavaScript, PCK, WASM, worklets, icons, and recorded SHA-256 hashes.
+- [x] A reconciled-tree Godot Web evidence export exists under `../../build/web/` with HTML, JavaScript, PCK, WASM, worklets, icons, and recorded SHA-256 hashes; the checked-in preset's default target remains `../build/web/`.
 - [x] Static Web validation passes and confirms tooling/adaptive-icon sources are excluded from the package.
 - [x] The remote Pages artifact for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232` records HTML 2,618 bytes / `f86b5f1c0f8985d66056f47c4969f8ae8366b5fb256ebc1098900471188e4336`, PCK 423,872 bytes / `b0f971a5f56accfd8eec18683978e4da556c3a582ddfad30462db7ae5685a5a1`, and WASM 39,514,754 bytes / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`.
 - [x] The remote Web artifact boots through CI-served HTTP in headless Chromium with no page errors; this does not cover touch gameplay, Safari, or the public host.
@@ -187,7 +187,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 10. Android internal test
 
-- [x] A reconciled-tree arm64 portrait debug APK exists at `../build/android/infinidive-debug.apk` (28,903,975 bytes; SHA-256 `d04ff8f814d9affec0a63b7df55fcca94d68936c4be3733edc747fafbfa32bd7`).
+- [x] A reconciled-tree arm64 portrait debug APK exists at `../../build/android/infinidive-debug.apk` (28,903,975 bytes; SHA-256 `d04ff8f814d9affec0a63b7df55fcca94d68936c4be3733edc747fafbfa32bd7`).
 - [x] The remote CI debug APK for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232` is 28,862,289 bytes (SHA-256 `45f1ebc82f1bae1d1cb767456c81fcf405d25b01d5e737c96b06f95084d0ef4c`).
 - [x] Its manifest verifies `com.matan.infinidive`, version `0.1.0 (1)`, min SDK 24, target SDK 36, and exactly normal `android.permission.VIBRATE`.
 - [x] The APK passes zip alignment and v2/v3 signature verification with `CN=Android Debug`; it is not production-distributable evidence.
@@ -206,7 +206,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 11. iOS TestFlight
 
-- [x] A reconciled-tree unsigned iPhone-targeted Xcode export is present at `../build/ios-iphone-current/INFINIDIVE.xcodeproj` (47 files, approximately 368 MB); PCK, frameworks, plists, entitlements, and export options parse.
+- [x] A reconciled-tree unsigned iPhone-targeted Xcode export is present at `../../build/ios-iphone-current/INFINIDIVE.xcodeproj` (47 files, approximately 368 MB); PCK, frameworks, plists, entitlements, and export options parse.
 - [x] It verifies `TARGETED_DEVICE_FAMILY="1"`, bundle ID `com.matan.infinidive`, version `0.1.0 (1)`, minimum iOS 15.0, exact RGB/no-alpha icons, and no Team/placeholder value.
 - [x] PCK, pbxproj, and export-options sizes/hashes are recorded in `PROJECT_STATUS.md`.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
