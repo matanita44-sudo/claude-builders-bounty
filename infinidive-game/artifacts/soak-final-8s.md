@@ -1,29 +1,29 @@
 # INFINIDIVE Headless Soak Report
 
 - Result: **PASS**
-- Report transaction: `9ac05a1b4bcc696001e5a6e7`
+- Report transaction: `b04902b7a88fbfcb2eda26fe`
 - Requested wall time: `8.00 seconds`
-- Actual wall time: `8.03 seconds`
+- Actual wall time: `8.24 seconds`
 - Seed: `203541`
-- Source fingerprint: `e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382`
+- Source fingerprint: `7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363`
 - Source changed during run: `false`
 - Environment: Godot `4.7.2-stable (official)`, display server `headless`
 - Scope: Linux Godot headless structural stability only; this is not physical-device performance evidence.
 
 | Metric | Value |
 |---|---:|
-| Iterations | 86 |
-| Boss restarts | 9 |
-| Dive transitions | 9 |
-| Projectile pressure cycles | 86 |
+| Iterations | 91 |
+| Boss restarts | 10 |
+| Dive transitions | 10 |
+| Projectile pressure cycles | 91 |
 | Projectile travel models exercised | 7 / 7 |
-| Player projectiles spawned | 5345 |
-| Enemy projectiles spawned | 10421 |
+| Player projectiles spawned | 5600 |
+| Enemy projectiles spawned | 11031 |
 | Peak simultaneous projectiles | 540 |
 | Save writes / reloads | 6 / 0 |
 | Offline events / reloads | 529 / 2 |
 | Peak objects / nodes / orphan nodes | 1597 / 32 / 0 |
-| Peak static memory | 38.87 MB |
-| Post-warm-up memory delta | 0.03 MB |
-| Post-warm-up memory slope | 0.501 MB/min |
+| Peak static memory | 38.89 MB |
+| Post-warm-up memory delta | 0.00 MB |
+| Post-warm-up memory slope | 0.005 MB/min |
 | Failures | 0 |

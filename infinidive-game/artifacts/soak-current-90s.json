@@ -1,46 +1,46 @@
 {
 	"counts": {
-		"boss_restarts": 117,
-		"dive_transitions": 117,
-		"enemy_projectiles_spawned": 140923,
-		"iterations": 1169,
-		"offline_events_queued": 637,
+		"boss_restarts": 115,
+		"dive_transitions": 115,
+		"enemy_projectiles_spawned": 137588,
+		"iterations": 1141,
+		"offline_events_queued": 634,
 		"offline_queue_final_size": 500,
 		"offline_queue_reloads": 3,
-		"player_projectiles_spawned": 71726,
-		"projectile_cycles": 1169,
+		"player_projectiles_spawned": 70038,
+		"projectile_cycles": 1141,
 		"projectile_model_steps": {
-			"delayed_linear": 20129,
-			"expanding": 20129,
-			"linear": 20136,
-			"lunge": 20133,
-			"node_link": 20131,
-			"recorded_path": 20134,
-			"soft_homing": 20131
+			"delayed_linear": 19652,
+			"expanding": 19652,
+			"linear": 19659,
+			"lunge": 19657,
+			"node_link": 19655,
+			"recorded_path": 19658,
+			"soft_homing": 19655
 		},
 		"projectile_models_executed": {
-			"delayed_linear": 20129,
-			"expanding": 20129,
-			"linear": 20136,
-			"lunge": 20133,
-			"node_link": 20131,
-			"recorded_path": 20134,
-			"soft_homing": 20131
+			"delayed_linear": 19652,
+			"expanding": 19652,
+			"linear": 19659,
+			"lunge": 19657,
+			"node_link": 19655,
+			"recorded_path": 19658,
+			"soft_homing": 19655
 		},
 		"projectile_models_requested": {
-			"delayed_linear": 20129,
-			"expanding": 20129,
-			"linear": 20136,
-			"lunge": 20133,
-			"node_link": 20131,
-			"recorded_path": 20134,
-			"soft_homing": 20131
+			"delayed_linear": 19652,
+			"expanding": 19652,
+			"linear": 19659,
+			"lunge": 19657,
+			"node_link": 19655,
+			"recorded_path": 19658,
+			"soft_homing": 19655
 		},
-		"save_reloads": 1,
-		"save_writes": 60
+		"save_reloads": 0,
+		"save_writes": 58
 	},
 	"display_server": "headless",
-	"elapsed_wall_seconds": 90.048,
+	"elapsed_wall_seconds": 90.184,
 	"engine": {
 		"build": "official",
 		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
@@ -53,162 +53,162 @@
 		"timestamp": 0
 	},
 	"failures": [],
-	"finished_at_utc": "2026-09-01T21:54:17",
+	"finished_at_utc": "2026-09-01T23:14:01",
 	"memory": {
-		"end_bytes": 40816443,
-		"peak_bytes": 40996247,
+		"end_bytes": 40844787,
+		"peak_bytes": 41000903,
 		"sample_count": 21,
-		"slope_bytes_per_minute": 218786.041893738,
-		"stable_delta_bytes": 90040,
+		"slope_bytes_per_minute": 223392.732278109,
+		"stable_delta_bytes": 96380,
 		"stable_sample_count": 16,
-		"stable_start_bytes": 40726403,
-		"start_bytes": 34472783,
-		"warmup_seconds": 18.0096
+		"stable_start_bytes": 40748407,
+		"start_bytes": 34494787,
+		"warmup_seconds": 18.0368
 	},
 	"memory_samples": [
 		{
 			"elapsed_seconds": 0.0,
-			"memory_bytes": 34472783,
+			"memory_bytes": 34494787,
 			"node_count": 11,
 			"object_count": 1525,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 1.298,
-			"memory_bytes": 40653231,
+			"elapsed_seconds": 1.422,
+			"memory_bytes": 40675235,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 5.123,
-			"memory_bytes": 40751767,
+			"elapsed_seconds": 5.018,
+			"memory_bytes": 40751283,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 10.013,
+			"memory_bytes": 40795499,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 10.019,
-			"memory_bytes": 40770435,
+			"elapsed_seconds": 15.026,
+			"memory_bytes": 40764399,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 15.016,
-			"memory_bytes": 40742395,
+			"elapsed_seconds": 20.043,
+			"memory_bytes": 40748407,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 20.016,
-			"memory_bytes": 40726403,
+			"elapsed_seconds": 25.052,
+			"memory_bytes": 40720463,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 25.059,
-			"memory_bytes": 40697403,
+			"elapsed_seconds": 30.277,
+			"memory_bytes": 40691907,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 30.136,
-			"memory_bytes": 40665199,
+			"elapsed_seconds": 35.048,
+			"memory_bytes": 40696183,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 40.021,
+			"memory_bytes": 40664663,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 45.04,
+			"memory_bytes": 40636791,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 50.044,
+			"memory_bytes": 40610275,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 55.017,
+			"memory_bytes": 40610871,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 60.037,
+			"memory_bytes": 40611803,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 65.019,
+			"memory_bytes": 40976779,
+			"node_count": 11,
+			"object_count": 1535,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 70.051,
+			"memory_bytes": 41000903,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 35.029,
-			"memory_bytes": 40664771,
+			"elapsed_seconds": 75.041,
+			"memory_bytes": 40961591,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 40.028,
-			"memory_bytes": 40632663,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 45.174,
-			"memory_bytes": 40604323,
+			"elapsed_seconds": 80.081,
+			"memory_bytes": 40924227,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 50.008,
-			"memory_bytes": 40588143,
+			"elapsed_seconds": 85.039,
+			"memory_bytes": 40884891,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 55.034,
-			"memory_bytes": 40588931,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 60.049,
-			"memory_bytes": 40589799,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 65.253,
-			"memory_bytes": 40996247,
+			"elapsed_seconds": 90.118,
+			"memory_bytes": 40847635,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 70.022,
-			"memory_bytes": 40963783,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 75.035,
-			"memory_bytes": 40927627,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 80.044,
-			"memory_bytes": 40887059,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 85.128,
-			"memory_bytes": 40848791,
-			"node_count": 11,
-			"object_count": 1537,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 90.013,
-			"memory_bytes": 40816231,
-			"node_count": 11,
-			"object_count": 1535,
-			"orphan_node_count": 0
-		},
-		{
-			"elapsed_seconds": 90.048,
-			"memory_bytes": 40816443,
+			"elapsed_seconds": 90.184,
+			"memory_bytes": 40844787,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
@@ -229,15 +229,15 @@
 		"player_projectiles": 190,
 		"total_projectiles": 540
 	},
-	"report_markdown_sha256": "026962ed338b02db99cfee0ecb08bc16b197c9b2abd1544214e11ed61e69ab83",
+	"report_markdown_sha256": "f0e4448d219ac2618c27e3369f0fb08d67d05555639a66989d5deb5fe41e2005",
 	"report_transaction_complete": true,
-	"report_transaction_id": "26dad83d28067418d76982a3",
+	"report_transaction_id": "1051aee6fe155c7309536e30",
 	"requested_duration_seconds": 90.0,
 	"schema": 1,
 	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
 	"seed": 203541,
 	"source_changed_during_run": false,
-	"source_fingerprint_end": "e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382",
-	"source_fingerprint_start": "e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382",
-	"started_at_utc": "2026-09-01T21:52:47"
+	"source_fingerprint_end": "7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363",
+	"source_fingerprint_start": "7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363",
+	"started_at_utc": "2026-09-01T23:12:31"
 }

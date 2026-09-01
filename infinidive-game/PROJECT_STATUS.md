@@ -6,6 +6,8 @@
 **Branch:** `infinidive-production`\
 **Public pre-alpha URL:** `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` — run `33565500042` binds the deployment to runtime-evidence commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f`; game, privacy, support, PCK, and WASM return HTTP 200, while the public-host smoke passes with a live 540×960 Godot canvas, zero page/console errors, 3/3/3 synthetic touch start/move/end events, and distinct before/after rendered frames
 
+> **Active evidence refresh:** the semantic Web QA candidate is frozen at production fingerprint `7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363` and tracked tests/CI fingerprint `d30ece3bad7997b749dedce70ff636575425d92aac017f6c9204ac3d6e99bc58`. Strict editor import plus all 13 local suites passed `28,410/0` with zero engine/script/parse error lines. Fresh source-bound 8.239-second and 90.184-second reports passed with 7/7 projectile models and zero failures. The previous public deployment, 30-minute report, and `e942db6f` packages listed below remain historical evidence until the new commit-bound 30-minute run, Chromium semantic smoke, deploy, and packaging refresh complete; they must not be read as evidence for `7fb2ddb2`.
+
 ## Evidence snapshot
 
 | Evidence | Result / state | What it proves |

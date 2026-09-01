@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="INFINIDIVE" tests="2631" failures="0" time="12.264">
+<testsuite name="INFINIDIVE" tests="2631" failures="0" time="12.450">
 <testcase name="assertion_0001" classname="INFINIDIVE"><system-out>GameData must pass validation: []</system-out></testcase>
 <testcase name="assertion_0002" classname="INFINIDIVE"><system-out>Exactly four bosses are required</system-out></testcase>
 <testcase name="assertion_0003" classname="INFINIDIVE"><system-out>Exactly five weapons are required</system-out></testcase>

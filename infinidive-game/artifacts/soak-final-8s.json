@@ -1,46 +1,46 @@
 {
 	"counts": {
-		"boss_restarts": 9,
-		"dive_transitions": 9,
-		"enemy_projectiles_spawned": 10421,
-		"iterations": 86,
+		"boss_restarts": 10,
+		"dive_transitions": 10,
+		"enemy_projectiles_spawned": 11031,
+		"iterations": 91,
 		"offline_events_queued": 529,
 		"offline_queue_final_size": 500,
 		"offline_queue_reloads": 2,
-		"player_projectiles_spawned": 5345,
-		"projectile_cycles": 86,
+		"player_projectiles_spawned": 5600,
+		"projectile_cycles": 91,
 		"projectile_model_steps": {
-			"delayed_linear": 1488,
-			"expanding": 1489,
-			"linear": 1489,
-			"lunge": 1488,
-			"node_link": 1489,
-			"recorded_path": 1489,
-			"soft_homing": 1489
+			"delayed_linear": 1575,
+			"expanding": 1576,
+			"linear": 1576,
+			"lunge": 1575,
+			"node_link": 1576,
+			"recorded_path": 1577,
+			"soft_homing": 1576
 		},
 		"projectile_models_executed": {
-			"delayed_linear": 1488,
-			"expanding": 1489,
-			"linear": 1489,
-			"lunge": 1488,
-			"node_link": 1489,
-			"recorded_path": 1489,
-			"soft_homing": 1489
+			"delayed_linear": 1575,
+			"expanding": 1576,
+			"linear": 1576,
+			"lunge": 1575,
+			"node_link": 1576,
+			"recorded_path": 1577,
+			"soft_homing": 1576
 		},
 		"projectile_models_requested": {
-			"delayed_linear": 1488,
-			"expanding": 1489,
-			"linear": 1489,
-			"lunge": 1488,
-			"node_link": 1489,
-			"recorded_path": 1489,
-			"soft_homing": 1489
+			"delayed_linear": 1575,
+			"expanding": 1576,
+			"linear": 1576,
+			"lunge": 1575,
+			"node_link": 1576,
+			"recorded_path": 1577,
+			"soft_homing": 1576
 		},
 		"save_reloads": 0,
 		"save_writes": 6
 	},
 	"display_server": "headless",
-	"elapsed_wall_seconds": 8.031,
+	"elapsed_wall_seconds": 8.239,
 	"engine": {
 		"build": "official",
 		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
@@ -53,43 +53,43 @@
 		"timestamp": 0
 	},
 	"failures": [],
-	"finished_at_utc": "2026-09-01T21:52:45",
+	"finished_at_utc": "2026-09-01T23:12:46",
 	"memory": {
-		"end_bytes": 40755783,
-		"peak_bytes": 40755783,
+		"end_bytes": 40774019,
+		"peak_bytes": 40774019,
 		"sample_count": 4,
-		"slope_bytes_per_minute": 525386.138612553,
-		"stable_delta_bytes": 26532,
+		"slope_bytes_per_minute": 5466.97038864875,
+		"stable_delta_bytes": 280,
 		"stable_sample_count": 2,
-		"stable_start_bytes": 40729251,
-		"start_bytes": 34472755,
-		"warmup_seconds": 1.6062
+		"stable_start_bytes": 40773739,
+		"start_bytes": 34494755,
+		"warmup_seconds": 1.6478
 	},
 	"memory_samples": [
 		{
 			"elapsed_seconds": 0.0,
-			"memory_bytes": 34472755,
+			"memory_bytes": 34494755,
 			"node_count": 11,
 			"object_count": 1525,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 1.485,
-			"memory_bytes": 40653203,
+			"elapsed_seconds": 1.319,
+			"memory_bytes": 40675203,
 			"node_count": 11,
 			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 5.001,
-			"memory_bytes": 40729251,
+			"elapsed_seconds": 5.166,
+			"memory_bytes": 40773739,
 			"node_count": 11,
-			"object_count": 1535,
+			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 8.031,
-			"memory_bytes": 40755783,
+			"elapsed_seconds": 8.239,
+			"memory_bytes": 40774019,
 			"node_count": 11,
 			"object_count": 1535,
 			"orphan_node_count": 0
@@ -110,15 +110,15 @@
 		"player_projectiles": 190,
 		"total_projectiles": 540
 	},
-	"report_markdown_sha256": "9ba26093ba394c70b591130544a21094e719d0801d55755d82fd0e5c93814c27",
+	"report_markdown_sha256": "b653617f726f1d4ad51e45214bc10b6225bd4a5afa64bf0002e632a0018daa22",
 	"report_transaction_complete": true,
-	"report_transaction_id": "9ac05a1b4bcc696001e5a6e7",
+	"report_transaction_id": "b04902b7a88fbfcb2eda26fe",
 	"requested_duration_seconds": 8.0,
 	"schema": 1,
 	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
 	"seed": 203541,
 	"source_changed_during_run": false,
-	"source_fingerprint_end": "e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382",
-	"source_fingerprint_start": "e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382",
-	"started_at_utc": "2026-09-01T21:52:37"
+	"source_fingerprint_end": "7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363",
+	"source_fingerprint_start": "7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363",
+	"started_at_utc": "2026-09-01T23:12:38"
 }

@@ -6,6 +6,13 @@ The current project version is 0.1.0. This is a publicly deployed pre-alpha deve
 
 ## [Unreleased]
 
+### Semantic Web QA candidate
+
+- Added a read-only Web QA snapshot that exists only when the exact query `?infinidive_qa=1` is present. It exposes a fixed whitelist of Nest/run state, player position, movement observation, Dash counters/charge, monotonic revision, and ephemeral run generation. It does not expose raw run IDs, seeds, saves, profile/currency data, challenge codes, account identifiers, or analytics payloads.
+- Added explicit `state_valid` and `numeric_state_valid` guards. Invalid enum, missing player state, non-finite position/timing, or impossible Dash ranges fail the semantic smoke instead of being normalized into plausible values.
+- Upgraded both CI-served and public-host Chrome smoke paths to prove Nest-to-run transition, at least 12 logical pixels of drag movement with `movement_observed` changing false-to-true, unchanged Dash count before the button tap, exact `dash_count + 1`, consumed charge, stable `run_generation`, monotonic revision/elapsed trace, and durable acceptance. Page crashes, JavaScript errors, and failed critical JS/WASM/PCK requests now fail closed with stage-specific evidence.
+- Current candidate fingerprints are production `7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363` and tracked tests/CI `d30ece3bad7997b749dedce70ff636575425d92aac017f6c9204ac3d6e99bc58`. Strict editor import and all 13 suites passed `28,410/0` with zero engine/script/parse errors. Fresh 8.239-second and 90.184-second source-bound reports passed 7/7 model coverage with zero failures; the required current-source 30-minute CI and deployed semantic smoke remain pending.
+
 ### Evidence updates
 
 - Frozen production source is pushed as commit [`67e2c54a177e9117d11a9f791f07aae703cdea5b`](https://github.com/matanita44-sudo/claude-builders-bounty/commit/67e2c54a177e9117d11a9f791f07aae703cdea5b) with exact tree `4133ea44b900b3143e90f33513105fcb04547015`.

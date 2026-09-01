@@ -199,6 +199,7 @@ jobs:
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-before-input.png
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.json
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.png
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-failure-*.png
             ${{ runner.temp }}/infinidive-chrome.log
             ${{ runner.temp }}/infinidive-http.log
           if-no-files-found: warn
@@ -451,6 +452,7 @@ jobs:
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-before-input.png
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.json
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.png
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-failure-*.png
             ${{ runner.temp }}/infinidive-public-chrome.log
             ${{ runner.temp }}/infinidive-deployment.json
           if-no-files-found: warn

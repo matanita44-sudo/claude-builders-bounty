@@ -40,6 +40,20 @@ const STATE_TEXT_KEYS := {
 	RunState.DEAD: "state_dead",
 	RunState.VICTORY: "state_victory"
 }
+const QA_STATE_NAMES := [
+	"INTRO",
+	"EXTERIOR",
+	"BREACH_OPEN",
+	"ORGAN_SELECT",
+	"DIVING_IN",
+	"INTERNAL_ROOMS",
+	"ORGAN_CHAMBER",
+	"MUTATION_CHOICE",
+	"DIVING_OUT",
+	"CORE",
+	"DEAD",
+	"VICTORY"
+]
 
 const WEAPON_BEHAVIORS := ["pulse", "scatter", "rail", "arc", "orbitals"]
 const INTERNAL_DEFENDER_TELEGRAPH_SECONDS := 0.55
@@ -363,6 +377,71 @@ static func build_degraded_attack_specs(attack_contract: Dictionary, origin: Vec
 
 func initialize(run_config: Dictionary) -> void:
 	config = run_config.duplicate(true)
+
+func qa_snapshot() -> Dictionary:
+	var player_position := Vector2.ZERO
+	var player_state_present := false
+	var controls_active := false
+	var dash_time := 0.0
+	var dash_charges := 0
+	var dash_max_charges := 0
+	var dash_recharge := 0.0
+	var dash_cooldown := 0.0
+	var dash_ratio := 0.0
+	if is_instance_valid(_player):
+		player_state_present = true
+		player_position = _player.position
+		controls_active = _player.controls_active
+		dash_time = _player.dash_time
+		dash_charges = _player.dash_charges
+		dash_max_charges = _player.max_dash_charges
+		dash_recharge = _player.dash_recharge
+		dash_cooldown = _player.dash_cooldown
+		dash_ratio = _player.dash_ratio()
+	var state_index := int(state)
+	var state_valid := state_index >= 0 and state_index < QA_STATE_NAMES.size()
+	var numeric_state_valid := (
+		state_valid
+		and player_state_present
+		and is_finite(player_position.x)
+		and is_finite(player_position.y)
+		and _dash_count >= 0
+		and is_finite(dash_time)
+		and dash_time >= 0.0
+		and dash_charges >= 0
+		and dash_max_charges >= 1
+		and dash_charges <= dash_max_charges
+		and is_finite(dash_recharge)
+		and dash_recharge >= 0.0
+		and is_finite(dash_cooldown)
+		and dash_cooldown > 0.0
+		and is_finite(dash_ratio)
+		and dash_ratio >= 0.0
+		and dash_ratio <= 1.0
+		and is_finite(elapsed)
+		and elapsed >= 0.0
+	)
+	return {
+		"view":"run",
+		"run_identity_present":not run_id.is_empty(),
+		"state":QA_STATE_NAMES[state_index] if state_valid else "INVALID",
+		"state_valid":state_valid,
+		"numeric_state_valid":numeric_state_valid,
+		"player_position":[_qa_json_number(player_position.x), _qa_json_number(player_position.y)],
+		"controls_active":controls_active,
+		"movement_observed":_tutorial_movement_seen,
+		"dash_count":_dash_count,
+		"dash_time":_qa_json_number(dash_time),
+		"dash_charges":dash_charges,
+		"dash_max_charges":dash_max_charges,
+		"dash_recharge":_qa_json_number(dash_recharge),
+		"dash_cooldown":_qa_json_number(dash_cooldown),
+		"dash_ratio":_qa_json_number(dash_ratio),
+		"elapsed":_qa_json_number(elapsed)
+	}
+
+static func _qa_json_number(value: float) -> Variant:
+	return value if is_finite(value) else null
 
 func _ready() -> void:
 	_apply_config_defaults()

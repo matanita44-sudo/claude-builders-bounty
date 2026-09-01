@@ -7,6 +7,8 @@ Current quality level: production foundation / playable pre-alpha, not a release
 
 This document separates automated evidence, browser emulation, simulator testing, and physical-device testing. A row marked `PASS` only covers the environment and assertions named in that row. No physical-device testing has been performed yet.
 
+> **Candidate under validation:** production fingerprint `7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363`, tests/CI fingerprint `d30ece3bad7997b749dedce70ff636575425d92aac017f6c9204ac3d6e99bc58`, editor plus 13 suites `28,410/0`, bounded soak 8.239 seconds, and soak 90.184 seconds all pass locally. Rows tied to `e942db6f`, run `33565500042`, or artifact `9822001845` are prior-source evidence until the candidate's 30-minute CI and semantic local/public Chromium jobs finish.
+
 ## Status legend
 
 | Status | Meaning |

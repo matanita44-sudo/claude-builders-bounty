@@ -2,6 +2,8 @@
 
 This checklist is evidence-based. Check an item only after the artifact or test exists. A configured preset, authored data row, or code path is not equivalent to a validated build or feature.
 
+> Candidate source `7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363` and tests/CI `d30ece3bad7997b749dedce70ff636575425d92aac017f6c9204ac3d6e99bc58` pass local strict editor, `28,410/0`, and 8/90-second source-bound soaks. Existing checked package/public/30-minute items below are prior-source evidence until current CI, deploy, and packaging refresh complete.
+
 ## 0. Source and version control
 
 - [x] Godot project exists under `infinidive-game/`.

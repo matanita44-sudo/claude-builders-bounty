@@ -236,7 +236,7 @@ The project contains no ad SDK, billing SDK, login, cloud save, networked leader
 
 **Status:** Implemented for the current headless suite
 
-The repository includes data, organ-order/loss-transformation, challenge-code, mutation, permanent-upgrade, tutorial, localization/settings, analytics-contract, local-backend, room-contract/compiler/live-integration/defender-effect, projectile-travel, meta-goal, project-configuration, safe-area, projectile, movement, dash/damage, save-recovery/migration/banking/reset, combined UI progression/relaunch, live combat-audio, and first-core-hook tests. The final frozen local matrix is 28,410 assertions with zero failures across 13 invocations: main 2,631; backend/offline 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta goals 111; and audio 505. The six room-runtime invocations contribute 24,438/0. Editor import and every suite passed the strict wrapper with zero error lines; canonical production/tracked-tests-CI fingerprints are `e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382` and `e0af48b5b24e2333c928e685eccd12991c22f05d4cd8c37dc1c08f926bcb756b`. The production fingerprint excludes the intentional local-only, untracked raw gameplay capture, which is absent from exports. The main suite is fail-closed unless it receives `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`.
+The repository includes data, organ-order/loss-transformation, challenge-code, mutation, permanent-upgrade, tutorial, localization/settings, analytics-contract, local-backend, room-contract/compiler/live-integration/defender-effect, projectile-travel, meta-goal, project-configuration, safe-area, projectile, movement, dash/damage, save-recovery/migration/banking/reset, combined UI progression/relaunch, live combat-audio, and first-core-hook tests. The current frozen local matrix is 28,410 assertions with zero failures across 13 invocations: main 2,631; backend/offline 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta goals 111; and audio 505. The six room-runtime invocations contribute 24,438/0. Editor import and every suite passed the strict wrapper with zero error lines; canonical production/tracked-tests-CI fingerprints are `7fb2ddb25e31c6711e75c7c96fd9f7d6be00863c46b327c04c51a8698e7b9363` and `d30ece3bad7997b749dedce70ff636575425d92aac017f6c9204ac3d6e99bc58`. The production fingerprint excludes the intentional local-only, untracked raw gameplay capture, which is absent from exports. The main suite is fail-closed unless it receives `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`.
 
 **Consequences**
 
@@ -296,3 +296,22 @@ Every Godot test scene is discovered and reconciled with a version-controlled ma
 - Soak evidence is a JSON/Markdown transaction. Both outputs stage before commit, validate the complete schema, bind the exact Markdown SHA-256 into JSON, and restore the prior complete pair symmetrically if either side fails. Positive fractional durations are valid; source drift persists as a validated diagnostic `FAIL`. Failure injection covers JSON and Markdown open/write, staged verification, first/second commit, truncated/mixed pairs, fractional duration, and persisted source-change diagnostics.
 - The CI validator self-tests `PASS`, diagnostic, malformed, and missing report pairs; requires exact result/transaction/bound-hash parity; requires all seven travel-model requested counts to equal executed counts; and rejects incomplete evidence.
 - This hardening improves automated evidence integrity; it does not turn headless results into browser, device, or human-play evidence.
+
+## D-020 — Query-gated read-only Web QA boundary
+
+**Status:** Implemented; deployed evidence pending
+
+The Web build publishes a fixed semantic snapshot only when the exact query parameter `infinidive_qa=1` is present. Normal Web sessions and every non-Web platform leave the publisher disabled. JavaScript can read the snapshot but receives no callback or mutator into Godot.
+
+**Why**
+
+- Canvas touch delivery and changed pixels do not prove that gameplay accepted movement or Dash.
+- A stable, narrow contract is less brittle than reading rendered text or exposing the save/profile model to browser automation.
+- CI must distinguish real gameplay acceptance from accidental movement, stale state, a restarted run, or sanitized numeric corruption.
+
+**Consequences**
+
+- The whitelist contains schema/revision, Nest or run view, ephemeral `run_generation`, state validity, player position, control/movement state, Dash counters/timing/charge, and elapsed time.
+- Raw run ID, deterministic seed, profile/save state, currencies, challenge codes, account/player identifiers, and analytics payloads are excluded.
+- CI requires the same generation throughout, monotonic revision/elapsed, valid finite numeric state, movement of at least 12 logical pixels while Dash count remains unchanged, then an exact Dash-count increment and charge decrease from the dedicated button.
+- This closes an automated semantic-proof gap only. It is not human control-feel, Safari/Chrome compatibility, simulator, native-install, or physical-device evidence.
