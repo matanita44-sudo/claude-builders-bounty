@@ -155,14 +155,15 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] The current CI workflow imports, tests, exports Web/Android, browser-smoke-tests the Web export, deploys Pages, and includes a post-deploy public-host smoke job.
 - [x] Actions run `33557365042`, attempt 2, passes overall for exact-tree commit `67e2c54`; deploy job `100024023277` also passes.
 - [x] Actions run `33559947112` completes fully `PASS`; its source-bound 30-minute job is `100030992601`, and artifact `9822001845` retains the validated JSON/Markdown pair.
+- [x] Runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` passes Actions run `33565500042`, including deploy job `100049011404` and public-smoke job `100049076641`. The optional long-soak job was skipped by design because validation accepted the retained current-source 30-minute pair.
 - [x] The current remote validate job passes the frozen 13-suite matrix at `28,410/0`.
-- [x] The current Web export boots successfully in CI-served headless Chrome; this does not cover touch gameplay, Safari, the public-host canvas, or a physical device.
+- [x] The Web export boots successfully in CI-served headless Chrome, and the current public export separately passes synthetic canvas delivery plus rendered-change checks; neither result asserts semantic gameplay state, Safari/mobile-browser behavior, or physical-device feel.
 - [x] The current Android debug export and structural validation pass in Actions run `33557365042`, attempt 2; this is not an install, lifecycle, release-signing, or Play internal-test result.
-- [x] The commit-bound public-host canvas automation passes in Actions run `33559947112`: HTTP 200, Godot 4.7.2/WebGL2, 540×960 canvas, hidden loading status, and zero page/console errors; artifact `9821030353` retains the evidence.
+- [x] The commit-bound public-host synthetic canvas automation passes in Actions run `33565500042`: HTTP 200, 540×960 canvas, zero page errors, and `3/3/3` canvas `touchstart` / `touchmove` / `touchend` events. Before SHA-256 `31212c7891fccbb64e3993062614178a854ac29b185878ee1a5db2963ccf2e23` differs from after SHA-256 `94e6d2654a466e0ecb37670e6621d2b873eb5c9c56c39a5565ea2f38afa0b6d8`, proving rendered change. Artifact `9823113363` is 90,667 bytes / `5038d055d8cf723b479424b4d099d0e3c036bb4e9eb325cb9c1ee6e00b750985`. This proves synthetic delivery and rendering only, not semantic gameplay state, mobile Safari/Chrome, or physical touch feel.
 - [x] Local complete-boss victory smoke tests pass for four bosses × six organ orders.
 - [x] Combined failure, 55-Bio banking, Forge upgrade, 110-HP new run, second failure, instant retry, and separate-process relaunch smoke passes.
 - [ ] A previously shipped-build update fixture, background/force-close reward timing, and repeated Abyss-depth smoke pass.
-- [ ] The full gameplay path produces no repeated console errors in an actual Web run; the remote browser boot smoke itself emitted no page errors.
+- [ ] The full gameplay path produces no repeated console errors in an actual Web run; the public synthetic-input smoke emitted zero page errors but does not traverse or semantically assert the full gameplay path.
 - [x] Malformed and deterministic-fuzz Friend Rift corpora fail closed in the main headless suite.
 - [ ] Pause/backgrounding cannot avoid or duplicate damage/rewards incorrectly.
 - [ ] Procedural routes pass a large seeded-layout sweep.
@@ -185,7 +186,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [ ] Offline/online transition test passes if networking is enabled.
 - [ ] Background return is fast and stable.
 - [ ] No blocking network or save operation occurs during combat.
-- [x] Canonical package names, sizes, hashes, `BUILD_EVIDENCE.md`, and `SHA256SUMS` are recorded under `../build/final-0.1.0-e942db6f/`; none is browser, native-install, production-signing, physical-device, or store evidence.
+- [x] Canonical package names, sizes, hashes, `BUILD_EVIDENCE.md`, and `SHA256SUMS` are recorded under `../build/final-0.1.0-e942db6f/`. Package bytes alone are not runtime evidence; the separately retained public-smoke artifact is synthetic headless-Chrome canvas evidence. No native-install, production-signing, physical-device, or store evidence is claimed.
 
 ## 9. Web release
 
@@ -193,12 +194,13 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Web ZIP `INFINIDIVE-0.1.0-prealpha-web-e942db6f.zip` contains the deployment-corrected bilingual privacy/support pages and is recorded in the passing `SHA256SUMS` with SHA-256 `8df771d497ce98c5807e40bf2e2f0bff9aa5bbdb74f614551668b8fd559b0001`.
 - [x] Static Web validation passes and confirms tooling/adaptive-icon sources are excluded from the package.
 - [x] Local HTTP smoke returns 200 for the frozen game root, privacy page, and support page; this is not a real-browser canvas/WebGL/touch run.
-- [x] Actions run `33557365042`, attempt 2, exports exact-tree commit `67e2c54` and boots that output through CI-served HTTP in headless Chrome; this does not cover touch gameplay, Safari, or the public host.
+- [x] Actions run `33557365042`, attempt 2, exports exact-tree commit `67e2c54` and boots that output through CI-served HTTP in headless Chrome; that historical step is retained as boot evidence, while current public-host synthetic input evidence is recorded below.
 - [ ] Export is smoke-tested in desktop Safari and Chrome.
 - [ ] Export is touch-tested in mobile Safari and mobile Chrome.
 - [ ] Hosting sends any headers required by the exported Godot configuration.
-- [x] GitHub Pages deployment completes successfully in job `100024023277` (Actions run `33557365042`, attempt 2).
-- [x] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opens the commit-bound current game directly, returns HTTP 200, and passes the public-host boot smoke in run `33559947112`.
+- [x] GitHub Pages deployment completes successfully for runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` in job `100049011404` (Actions run `33565500042`).
+- [x] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opens the commit-bound current game directly, returns HTTP 200, and passes the public-host boot plus synthetic canvas-delivery smoke in job `100049076641`.
+- [x] Public-smoke artifact `9823113363` retains the before/after screenshots and JSON evidence; it is 90,667 bytes with SHA-256 `5038d055d8cf723b479424b4d099d0e3c036bb4e9eb325cb9c1ee6e00b750985`.
 - [x] The live game, support, and privacy URLs each return HTTP 200.
 - [ ] Public build displays current version and a working feedback link.
 
