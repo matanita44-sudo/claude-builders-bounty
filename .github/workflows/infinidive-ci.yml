@@ -13,6 +13,12 @@ on:
       - ".github/scripts/**"
       - ".github/workflows/infinidive-ci.yml"
   workflow_dispatch:
+    inputs:
+      run_long_soak:
+        description: Run the source-bound 30-minute structural soak
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: infinidive-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
@@ -207,6 +213,23 @@ jobs:
               exit 1
               ;;
           esac
+      - name: Bind Pages artifact to the tested commit
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+
+          marker = {
+              "commit": os.environ["GITHUB_SHA"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+          }
+          path = pathlib.Path("build/pages/infinidive/deployment.json")
+          path.write_text(json.dumps(marker, sort_keys=True) + "\n", encoding="utf-8")
+          PY
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
         uses: actions/upload-pages-artifact@v4
@@ -251,6 +274,70 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  long-soak:
+    if: >-
+      github.ref == 'refs/heads/infinidive-production' &&
+      ((github.event_name == 'push' && contains(github.event.head_commit.message, '[long-soak]')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_long_soak))
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download verified Godot
+        shell: bash
+        run: |
+          test "$(tr -d '[:space:]' < infinidive-game/.godot-version)" = "${GODOT_VERSION}"
+          curl -L --fail --retry 3 -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          echo "${GODOT_LINUX_SHA256}  godot.zip" | sha256sum --check --strict
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" godot
+          chmod +x godot
+          ./godot --version | grep -F "${GODOT_VERSION}.${GODOT_STATUS}"
+      - name: Import the frozen project
+        shell: bash
+        run: |
+          checked_runner=.github/scripts/run_godot_checked.sh
+          bash "${checked_runner}" --suite editor -- ./godot --headless --path infinidive-game --import
+      - name: Run and validate the 30-minute structural soak
+        shell: bash
+        run: |
+          checked_runner=.github/scripts/run_godot_checked.sh
+          long_manifest="${RUNNER_TEMP}/infinidive-long-soak-suites.tsv"
+          python3 - .github/scripts/test_suites.tsv "${long_manifest}" <<'PY'
+          import pathlib
+          import sys
+
+          source = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
+          rewritten = []
+          for line in source:
+              if line.startswith("soak|soak|"):
+                  fields = line.split("|")
+                  fields[3] = "1950"
+                  line = "|".join(fields)
+              rewritten.append(line)
+          pathlib.Path(sys.argv[2]).write_text("\n".join(rewritten) + "\n", encoding="utf-8")
+          PY
+          bash "${checked_runner}" --suite soak --manifest "${long_manifest}" -- \
+            ./godot --headless --path infinidive-game --scene res://tests/soak/SoakTest.tscn -- \
+            --duration-seconds=1800 --seed=203541 --report-stem=soak-30m
+          python3 .github/scripts/validate_soak_report.py \
+            infinidive-game/artifacts/soak-30m.json --minimum-duration=1800
+      - name: Upload 30-minute soak evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-soak-30m-${{ github.run_attempt }}
+          path: |
+            infinidive-game/artifacts/soak-30m.json
+            infinidive-game/artifacts/soak-30m.md
+            ${{ runner.temp }}/infinidive-test-logs
+          if-no-files-found: error
+          retention-days: 30
+
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
     needs: [web-export, android-debug]
@@ -274,3 +361,73 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  public-smoke:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Wait for the deployed commit
+        shell: bash
+        run: |
+          public_root="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/infinidive"
+          marker_path="${RUNNER_TEMP}/infinidive-deployment.json"
+          deployment_ready=false
+          for _ in {1..90}; do
+            if curl --location --silent --show-error --fail \
+              --max-time 20 \
+              --output "${marker_path}" \
+              "${public_root}/deployment.json"; then
+              if python3 -c \
+                'import json, pathlib, sys; marker = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); raise SystemExit(0 if marker.get("commit") == sys.argv[2] else 1)' \
+                "${marker_path}" "${GITHUB_SHA}"; then
+                deployment_ready=true
+                break
+              fi
+            fi
+            sleep 2
+          done
+          test "${deployment_ready}" = true
+
+          for path in index.html privacy.html support.html index.pck index.wasm; do
+            curl --location --silent --show-error --fail \
+              --max-time 120 \
+              --output /dev/null \
+              "${public_root}/${path}"
+          done
+      - name: Boot the public game in headless Chrome
+        shell: bash
+        run: |
+          chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [[ -z "${chrome_bin}" ]]; then
+            echo "No Chrome/Chromium binary is available on the runner" >&2
+            exit 1
+          fi
+
+          playwright_root="${RUNNER_TEMP}/infinidive-public-playwright"
+          evidence_dir="${RUNNER_TEMP}/infinidive-public-smoke"
+          npm install --prefix "${playwright_root}" --no-package-lock --no-save --ignore-scripts playwright-core@1.55.0
+          INFINIDIVE_CHROME_BIN="${chrome_bin}" \
+          INFINIDIVE_PLAYWRIGHT_ROOT="${playwright_root}" \
+            node .github/scripts/smoke_web.cjs \
+              "https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/infinidive/" \
+              "${evidence_dir}" \
+              2> "${RUNNER_TEMP}/infinidive-public-chrome.log"
+      - name: Upload public Web smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-public-web-smoke-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-dom.html
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.json
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.png
+            ${{ runner.temp }}/infinidive-public-chrome.log
+            ${{ runner.temp }}/infinidive-deployment.json
+          if-no-files-found: warn
+          retention-days: 14
