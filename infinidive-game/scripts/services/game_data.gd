@@ -1,5 +1,7 @@
 extends Node
 
+const OrganAbilityMapScript := preload("res://scripts/core/organ_ability_map.gd")
+
 const DATA_FILES := {
 	"bosses": "res://data/bosses.json",
 	"weapons": "res://data/weapons.json",
@@ -80,6 +82,7 @@ func _validate() -> void:
 			if ability_id.is_empty() or ability_ids.has(ability_id):
 				validation_errors.append("Boss %s has an invalid organ ability map" % boss.get("id", "?"))
 			ability_ids[ability_id] = true
+		validation_errors.append_array(OrganAbilityMapScript.validate_boss_definition(boss))
 
 func _validate_unique_ids(values: Array, label: String) -> void:
 	var seen: Dictionary = {}

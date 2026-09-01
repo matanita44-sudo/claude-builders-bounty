@@ -2,7 +2,7 @@
 
 > Snapshot: project version 0.1.0 on 2026-09-01. Values below describe current code and JSON data. They are not playtest conclusions, retention claims or final launch tuning.
 
-The latest automated logic evidence is 6,107 assertions with zero failures across the main and six focused suites. That coverage verifies configured formulas and effect contracts—including telegraph-avoidance qualification and rate-limited combat cues—but it does not substitute for human balance, comprehension, audio-mix, or device-performance testing.
+The latest current-working-tree automated logic evidence is 6,462 assertions with zero failures across the 2,538-assertion main suite and seven focused suites. That coverage verifies configured formulas and effect contracts—including telegraph-avoidance qualification, rate-limited combat cues, and seven degraded/five disabled organ-loss behaviors—but it does not substitute for human balance, comprehension, audio-mix, or device-performance testing.
 
 ## Runtime conventions
 

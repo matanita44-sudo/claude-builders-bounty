@@ -321,6 +321,9 @@ func show_result(result: Dictionary) -> void:
 		box.add_child(target_label)
 	for pair in [["retry","dive_again"],["share","share_rift"],["nest","return_to_nest"]]:
 		var button := Button.new()
+		# Stable semantic names support diagnostics and let headless UI smoke tests
+		# exercise the same buttons a player presses.
+		button.name = "ResultAction_%s" % String(pair[0])
 		button.text = LocalizationService.text(String(pair[1]))
 		button.alignment = LocalizationService.start_alignment()
 		button.custom_minimum_size.y = 50

@@ -455,9 +455,9 @@ func _write_reports(elapsed: float, memory_analysis: Dictionary) -> void:
 		body += "| Peak static memory | %.2f MB |\n" % memory_peak_mb
 		body += "| Post-warm-up memory delta | %.2f MB |\n" % memory_delta_mb
 		body += "| Post-warm-up memory slope | %.3f MB/min |\n" % memory_slope_mb
-		body += "| Failures | %d |\n\n" % failures.size()
+		body += "| Failures | %d |\n" % failures.size()
 		if not failures.is_empty():
-			body += "## Failures\n\n"
+			body += "\n## Failures\n\n"
 			for failure in failures:
 				body += "- `%s`: %s\n" % [String(failure.code),String(failure.detail)]
 		markdown_file.store_string(body)

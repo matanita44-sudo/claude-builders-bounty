@@ -237,6 +237,84 @@ static func should_emit_rate_limited_sfx(last_played: Dictionary, sfx_id: String
 	last_played[sfx_id] = now_seconds
 	return true
 
+static func basic_rupture_attack_contract() -> Dictionary:
+	return {
+		"ability_id":"basic_rupture",
+		"status":OrganAbilityMap.STATUS_ACTIVE,
+		"variant":"intact",
+		"telegraph_multiplier":1.0,
+		"pattern":{"family":"ring","safe_arc_radians":0.45}
+	}
+
+static func build_degraded_attack_specs(attack_contract: Dictionary, origin: Vector2, player_position: Vector2, safe_angle: float, projectile_speed_multiplier: float = 1.0) -> Dictionary:
+	var result := {
+		"valid": false,
+		"ability_id": String(attack_contract.get("ability_id", "")),
+		"variant": String(attack_contract.get("variant", "")),
+		"family": "",
+		"projectiles": [],
+		"safe_angle": safe_angle,
+		"gap_x": -1.0
+	}
+	if String(attack_contract.get("status", "")) != OrganAbilityMap.STATUS_DEGRADED:
+		return result
+	var pattern_value: Variant = attack_contract.get("pattern", null)
+	if typeof(pattern_value) != TYPE_DICTIONARY:
+		return result
+	var pattern := pattern_value as Dictionary
+	var family := String(pattern.get("family", ""))
+	if family not in OrganAbilityMap.VALID_PATTERN_FAMILIES:
+		return result
+	var speed := clampf(float(pattern.get("speed", 180.0)), 90.0, 500.0) * clampf(projectile_speed_multiplier, 0.5, 2.0)
+	var damage := clampf(float(pattern.get("damage", 8.0)), 1.0, 20.0)
+	var cause_id := "ability:%s" % String(attack_contract.get("ability_id", "basic_rupture"))
+	var player_angle := (player_position-origin).angle()
+	var projectile_specs: Array[Dictionary] = []
+	match family:
+		"aimed_fan":
+			var count := clampi(int(pattern.get("count", 1)), 1, 5)
+			var spread := clampf(float(pattern.get("spread_radians", 0.0)), 0.0, 0.42)
+			for index in count:
+				var centered_index := float(index)-float(count-1)*0.5
+				projectile_specs.append({
+					"origin": origin,
+					"velocity": Vector2.from_angle(player_angle+centered_index*spread)*speed,
+					"damage": damage,
+					"options": {"radius":5.8,"cause":cause_id}
+				})
+		"ring":
+			var count := clampi(int(pattern.get("count", 12)), 6, 20)
+			var safe_arc := clampf(float(pattern.get("safe_arc_radians", 0.72)), 0.65, 1.4)
+			for index in count:
+				var angle := index*TAU/float(count)
+				if absf(wrapf(angle-safe_angle,-PI,PI)) < safe_arc:
+					continue
+				projectile_specs.append({
+					"origin": origin,
+					"velocity": Vector2.from_angle(angle)*speed,
+					"damage": damage,
+					"options": {"radius":6.0,"cause":cause_id}
+				})
+		"lane":
+			var step := clampi(int(pattern.get("step", 38)), 32, 64)
+			var gap_half_width := clampf(float(pattern.get("gap_half_width", 90.0)), 72.0, 140.0)
+			var safe_flank := -1 if int(pattern.get("safe_flank", 1)) < 0 else 1
+			var gap_x := 68.0 if safe_flank < 0 else 472.0
+			result.gap_x = gap_x
+			for x in range(22,519,step):
+				if absf(float(x)-gap_x) < gap_half_width:
+					continue
+				projectile_specs.append({
+					"origin": Vector2(float(x),260.0),
+					"velocity": Vector2(0.0,speed),
+					"damage": damage,
+					"options": {"shape":"wall","radius":8.0,"cause":cause_id}
+				})
+	result.valid = not projectile_specs.is_empty()
+	result.family = family
+	result.projectiles = projectile_specs
+	return result
+
 func initialize(run_config: Dictionary) -> void:
 	config = run_config.duplicate(true)
 
@@ -835,29 +913,35 @@ func _update_boss_attacks(delta: float) -> void:
 			_spawn_attack(
 				String(completed_warning.ability),
 				float(completed_warning.safe_angle),
-				int(completed_warning.get("dash_count_at_start", _dash_count))
+				int(completed_warning.get("dash_count_at_start", _dash_count)),
+				completed_warning.get("attack_contract", {}) as Dictionary
 			)
 			_telegraph.clear()
 			attack_timer=_rng.randf_range(2.1,3.1)-phase*0.08
 		return
 	attack_timer-=delta
 	if attack_timer<=0.0:
-		var abilities:Array[String]=["basic_rupture"]
-		for ability_id in _organ_map.abilities:
-			if _organ_map.is_ability_enabled(String(ability_id)):
-				abilities.append(String(ability_id))
-		var ability:=abilities[_rng.randi_range(0,abilities.size()-1)]
-		var telegraph_time:=maxf(0.74,0.98-phase*0.04)*_assist_number("assist_telegraph",1.0)
+		var attack_contracts: Array[Dictionary] = [basic_rupture_attack_contract()]
+		attack_contracts.append_array(_organ_map.attack_contracts())
+		var attack_contract := attack_contracts[_rng.randi_range(0,attack_contracts.size()-1)]
+		var ability := String(attack_contract.get("ability_id","basic_rupture"))
+		var telegraph_multiplier := maxf(1.0,float(attack_contract.get("telegraph_multiplier",1.0)))
+		var telegraph_time:=maxf(0.74,0.98-phase*0.04)*telegraph_multiplier*_assist_number("assist_telegraph",1.0)
 		_telegraph={
 			"ability": ability,
 			"timer": telegraph_time,
 			"total": telegraph_time,
 			"safe_angle": _rng.randf_range(-PI,PI),
-			"dash_count_at_start": _dash_count
+			"dash_count_at_start": _dash_count,
+			"attack_contract": attack_contract,
+			"contract_family": String((attack_contract.get("pattern",{}) as Dictionary).get("family",""))
 		}
+		var transformed_pattern := attack_contract.get("pattern",{}) as Dictionary
+		if String(transformed_pattern.get("family","")) == "lane":
+			_telegraph.gap_x = 68.0 if int(transformed_pattern.get("safe_flank",1)) < 0 else 472.0
 		AudioManager.play_sfx("enemy_fire",0.72,0.35)
 
-func _spawn_attack(ability: String, safe_angle: float, dash_count_at_telegraph: int = -1) -> void:
+func _spawn_attack(ability: String, safe_angle: float, dash_count_at_telegraph: int = -1, attack_contract: Dictionary = {}) -> void:
 	var origin:=_boss_visual.target_position()
 	var player_angle:=( _player.position-origin ).angle()
 	var projectile_speed:=_difficulty_projectile_speed()
@@ -865,7 +949,15 @@ func _spawn_attack(ability: String, safe_angle: float, dash_count_at_telegraph: 
 	_boss_attack_serial += 1
 	var wave_id := "boss_attack:%d" % _boss_attack_serial
 	var warning_dash_count := _dash_count if dash_count_at_telegraph < 0 else dash_count_at_telegraph
-	if ability in ["homing_eye","weapon_copy"]:
+	if String(attack_contract.get("status","")) == OrganAbilityMap.STATUS_DEGRADED:
+		var plan := build_degraded_attack_specs(attack_contract,origin,_player.position,safe_angle,projectile_speed)
+		if bool(plan.get("valid",false)):
+			for raw_spec in plan.get("projectiles",[]):
+				var spec := raw_spec as Dictionary
+				var options := (spec.get("options",{}) as Dictionary).duplicate(true)
+				options.group = wave_id
+				_projectiles.spawn_enemy(Vector2(spec.origin),Vector2(spec.velocity),float(spec.damage),options)
+	elif ability in ["homing_eye","weapon_copy"]:
 		for offset in [-0.28,-0.12,0.0,0.12,0.28]:
 			_projectiles.spawn_enemy(origin,Vector2.from_angle(player_angle+offset)*250.0*projectile_speed,10.0,{"homing":1.45,"cause":cause_id,"group":wave_id})
 	elif ability in ["gravity_ring","suction_waves"]:
@@ -1375,7 +1467,7 @@ func _open_breach() -> void:
 	score+=1200+phase*300
 	_cancel_attack_avoidance()
 	_projectiles.clear_enemy()
-	_boss_visual.set_exterior(phase,_organ_map.destroyed_organs(),true)
+	_boss_visual.set_exterior(phase,_organ_map.destroyed_organs(),true,_organ_map.visual_states())
 	_boss_visual.set_health(0,armor_max)
 	_hud.set_dive_ready(true)
 	_hud.show_toast(LocalizationService.text("breach_enter"),VisualTheme.VULNERABLE)
@@ -1392,7 +1484,7 @@ func _close_breach() -> void:
 		return
 	breach_timer = 0.0
 	armor_health = maxf(1.0, armor_max * 0.18)
-	_boss_visual.set_exterior(phase, _organ_map.destroyed_organs(), false)
+	_boss_visual.set_exterior(phase, _organ_map.destroyed_organs(), false, _organ_map.visual_states())
 	_boss_visual.set_health(armor_health, armor_max)
 	_hud.set_dive_ready(false)
 	_hud.show_toast(LocalizationService.text("breach_lost"), VisualTheme.TELEGRAPH)
@@ -1538,7 +1630,7 @@ func _return_outside() -> void:
 		phase_open_timer = 4.0
 		core_max=float(boss_definition.get("core_health",3600))*_difficulty_hp()
 		core_health=core_max
-		_boss_visual.set_exterior(phase,_organ_map.destroyed_organs(),false)
+		_boss_visual.set_exterior(phase,_organ_map.destroyed_organs(),false,_organ_map.visual_states())
 		_boss_visual.set_health(core_health,core_max)
 		_hud.show_toast(LocalizationService.text("all_systems_dead"),VisualTheme.FRIENDLY)
 		AudioManager.set_music_state("core",0.9)
@@ -1546,7 +1638,9 @@ func _return_outside() -> void:
 	else:
 		_start_phase(phase)
 		_transition(RunState.EXTERIOR)
-		_hud.show_toast(LocalizationService.text("ability_disabled",{"ability":_ability_display(String(current_organ.ability))}),VisualTheme.BIO)
+		var changed_ability := String(current_organ.ability)
+		var change_text_key := "ability_transformed" if _organ_map.ability_status(changed_ability) == OrganAbilityMap.STATUS_DEGRADED else "ability_disabled"
+		_hud.show_toast(LocalizationService.text(change_text_key,{"ability":_ability_display(changed_ability)}),VisualTheme.BIO)
 		AudioManager.set_music_state("exterior",0.35+phase*0.18)
 	attack_timer=1.4
 	_tutorial_observe(TutorialFlowScript.EVENT_BOSS_ABILITY_CHANGED)
@@ -1565,7 +1659,7 @@ func _start_phase(new_phase: int) -> void:
 	var phase_scales := [3.0,3.5,4.1]
 	armor_max=float(boss_definition.get("base_armor",1800))*phase_scales[min(phase,2)]*_difficulty_hp()
 	armor_health=armor_max
-	_boss_visual.set_exterior(phase,_organ_map.destroyed_organs(),false)
+	_boss_visual.set_exterior(phase,_organ_map.destroyed_organs(),false,_organ_map.visual_states())
 	_boss_visual.set_health(armor_health,armor_max)
 	if _hud:
 		_hud.set_dive_ready(false)
@@ -1846,6 +1940,19 @@ func _draw_telegraph() -> void:
 		draw_dashed_line(_player.position,safe_position,Color(VisualTheme.FRIENDLY,0.26),2.0,10.0)
 	if contract_family=="ring" or ability in ["gravity_ring","suction_waves"] or "vortex" in ability or "pulse" in ability:
 		draw_arc(origin,60+progress*170,0,TAU,50,color,3.0)
+		# Ring attacks always publish the same angular corridor that their
+		# projectile builder will leave empty. This keeps the safe route visible
+		# throughout the warning instead of asking the player to discover it only
+		# after the bullets already exist.
+		var safe_angle := float(_telegraph.get("safe_angle",0.0))
+		var attack_contract := _telegraph.get("attack_contract",{}) as Dictionary
+		var pattern := attack_contract.get("pattern",{}) as Dictionary
+		var safe_arc := clampf(float(pattern.get("safe_arc_radians",0.5)),0.3,1.4)
+		var corridor_color := Color(VisualTheme.FRIENDLY,0.5+progress*0.38)
+		for boundary in [-safe_arc,safe_arc]:
+			var direction := Vector2.from_angle(safe_angle+boundary)
+			draw_dashed_line(origin+direction*54.0,origin+direction*235.0,corridor_color,3.0,11.0)
+		draw_arc(origin,78.0+progress*126.0,safe_angle-safe_arc,safe_angle+safe_arc,24,corridor_color,5.0)
 	elif contract_family in ["lane","sweep"] or ability in ["laser_wings","echo_dash"] or "grid" in ability or "wall" in ability or "lane" in ability:
 		var gap_x:=clampf(float(_telegraph.get("gap_x",_player.position.x)),80.0,460.0)
 		var wall_y:=origin.y

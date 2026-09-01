@@ -235,7 +235,7 @@ The project contains no ad SDK, billing SDK, login, cloud save, networked leader
 
 **Status:** Implemented for the current headless suite
 
-The repository includes data, organ-order, challenge-code, mutation, permanent-upgrade, tutorial, localization/settings, analytics-contract, local-backend, room-contract, meta-goal, project-configuration, safe-area, projectile, movement, dash/damage, save-recovery/migration/banking/reset, live combat-audio, and first-core-hook tests. The latest seven-suite evidence is 6,107 assertions with zero failures: main 2,508; backend/offline 82; upgrades 120; tutorial 198; rooms 2,583; meta goals 111; audio 505.
+The repository includes data, organ-order/loss-transformation, challenge-code, mutation, permanent-upgrade, tutorial, localization/settings, analytics-contract, local-backend, room-contract, meta-goal, project-configuration, safe-area, projectile, movement, dash/damage, save-recovery/migration/banking/reset, combined UI progression/relaunch, live combat-audio, and first-core-hook tests. The latest current-working-tree eight-invocation evidence is 6,462 assertions with zero failures: main 2,538; backend/offline 82; upgrades 120; tutorial 198; rooms 2,583; meta goals 111; audio 505; organ transformations 325. The main suite is fail-closed unless it receives `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`.
 
 **Consequences**
 

@@ -32,10 +32,10 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Automated test damages exterior armor and opens a breach.
 - [x] Automated test enters organ selection and supports all organ orders.
 - [x] Automated test reaches an organ chamber through a deterministic authored route; runtime safe-path proof remains separately unchecked below.
-- [x] Automated test destroys an organ and disables its linked exterior ability.
+- [x] Automated test destroys an organ and removes its intact exterior ability; seven authored systems degrade to safer replacements and five shut down completely.
 - [x] Automated test selects a mutation and returns outside with destroyed-organ state intact.
-- [ ] Visual transformation is verified for every organ on every boss.
-- [ ] Post-organ attack behavior matches every player-facing effect description.
+- [x] A focused suite verifies a concrete, unique `BossVisual` state for every organ on every boss; human/device readability remains separately unchecked.
+- [x] Automated contracts verify all 12 post-organ mechanics against player-facing effect descriptions, including exact seven-degraded/five-disabled behavior and EN/HE feedback; human balance remains unchecked.
 - [ ] Dive tunnel, organ destruction, and return transitions pass reduced-motion and interruption QA.
 
 ## 3. Gate 3 — Complete run and progression
@@ -45,11 +45,12 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Save backup recovery is covered by an automated corruption test.
 - [x] Automated smoke tests defeat all three organs and the final core for all four bosses in all six organ orders.
 - [x] Automated complete-victory tests validate rewards and run-id deduplication.
-- [ ] Automated smoke test validates a complete death and instant-retry path.
-- [ ] Automated smoke test purchases a permanent upgrade and verifies its effect.
-- [ ] Save survives process relaunch and background/force-close timing tests.
-- [ ] First failure reliably affords one functional, meaningful upgrade.
-- [ ] Immediate retry preserves only intended state and cannot duplicate rewards.
+- [x] Automated smoke test validates a complete death, second death, and instant-retry path through the real result controls.
+- [x] Automated smoke test purchases Reinforced Hull through the Forge UI and verifies the next run starts at 110 HP.
+- [x] Save survives teardown and a separate Godot process relaunch with Bio-Matter, run count, upgrade level, and both run receipts intact.
+- [ ] Save survives background/force-close timing tests and a real installed-app update from a prior shipped fixture.
+- [x] First failure banks the 55 Bio-Matter floor and affords the functional Reinforced Hull upgrade in the combined smoke.
+- [x] Immediate retry preserves the purchased upgrade and durable reward receipts without rebanking either completed run in the combined smoke.
 
 ## 4. Gate 4 — Content complete
 
@@ -70,9 +71,9 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Arc Swarm chains to its authored count/range in automated runtime coverage.
 - [x] Scatter Maw uses explicit distance falloff matching its communicated range weakness.
 - [x] Void/Hungry Orbital absorption and growth behavior have automated runtime coverage.
-- [ ] Rail Spine damages every collinear target crossed in one physics step until pierce is exhausted.
+- [x] Rail Spine damages every collinear target crossed in one physics step until pierce is exhausted; the main suite verifies nearest-to-farthest order and per-hit falloff across three targets.
 - [ ] Every boss has three mechanically distinct exterior phases beyond scalar changes.
-- [ ] Every organ has a boss-specific external visual and mechanical consequence.
+- [x] Every organ has a boss-specific procedural external state and a validated mechanical loss consequence; target-device readability/balance remains unchecked.
 - [ ] Every authored room safe rule corresponds to visible, playable geometry/behavior.
 - [x] Every room contract enforces a full telegraph, matching safe gap, active-window cleanup, and maximum-active bound under normal and hitch playback.
 - [ ] Internal zones use more than a generic defender and three broad live pattern geometries; 42 contracts and playback invariants alone do not satisfy this fidelity gate.
@@ -143,15 +144,17 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 7. Automated QA and CI
 
-- [x] Latest local JUnit-style artifact reports 2,508 assertions and 0 failures; wall time is intentionally omitted because the artifact is regenerated on reruns.
-- [x] Six focused local suites pass: backend 82, permanent upgrades 120, tutorial 198, room mechanics 2,583, meta goals 111, and audio 505; seven invocations total 6,107 assertions and 0 failures.
+- [x] Latest local JUnit-style artifact reports 2,538 assertions and 0 failures; wall time is intentionally omitted because the artifact is regenerated on reruns.
+- [x] Seven focused local suites pass: backend 82, permanent upgrades 120, tutorial 198, room mechanics 2,583, meta goals 111, audio 505, and organ transformations 325; eight invocations total 6,462 assertions and 0 failures.
+- [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.
 - [x] A committed CI workflow imports, tests, exports Web/Android, browser-smoke-tests Web, and attempts Pages deployment.
-- [ ] The complete CI workflow passes on GitHub. In run 33498494206, `validate`, `web-export`, and `android-debug` succeeded; `deploy` failed only at Configure Pages because `Create Pages site` returned `Resource not accessible by integration`.
-- [x] Remote Actions run 33498494206 passed the mutation main suite plus focused permanent-upgrade, tutorial, room, backend, meta, and audio suites for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`.
+- [ ] The complete CI workflow passes on GitHub. Run 33498494206 validates only commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`; Pages rerun job 99862926627 again failed because `Create Pages site` returned `Resource not accessible by integration`.
+- [x] Remote Actions run 33498494206 passed the mutation main suite plus focused permanent-upgrade, tutorial, room, backend, meta, and audio suites for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`; it does not validate the current working tree or new organ suite.
 - [x] The CI-served Playwright/Chromium boot smoke returned HTTP 200, started Godot 4.7.2 with WebGL2, created a 540×960 canvas, hid the loading status, and emitted no page errors.
 - [x] Local complete-boss victory smoke tests pass for four bosses × six organ orders.
-- [ ] Failure, reward, upgrade, retry, relaunch, and full-save migration smoke tests pass.
+- [x] Combined failure, 55-Bio banking, Forge upgrade, 110-HP new run, second failure, instant retry, and separate-process relaunch smoke passes.
+- [ ] A previously shipped-build update fixture, background/force-close reward timing, and repeated Abyss-depth smoke pass.
 - [ ] The full gameplay path produces no repeated console errors in an actual Web run; the remote browser boot smoke itself emitted no page errors.
 - [x] Malformed and deterministic-fuzz Friend Rift corpora fail closed in the main headless suite.
 - [ ] Pause/backgrounding cannot avoid or duplicate damage/rewards incorrectly.
@@ -162,7 +165,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Projectile pools have explicit caps and segment collision.
 - [ ] Cold start is measured against the target on representative devices.
 - [x] A 30-minute Linux headless structural soak completed for its loaded snapshot with zero failures and a bounded static-memory trend; repeat after code freeze for RC evidence.
-- [x] A current-tree 90.02-second source-locked soak completed 1,604 cycles, 161 restarts, and 161 Dive transitions with an unchanged fingerprint and zero failures.
+- [x] A current-tree 90.02-second source-locked soak completed 1,563 cycles, 157 restarts, 157 Dive transitions, 78 save writes, and 676 offline events with peak 540 projectiles, an unchanged fingerprint, and zero failures.
 - [x] Headless soak completed 3,239 repeated restarts without retained run/projectile nodes.
 - [x] Headless soak completed 3,239 outside-inside-outside transitions without recorded duplicate/retained state.
 - [ ] Maximum-projectile stress test passes at target frame rate.
@@ -174,27 +177,28 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 9. Web release
 
-- [x] A reconciled-tree Godot Web evidence export exists under `../../build/web/` with HTML, JavaScript, PCK, WASM, worklets, icons, and recorded SHA-256 hashes; the checked-in preset's default target remains `../build/web/`.
+- [x] A current-working-tree Godot Web evidence export exists under `../../build/web/`: HTML 2,618 bytes / `190b5852ff3c94b4d2e6ce2849bdbc92cb64e77c6cb972d35165b9cf544713b5`; PCK 440,384 / `f9acf67d893ab6513f2b7fde450fcd2129331ba8252b3464132d94892b85b9d4`; WASM 39,514,754 / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`. The checked-in preset's default target remains `../build/web/`.
 - [x] Static Web validation passes and confirms tooling/adaptive-icon sources are excluded from the package.
 - [x] The remote Pages artifact for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232` records HTML 2,618 bytes / `f86b5f1c0f8985d66056f47c4969f8ae8366b5fb256ebc1098900471188e4336`, PCK 423,872 bytes / `b0f971a5f56accfd8eec18683978e4da556c3a582ddfad30462db7ae5685a5a1`, and WASM 39,514,754 bytes / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`.
 - [x] The remote Web artifact boots through CI-served HTTP in headless Chromium with no page errors; this does not cover touch gameplay, Safari, or the public host.
 - [ ] Export is smoke-tested in desktop Safari and Chrome.
 - [ ] Export is touch-tested in mobile Safari and mobile Chrome.
 - [ ] Hosting sends any headers required by the exported Godot configuration.
-- [ ] GitHub Pages workflow completes successfully; run 33498494206 stopped at Configure Pages because the integration could not create the Pages site.
+- [ ] GitHub Pages workflow completes successfully; rerun job 99862926627 again stopped because the integration could not create the Pages site.
 - [ ] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opens the current game directly, returns HTTP 200, and passes runtime smoke.
+- [x] Fail-closed verification records HTTP 404 for the game, support, and privacy URLs and no canvas; no public deployment is claimed.
 - [ ] Public build displays current version and a working feedback link.
 
 ## 10. Android internal test
 
-- [x] A reconciled-tree arm64 portrait debug APK exists at `../../build/android/infinidive-debug.apk` (28,903,975 bytes; SHA-256 `d04ff8f814d9affec0a63b7df55fcca94d68936c4be3733edc747fafbfa32bd7`).
+- [x] A current-working-tree arm64 portrait debug APK exists at `../../build/android/infinidive-debug.apk`: 28,878,673 bytes / SHA-256 `2d3d5fa6f283381fd31aa1702df2cc697c80f12d0d7a96e6c1e22b59c33cdcef`; structural validation passes.
 - [x] The remote CI debug APK for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232` is 28,862,289 bytes (SHA-256 `45f1ebc82f1bae1d1cb767456c81fcf405d25b01d5e737c96b06f95084d0ef4c`).
 - [x] Its manifest verifies `com.matan.infinidive`, version `0.1.0 (1)`, min SDK 24, target SDK 36, and exactly normal `android.permission.VIBRATE`.
 - [x] The APK passes zip alignment and v2/v3 signature verification with `CN=Android Debug`; it is not production-distributable evidence.
 - [x] Both reconciled Android presets request only normal `android.permission.VIBRATE` for optional haptics; it has no runtime prompt and does not collect data.
 - [x] The verified CI installer extracts `android_source.zip`, and integrated debug export with `--install-android-build-template` creates `android/build`.
 - [ ] Debug APK is installed and smoke-tested on an emulator or physical Android device.
-- [ ] A full Android SDK platform/build-tools 36 environment is installed and documented for the production build; the current local shim falls back to build-tools 34.0.4.
+- [ ] A full Android SDK platform/build-tools 36 environment is installed and documented for the production build; the current local exporter explicitly warned that it fell back to installed build-tools 34.0.4 while targeting 36.
 - [ ] Release AAB is produced; Gradle dependency resolution, complete SDK/build-tools 36, and private signing are still required.
 - [x] A separate Gradle/AAB preset targets `../build/android/infinidive-release.aab` without replacing the working debug-APK preset; no AAB artifact exists yet.
 - [ ] Package ID and version code/name are final.
@@ -206,11 +210,12 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 11. iOS TestFlight
 
-- [x] A reconciled-tree unsigned iPhone-targeted Xcode export is present at `../../build/ios-iphone-current/INFINIDIVE.xcodeproj` (47 files, approximately 368 MB); PCK, frameworks, plists, entitlements, and export options parse.
-- [x] It verifies `TARGETED_DEVICE_FAMILY="1"`, bundle ID `com.matan.infinidive`, version `0.1.0 (1)`, minimum iOS 15.0, exact RGB/no-alpha icons, and no Team/placeholder value.
-- [x] PCK, pbxproj, and export-options sizes/hashes are recorded in `PROJECT_STATUS.md`.
+- [x] A retained earlier 47-file iPhone-targeted Xcode scaffold is present at `../../build/ios-iphone-current/INFINIDIVE.xcodeproj`; its frameworks, plists, entitlements, and export options parse.
+- [x] `--export-pack iOS` refreshed only the scaffold's current-tree PCK: 440,480 bytes / SHA-256 `ac426ba74dd8993ea129448d2258d4f1b36ea3ee2fd48c28fd342bda53401db6`.
+- [x] The unchanged retained scaffold records pbxproj SHA-256 `dbbc0f658d31f09a8ad0b020a4ef1d1f6072e422088d13c996dd0d09ee7748bb` and 411-byte export-options plist SHA-256 `50c3cbc7d11c6c3c37357dc14e59ef93f1c011897467a9b94bb11637a795ea7d`.
+- [ ] The full current working tree is re-exported and compiled for iOS; direct project export failed because the preset has no Apple Development Team ID.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
-- [x] The regenerated unsigned project contains 47 files and records an approximately 368 MB directory size; no unreferenced temporary archive is reported by the structural audit.
+- [x] The retained unsigned scaffold contains 47 files and records an approximately 368 MB directory size; this does not claim that the scaffold itself was regenerated for the current tree.
 - [ ] Bundle ID, Apple team, capabilities, and minimum iOS version receive final owner/store approval.
 - [ ] Xcode archive is produced on macOS.
 - [ ] Signing/provisioning uses private protected credentials.
@@ -223,7 +228,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 - [x] Original 1024×1024 app-icon source/raster exists; the raster is verified RGB without alpha.
 - [x] Dedicated Google Play icon raster exists at 512×512, 141,587 bytes, 8-bit/color RGBA; final visual and console-upload validation remain pending.
-- [x] Exact-size RGB/no-alpha iOS icon rasters are wired in the preset and verified in the reconciled-tree Xcode asset catalog.
+- [x] Exact-size RGB/no-alpha iOS icon rasters are wired in the preset and verified in the retained earlier-scaffold Xcode asset catalog; current-tree full re-export remains blocked by the Team ID.
 - [ ] App icon is visually tested at small sizes and wired into the final Android asset catalog.
 - [x] Five direct runtime screenshots exist at 1080×1920 with provenance and hashes.
 - [ ] Final iPhone screenshots are recaptured from the RC at Apple-accepted device dimensions.

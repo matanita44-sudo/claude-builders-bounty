@@ -88,6 +88,7 @@ func _build_ui()->void:
 
 	for facility in FACILITIES:
 		var button:=Button.new()
+		button.name="Facility_%s"%String(facility.id)
 		button.position=Vector2(facility.position)-Vector2(45,32)
 		button.size=Vector2(90,64)
 		button.add_theme_font_size_override("font_size",9)
@@ -118,6 +119,7 @@ func _build_ui()->void:
 	_difficulty=OptionButton.new();_difficulty.add_item("DIVER");_difficulty.add_item("DEEP");_difficulty.add_item("ABYSS");_difficulty.selected=0;options.add_child(_difficulty)
 
 	_hunt_button=Button.new()
+	_hunt_button.name="BeginDive"
 	_hunt_button.position=Vector2(18,806)
 	_hunt_button.size=Vector2(504,72)
 	_hunt_button.add_theme_font_size_override("font_size",17)
@@ -216,7 +218,7 @@ func _overlay_box(title:String,subtitle:String="")->VBoxContainer:
 	var outer:=VBoxContainer.new();outer.layout_direction=LocalizationService.layout_direction();outer.add_theme_constant_override("separation",10);_overlay.add_child(outer)
 	var head:=HBoxContainer.new();outer.add_child(head)
 	var title_label:=VisualTheme.label(title,28);title_label.horizontal_alignment=LocalizationService.start_alignment();title_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;head.add_child(title_label)
-	var close:=Button.new();close.text="×";close.tooltip_text=LocalizationService.text("close");close.custom_minimum_size=Vector2(48,48);close.pressed.connect(_hide_overlay);head.add_child(close)
+	var close:=Button.new();close.name="OverlayClose";close.text="×";close.tooltip_text=LocalizationService.text("close");close.custom_minimum_size=Vector2(48,48);close.pressed.connect(_hide_overlay);head.add_child(close)
 	if not subtitle.is_empty():
 		var sub:=VisualTheme.label(subtitle,12,VisualTheme.MUTED);sub.horizontal_alignment=LocalizationService.start_alignment();sub.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;sub.custom_minimum_size.y=38;outer.add_child(sub)
 	return outer
@@ -279,6 +281,7 @@ func _show_forge()->void:
 		var level:=int(gate.get("level",0))
 		var cost:=int(gate.get("cost",-1))
 		var button:=Button.new();button.custom_minimum_size.y=88;button.alignment=LocalizationService.start_alignment();button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.add_theme_font_size_override("font_size",12)
+		button.name="Upgrade_%s"%id
 		var upgrade_name:=LocalizationService.content_text("upgrade",id,"name",String(upgrade.name))
 		var upgrade_description:=LocalizationService.content_text("upgrade",id,"description",String(upgrade.description))
 		var cost_text:=LocalizationService.text("maximum") if String(gate.get("reason",""))=="max_level" else LocalizationService.text("cost_bio",{"count":cost})

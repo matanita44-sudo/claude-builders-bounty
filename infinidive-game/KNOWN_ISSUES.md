@@ -1,6 +1,6 @@
 # INFINIDIVE Known Issues
 
-This list records observed gaps in version `0.1.0`. “Open” means the issue is not fixed or not proven fixed. A passing headless suite only covers the assertions defined in `tests/test_runner.gd`.
+This list records observed gaps in version `0.1.0`. “Open” means the issue is not fixed or not proven fixed. Passing headless suites cover only their named automated assertions; they are not human, browser, simulator, or device evidence.
 
 ## Severity definitions
 
@@ -27,16 +27,11 @@ No P0 is currently known from the automated suite; physical-device and human end
 - Legacy `tutorial_complete=true` now migrates to `TutorialFlow.FULL_MASK`, with replay presentation kept separate.
 - Reset Progress now replaces profile/backup defaults and idempotently clears the analytics queue plus leaderboard primary, backup, and temporary files.
 - `armor_hit`, `organ_damage`, and `boss_phase` cues now have rate-limited live gameplay call sites.
+- INF-P1-005 is resolved in code: all 12 organs declare validated post-loss contracts, seven intact attacks become safer authored replacements, five are fully disabled, all 12 publish unique procedural exterior states, and English/Hebrew result messages distinguish transformed from disabled systems. The 325-assertion focused suite verifies contracts, exact replacement patterns, readable ring telegraph alignment, live attack consumption, visual-token support, isolation, and idempotency. Human readability/balance still requires target-device play.
+- INF-P1-014 is resolved: player-projectile segment intersections are gathered and sorted nearest-to-farthest, Rail Spine applies each hit until pierce is exhausted, duplicate target IDs remain excluded, and the main headless suite covers three collinear targets crossed in one physics step with per-hit damage falloff.
+- The combined progression smoke now uses real result/Nest/Forge controls to fail, bank the 55 Bio-Matter floor, buy Reinforced Hull, verify a 110-HP new run, fail again, instant-retry, and reload the durable profile from a separate Godot process. Main-suite execution is isolated behind `INFINIDIVE_TEST_ISOLATED=1` plus a temporary `XDG_DATA_HOME` so it cannot target an ordinary player profile.
 
 ## Open P1 issues
-
-### INF-P1-005 — Organ-loss descriptions are mostly binary disablement
-
-**Status:** Open
-
-`OrganAbilityMap` disables the linked attack completely. Several descriptions instead promise altered mechanics—straight rather than homing shots, wider gaps, longer telegraphs, one disabled wing, broken shield timing, or visible true weak points. Procedural visuals react to only a subset of specific organ IDs.
-
-**Required fix:** add boss-specific post-organ variants and verify each organ changes both readable visuals and the exact external mechanic described.
 
 ### INF-P1-006 — Authored room count overstates runtime variety
 
@@ -80,9 +75,9 @@ The event-driven tutorial tracks ten steps and sets `tutorial_complete` only aft
 
 **Status:** Open
 
-Fresh reconciled-tree Web, Android debug, and unsigned iPhone-targeted Xcode evidence outputs under `../../build/` now have recorded sizes/hashes and pass their available structural checks. Actions run 33498494206 passed validation, Web export, a CI-served Playwright/Chromium boot smoke, and Android debug export for commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`. The browser smoke returned HTTP 200, started Godot 4.7.2 with WebGL2, created a 540×960 canvas, hid the loading status, and emitted no page errors. It did not drive touch gameplay, mobile Safari/Chrome, reload persistence, or the public URL. Pages deployment failed at Configure Pages because `Create Pages site` returned `Resource not accessible by integration`, so there is still no deployed/verified public URL. The remote debug APK uses the Android Debug signer, is 28,862,289 bytes with SHA-256 `45f1ebc82f1bae1d1cb767456c81fcf405d25b01d5e737c96b06f95084d0ef4c`, and has not been installed or built as an AAB. The Xcode export at `../../build/ios-iphone-current` verifies exact RGB icons and `TARGETED_DEVICE_FAMILY="1"`, with no Team/placeholder value, but has not been compiled, archived, signed, run in a simulator, or installed. The checked-in preset still needs the owner's Team/signing configuration for release export. Background/resume, interruption, and target-device performance profiles remain absent.
+Current-working-tree Web static export and Android debug validation pass locally with recorded hashes: Web HTML 2,618 / `190b5852ff3c94b4d2e6ce2849bdbc92cb64e77c6cb972d35165b9cf544713b5`, PCK 440,384 / `f9acf67d893ab6513f2b7fde450fcd2129331ba8252b3464132d94892b85b9d4`, WASM 39,514,754 / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`; Android APK 28,878,673 / `2d3d5fa6f283381fd31aa1702df2cc697c80f12d0d7a96e6c1e22b59c33cdcef`. Android export warned of installed build-tools 34.0.4 fallback while targeting 36. Actions run 33498494206 remains remote evidence only for older commit `374bdb5cb8de7f4622917a343e379ff4cfd26232`; its browser smoke returned HTTP 200, started Godot 4.7.2 with WebGL2, created a 540×960 canvas, hid the loading status, and emitted no page errors, but did not drive current-tree touch gameplay, mobile Safari/Chrome, reload persistence, or the public URL. Pages rerun job 99862926627 again failed because `Create Pages site` returned `Resource not accessible by integration`; direct game/support/privacy checks return HTTP 404 and no canvas. Full current-tree iOS project export failed because the Development Team is blank. `--export-pack iOS` refreshed only the retained scaffold's PCK to 440,480 bytes / `ac426ba74dd8993ea129448d2258d4f1b36ea3ee2fd48c28fd342bda53401db6`; the unchanged scaffold was not re-exported and nothing has been compiled, archived, signed, simulator-run, or installed. Background/resume, interruption, and target-device performance profiles remain absent.
 
-**Required fix:** enable Pages via **Settings → Pages → Build and deployment → Source: GitHub Actions**, rerun deployment, and verify `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/`; then drive touch gameplay and reload persistence in declared browsers. Install the debug APK on declared Android targets; use the separate AAB preset with complete SDK/build-tools 36 and secure signing; supply the Apple Team/signing configuration, compile and archive on macOS/Xcode, then run simulator/device QA without claiming unperformed coverage.
+**Required fix:** resolve repository Pages-site creation/Actions permissions, rerun deployment, and require HTTP 200 plus a live canvas at `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/`; then drive touch gameplay and reload persistence in declared browsers. Install the debug APK on declared Android targets; use the separate AAB preset with complete SDK/build-tools 36 and secure signing; supply the Apple Team/signing configuration, re-export/compile/archive on macOS/Xcode, then run simulator/device QA without claiming unperformed coverage.
 
 ### INF-P1-011 — Online systems are absent
 
@@ -92,13 +87,13 @@ Daily and Friend Rifts work locally through deterministic seeds/codes. Accepted 
 
 **Required fix:** add an honest local/online UI only when its scope is clear, then add an optional authenticated backend adapter with RLS, rate limiting, moderation, and server validation without making core play depend on network availability. Treat every locally queued score as unverified.
 
-### INF-P1-012 — Complete-victory coverage exists; failure/retry coverage is incomplete
+### INF-P1-012 — Installed-update, background, and repeated-Abyss coverage is incomplete
 
 **Status:** Open
 
-The main headless suite completes all four bosses through all six organ orders (24 deterministic victories), destroys each final core, verifies rewards, prevents duplicate completion banking, unlocks progression, and reaches the final stored Nest stage. It also exercises a schema-1-to-6 migration and save reload; a focused suite tests all permanent-effect aggregations and purchase gates. It does not yet cover one combined UI-driven death/instant-retry/Forge path, actual process relaunch, force-close/background timing, an update fixture from a previously shipped build, or repeated Abyss depth transitions.
+The main headless suite completes all four bosses through all six organ orders (24 deterministic victories), destroys each final core, verifies rewards, prevents duplicate completion banking, unlocks progression, and reaches the final stored Nest stage. It also exercises schema-1-to-6 migration. The combined player-facing smoke now fails, banks 55 Bio-Matter, returns to the Nest, purchases Reinforced Hull through the Forge UI, verifies the next run starts at 110 HP, fails again, presses instant retry, and verifies Bio-Matter, total runs, upgrade level, and run receipts after a separate Godot process loads `user://`. Remaining gaps are an update fixture captured from a previously shipped binary, force-close/background timing around damage/reward writes, and repeated Abyss-depth transitions with carried state.
 
-**Required fix:** extend deterministic smoke tests through combined failure/retry/Forge UI behavior, process relaunch/update, background interruption, and repeated Abyss depths.
+**Required fix:** add a version-controlled prior-build update fixture, background/force-close interruption coverage around reward commits, and repeated Abyss-depth transitions. Keep every destructive main-suite run fail-closed behind `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`.
 
 ### INF-P1-013 — Store and release deliverables are incomplete
 
@@ -107,15 +102,6 @@ The main headless suite completes all four bosses through all six organ orders (
 Implementation-aligned `PRIVACY_DATA_MAP.md`, bilingual `STORE_METADATA.md`, static bilingual privacy/support pages, bilingual Terms draft, Godot MIT notice, original brand sources, five real-runtime 1080×1920 stills, and two audio-complete 17.2-second development trailers now exist. The social file is 1080×1920 H.264/AAC; the Apple-format technical candidate is 886×1920 H.264/AAC with a matching poster. The 1024×1024 app icon and 1024×500 feature graphic are verified RGB/no-alpha rasters; the 512×512 Play icon is verified RGBA; and exact-size RGB/no-alpha iOS icon files are wired in the preset and were inspected in a prior Xcode asset catalog. These artifacts are not public or store-approved and have not received final legal/product review. The screenshots cover only five early-flow scenes and are not at Apple 6.9-inch submission sizes. The Apple candidate is Linux/Xvfb footage scaled and padded to the technical frame size, not a supported-iPhone capture, so it is not submission-ready. There is still no production-signed Android AAB, signed iOS archive, installed native test, complete eight-scene RC screenshot set, supported-iPhone App Preview, final-binary open-source notice audit, submitted age/privacy forms, or completed store listing.
 
 **Required fix:** publish and verify the legal/support pages only after final-code review; produce visual assets only from verified release-candidate gameplay; complete native signing, installed QA, store forms, listings, and submissions with truthful evidence.
-
-### INF-P1-014 — Piercing projectiles resolve at most one target per physics step
-
-**Status:** Open\
-**Evidence:** `ProjectilePool.step()` in `scripts/gameplay/projectile_pool.gd`
-
-The collision loop stops after the first target intersection found for a player projectile during a physics step. A fast Rail Spine projectile with remaining pierce can therefore cross multiple collinear hurtboxes in one frame but damage only the first target returned by array order.
-
-**Required fix:** gather and sort all segment intersections by travel distance, apply hits in order until pierce is exhausted, reject duplicate target hits for the same projectile as intended, and add a multi-target high-speed regression test.
 
 ## Open P2 issues
 

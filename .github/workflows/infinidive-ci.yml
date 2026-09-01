@@ -46,7 +46,9 @@ jobs:
       - name: Parse and import project
         run: ./godot --headless --path infinidive-game --import
       - name: Run headless tests
-        run: ./godot --headless --path infinidive-game --scene res://tests/TestRunner.tscn
+        run: |
+          mkdir -p "$RUNNER_TEMP/infinidive-main-tests"
+          INFINIDIVE_TEST_ISOLATED=1 XDG_DATA_HOME="$RUNNER_TEMP/infinidive-main-tests" ./godot --headless --path infinidive-game --scene res://tests/TestRunner.tscn
       - name: Run offline service tests
         run: ./godot --headless --path infinidive-game --scene res://tests/backend/BackendOfflineTest.tscn
       - name: Run permanent upgrade contract tests
@@ -55,6 +57,8 @@ jobs:
         run: ./godot --headless --path infinidive-game --scene res://tests/tutorial/TutorialFlowTest.tscn
       - name: Run authored room mechanics tests
         run: ./godot --headless --path infinidive-game --scene res://tests/rooms/RoomMechanicsTest.tscn
+      - name: Run organ transformation contract tests
+        run: ./godot --headless --path infinidive-game --scene res://tests/organs/OrganTransformationTest.tscn
       - name: Run achievement and contract tests
         run: ./godot --headless --path infinidive-game --scene res://tests/meta/MetaGoalServiceTest.tscn
       - name: Run procedural audio contract tests

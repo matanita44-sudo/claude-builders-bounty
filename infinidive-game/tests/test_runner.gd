@@ -8,6 +8,7 @@ const ProjectilePoolClass := preload("res://scripts/gameplay/projectile_pool.gd"
 const PlayerControllerClass := preload("res://scripts/gameplay/player_controller.gd")
 const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
 const RunHUDClass := preload("res://scripts/ui/run_hud.gd")
+const MainClass := preload("res://scripts/ui/main.gd")
 const NestViewClass := preload("res://scripts/ui/nest_view.gd")
 const SafeAreaHelperClass := preload("res://scripts/ui/safe_area_helper.gd")
 const TutorialFlowClass := preload("res://scripts/core/tutorial_flow.gd")
@@ -16,6 +17,7 @@ const AnalyticsServiceClass := preload("res://scripts/services/analytics_service
 const ANALYTICS_CLEAR_TEST_PATH := "user://infinidive_analytics_clear_test.json"
 const RESET_ANALYTICS_TEST_PATH := "user://infinidive_reset_analytics_test.json"
 const RESET_LEADERBOARD_TEST_PATH := "user://infinidive_reset_leaderboard_test.json"
+const TEST_ISOLATION_ENV := "INFINIDIVE_TEST_ISOLATED"
 
 var failures: Array[String] = []
 var passed_assertions: Array[String] = []
@@ -36,6 +38,17 @@ func _assert(condition: bool, message: String) -> void:
 
 func _run_all() -> void:
 	await get_tree().process_frame
+	var isolated_root := OS.get_environment("XDG_DATA_HOME").strip_edges()
+	var user_data_path := ProjectSettings.globalize_path("user://").simplify_path()
+	var isolated_prefix := isolated_root.simplify_path().trim_suffix("/") + "/"
+	if OS.get_environment(TEST_ISOLATION_ENV) != "1" or isolated_root.is_empty() or not user_data_path.begins_with(isolated_prefix):
+		_assert(false, "Main suite refused to run because user:// is not explicitly isolated; set INFINIDIVE_TEST_ISOLATED=1 and XDG_DATA_HOME to a temporary directory")
+		_write_junit()
+		print("INFINIDIVE TESTS: %d passed, %d failed" % [passed, failures.size()])
+		AudioManager.shutdown_for_tests()
+		await get_tree().process_frame
+		get_tree().quit(1)
+		return
 	_test_data_integrity()
 	_test_organ_orders()
 	_test_challenge_codes()
@@ -55,6 +68,7 @@ func _run_all() -> void:
 	await _test_meta_save_handoff()
 	await _test_save_recovery()
 	await _test_save_migration_and_banking()
+	await _test_failure_forge_retry_relaunch()
 	await _test_reset_local_data_integration()
 	await _test_tutorial_scene_handoff()
 	await _test_first_core_hook()
@@ -928,6 +942,114 @@ func _test_save_migration_and_banking() -> void:
 	_assert(int(reset_recovered.bio_matter) == 0 and SaveManager.last_load_source == "backup", "Reset backup recovery must never resurrect pre-reset progress")
 	SaveManager.profile = original
 	SaveManager.save_profile()
+	await get_tree().process_frame
+
+func _test_failure_forge_retry_relaunch() -> void:
+	var original_profile := SaveManager.profile.duplicate(true)
+	var original_settings := SettingsManager.values.duplicate(true)
+	SaveManager.profile = SaveManager.default_profile()
+	SettingsManager.values = SaveManager.profile.settings.duplicate(true)
+	SettingsManager.apply_all()
+	_assert(SaveManager.save_profile(), "Progression smoke must begin from a persisted fresh profile")
+
+	var main := MainClass.new()
+	add_child(main)
+	await get_tree().process_frame
+	_assert(main.current_view is NestViewClass, "Progression smoke must boot into the Last Nest UI")
+	var nest := main.current_view as NestViewClass
+	var begin_button := nest.find_child("BeginDive", true, false) as Button
+	_assert(begin_button != null and not begin_button.disabled, "Last Nest must expose an enabled semantic Begin Dive button")
+
+	# Seed the global RNG immediately before the real UI press so this smoke's
+	# story configuration is reproducible while still exercising the button.
+	seed(0x1F1D1E)
+	begin_button.emit_signal("pressed")
+	var first_run := main.current_view as RunSceneClass
+	_assert(first_run != null, "Begin Dive UI action must enter a live run")
+	first_run.run_id = "qa-progression-failure-1"
+	first_run.transition_timer = 0.0
+	first_run._physics_process(0.016)
+	_assert(first_run.state == RunSceneClass.RunState.EXTERIOR, "Progression smoke run must reach exterior combat")
+	first_run._damage_target({"id":"boss","damage":first_run.armor_max+1.0,"behavior":"pulse"})
+	_assert(first_run.state == RunSceneClass.RunState.BREACH_OPEN and first_run.run_bio == 70, "Actual armor damage must open a breach and earn its Bio-Matter")
+	_assert(first_run._player.take_damage(first_run._player.max_health+1.0,"bone_cannon"), "A visible boss attack must deliver lethal damage")
+	_assert(first_run.state == RunSceneClass.RunState.DEAD and first_run._result_banked, "Failure must enter the result state and atomically bank its reward")
+	_assert(int(first_run._result.get("banked_bio",0)) == 55 and int(SaveManager.profile.bio_matter) == 55, "The first failed run must retain enough Bio-Matter for Reinforced Hull")
+	_assert(int(SaveManager.profile.total_runs) == 1 and SaveManager.profile.processed_run_ids.has(first_run.run_id), "Failure banking must persist one run receipt exactly once")
+	_assert(first_run._hud.overlay.visible, "Failure must present the actual result UI")
+
+	var nest_result_button := first_run._hud.find_child("ResultAction_nest", true, false) as Button
+	_assert(nest_result_button != null, "Failure result UI must expose Return to Nest")
+	nest_result_button.emit_signal("pressed")
+	await get_tree().process_frame
+	_assert(main.current_view is NestViewClass, "Return to Nest must replace the failed run with the Nest UI")
+	nest = main.current_view as NestViewClass
+
+	var forge_button := nest.find_child("Facility_forge", true, false) as Button
+	_assert(forge_button != null and not forge_button.disabled, "A fresh Nest must expose the Forge facility")
+	forge_button.emit_signal("pressed")
+	var hull_button := nest.find_child("Upgrade_reinforced_hull", true, false) as Button
+	_assert(hull_button != null and not hull_button.disabled, "First failure reward must enable the Reinforced Hull purchase")
+	hull_button.emit_signal("pressed")
+	await get_tree().process_frame
+	_assert(int(SaveManager.profile.bio_matter) == 0 and int(SaveManager.profile.upgrades.get("reinforced_hull",0)) == 1, "Forge UI purchase must spend exactly 55 Bio-Matter and grant Hull level one")
+
+	var close_forge := nest.find_child("OverlayClose", true, false) as Button
+	_assert(close_forge != null, "Forge overlay must expose a semantic close action")
+	close_forge.emit_signal("pressed")
+	begin_button = nest.find_child("BeginDive", true, false) as Button
+	seed(0x1F1D1F)
+	begin_button.emit_signal("pressed")
+	var second_run := main.current_view as RunSceneClass
+	_assert(second_run != null and is_equal_approx(second_run._player.max_health,110.0), "A run launched after Forge must apply Reinforced Hull to live player health")
+	second_run.run_id = "qa-progression-failure-2"
+	second_run.transition_timer = 0.0
+	second_run._physics_process(0.016)
+	second_run._damage_target({"id":"boss","damage":second_run.armor_max+1.0,"behavior":"pulse"})
+	second_run.elapsed = 18.0
+	_assert(second_run._player.take_damage(second_run._player.max_health+1.0,"gravity_ring"), "The upgraded run must still be able to fail from attributable damage")
+	_assert(second_run.state == RunSceneClass.RunState.DEAD and second_run._result_banked, "A post-Forge failure must bank once before retry")
+	_assert(int(SaveManager.profile.total_runs) == 2 and SaveManager.profile.processed_run_ids.has(second_run.run_id), "Second failure must add one durable run receipt")
+
+	var retry_config := second_run.config.duplicate(true)
+	var retry_button := second_run._hud.find_child("ResultAction_retry", true, false) as Button
+	_assert(retry_button != null, "Failure result UI must expose Dive Again")
+	retry_button.emit_signal("pressed")
+	var retry_run := main.current_view as RunSceneClass
+	_assert(retry_run != null and retry_run.state == RunSceneClass.RunState.INTRO, "Dive Again must immediately construct a new run")
+	_assert(int(retry_run.config.seed) == int(retry_config.seed) and String(retry_run.config.boss) == String(retry_config.boss), "Immediate retry must preserve deterministic boss and seed configuration")
+	_assert(is_equal_approx(retry_run._player.max_health,110.0) and int(SaveManager.profile.total_runs) == 2, "Immediate retry must retain Forge power without duplicating run banking")
+
+	var expected_bio := int(SaveManager.profile.bio_matter)
+	var child_output: Array = []
+	var child_args := PackedStringArray([
+		"--headless",
+		"--path", ProjectSettings.globalize_path("res://"),
+		"--scene", "res://tests/progression/ProcessRelaunchProbe.tscn",
+		"--",
+		"--expected-bio=%d" % expected_bio,
+		"--expected-runs=2",
+		"--expected-upgrade=reinforced_hull:1",
+		"--expected-run-ids=qa-progression-failure-1,qa-progression-failure-2"
+	])
+	var child_exit := OS.execute(OS.get_executable_path(),child_args,child_output,true,false)
+	var child_log := "\n".join(PackedStringArray(child_output))
+	_assert(child_exit == 0, "A separate Godot process must load the banked and purchased progression: %s" % child_log)
+	_assert(child_log.contains("INFINIDIVE RELAUNCH PROBE: PASS"), "Relaunch process must emit explicit persistence evidence")
+
+	# Clear only in-memory state, then reload the same primary envelope in this
+	# process too. This catches a child probe that happened to inspect stale data.
+	SaveManager.profile = SaveManager.default_profile()
+	var reloaded := SaveManager.load_profile()
+	_assert(int(reloaded.bio_matter) == expected_bio and int(reloaded.total_runs) == 2, "Parent process reload must match the child process persistence result")
+	_assert(int(reloaded.upgrades.get("reinforced_hull",0)) == 1, "Forge ownership must survive process relaunch")
+
+	main.queue_free()
+	await get_tree().process_frame
+	SaveManager.profile = original_profile
+	SettingsManager.values = original_settings
+	SettingsManager.apply_all()
+	_assert(SaveManager.save_profile(), "Progression smoke must restore the pre-test profile")
 	await get_tree().process_frame
 
 func _test_reset_local_data_integration() -> void:
