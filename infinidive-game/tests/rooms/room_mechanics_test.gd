@@ -92,11 +92,18 @@ func _test_every_room_contract(rooms: Array) -> void:
 			_check(int(projectile.count) > 0, "%s projectile pattern must emit a non-zero count" % room_id)
 		var events := contract.events as Array
 		_check(not events.is_empty() and events.size() <= 64, "%s must have a bounded non-empty event schedule" % room_id)
+		var prior_clear_at := -1.0
 		for raw_event in events:
 			var event := raw_event as Dictionary
 			_check(float(event.telegraph_at) < float(event.active_at), "%s event must telegraph before activation" % room_id)
+			_check(float(event.clear_at) > float(event.active_at), "%s event must retain a positive damaging window" % room_id)
+			_check(absf((float(event.clear_at) - float(event.active_at)) - float(timing.active_seconds)) < 0.001, "%s event must consume its declared active duration" % room_id)
+			if prior_clear_at >= 0.0:
+				_check(float(event.telegraph_at) >= prior_clear_at + 0.039, "%s next telegraph must begin after the prior damaging window" % room_id)
+			prior_clear_at = float(event.clear_at)
 			_check((event.safe_position as Array).size() == 2, "%s event must publish a safe position" % room_id)
 			_check(int(event.safe_lane) not in (event.hazard_lanes as Array), "%s safe lane must never be marked hazardous" % room_id)
+		_check(prior_clear_at <= float((contract.exit as Dictionary).opens_at) + 0.001, "%s final damaging window must clear before the forward exit opens" % room_id)
 		var safe_path := contract.safe_path as Array
 		_check(safe_path.size() >= 3, "%s must publish a non-empty safe path" % room_id)
 		_check(_path_has_positive_clearance(safe_path), "%s safe path must retain positive clearance at every waypoint" % room_id)
@@ -168,6 +175,10 @@ func _test_contract_guardrails(rooms: Array) -> void:
 	var no_telegraph := base.duplicate(true)
 	no_telegraph.events[0].telegraph_at = no_telegraph.events[0].active_at
 	_check(not Mechanics.validate_contract(no_telegraph).is_empty(), "Validator must reject untelegraphed events")
+	var overlapping_warning := base.duplicate(true)
+	if (overlapping_warning.events as Array).size() > 1:
+		overlapping_warning.events[1].telegraph_at = float(overlapping_warning.events[0].clear_at) - 0.01
+		_check(not Mechanics.validate_contract(overlapping_warning).is_empty(), "Validator must reject a next warning that forces departure during prior damage")
 	var impossible := base.duplicate(true)
 	impossible.safe_path[1].time = 0.001
 	impossible.safe_path[1].position = [0.95, 0.05]
@@ -198,6 +209,8 @@ func _test_runtime_playback(rooms: Array) -> void:
 		_check(normal.get("signature",[]) == hitch.get("signature",[]), "%s hitch playback must preserve deterministic event geometry" % room_id)
 		_check(float(normal.get("initial_warning",0.0)) >= float(normal.get("required_warning",0.0))-0.001, "%s must never compress its warning window" % room_id)
 		_check(not bool(normal.get("spawned_on_warning_frame",true)), "%s must not deal contract damage on the frame its warning begins" % room_id)
+		_check(bool(normal.get("owner_signed",false)), "%s runtime wave must derive from the compiler-signed canonical owner" % room_id)
+		_check(bool(normal.get("boundary_armed",false)), "%s boundary probe must begin with the exact live wave still active" % room_id)
 		_check(bool(normal.get("wave_cleaned",false)), "%s wave must clear at its advertised active-window boundary" % room_id)
 		_check(int(normal.get("peak_enemies",0)) <= int(normal.get("max_active",0)), "%s must enforce spawn.max_active" % room_id)
 	_test_wall_gap_runtime(run,rooms)
@@ -228,6 +241,8 @@ func _play_first_runtime_event(run: Node, room: Dictionary, seed: int, delta: fl
 	var peak_enemies := 0
 	var signature: Array = []
 	var wave_id := ""
+	var owner_signed := false
+	var boundary_armed := false
 	for _step in 240:
 		var warning_before: bool = not run._telegraph.is_empty()
 		var event_before: int = int(run._room_event_index)
@@ -239,8 +254,19 @@ func _play_first_runtime_event(run: Node, room: Dictionary, seed: int, delta: fl
 			spawned_on_warning_frame = run._room_event_index != event_before or not run._projectiles.enemy_active.is_empty() or not run._enemies.is_empty()
 		if run._room_event_index > 0:
 			spawned = true
-			var event := (run._room_contract.events as Array)[0] as Dictionary
-			wave_id = "room:%s:0:%d" % [String(run._room_contract.room_id),int(event.index)]
+			var compiled_event := (run._room_pattern_plan.events as Array)[0] as Dictionary
+			var canonical_owner := String(compiled_event.get("owner_wave_id",""))
+			var cycle_index := int(run._room_cycle_index)
+			wave_id = "room:%s:cycle:%d" % [canonical_owner,cycle_index]
+			owner_signed = (
+				not canonical_owner.is_empty()
+				and canonical_owner == String(compiled_event.get("wave_key",""))
+				and wave_id == run._room_live_wave_id(compiled_event,cycle_index)
+			)
+			boundary_armed = (
+				run._active_room_waves.has(wave_id)
+				and run._active_room_motifs.has(wave_id)
+			)
 			signature = _runtime_signature(run,wave_id)
 			break
 	var wave_cleaned := false
@@ -249,7 +275,7 @@ func _play_first_runtime_event(run: Node, room: Dictionary, seed: int, delta: fl
 		run._expire_contract_waves()
 		wave_cleaned = run._projectiles.enemy_group_size(wave_id)==0 and not _has_enemy_group(run._enemies,wave_id) and not run._active_room_waves.has(wave_id)
 	var max_active := int((run._room_contract.spawn as Dictionary).max_active)
-	return {"telegraphed":telegraphed,"spawned":spawned,"spawned_on_warning_frame":spawned_on_warning_frame,"initial_warning":initial_warning,"required_warning":required_warning,"signature":signature,"wave_cleaned":wave_cleaned,"peak_enemies":peak_enemies,"max_active":max_active}
+	return {"telegraphed":telegraphed,"spawned":spawned,"spawned_on_warning_frame":spawned_on_warning_frame,"initial_warning":initial_warning,"required_warning":required_warning,"signature":signature,"owner_signed":owner_signed,"boundary_armed":boundary_armed,"wave_cleaned":wave_cleaned,"peak_enemies":peak_enemies,"max_active":max_active}
 
 
 func _runtime_signature(run: Node, wave_id: String) -> Array:

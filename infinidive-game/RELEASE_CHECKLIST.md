@@ -7,7 +7,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Godot project exists under `infinidive-game/`.
 - [x] Project version is declared as `0.1.0`.
 - [x] Source-of-truth README, architecture, status, issues, and release checklist exist.
-- [x] Production source is committed on `infinidive-production`; Actions run 33514397476 tested commit `8e4be78267a043072827963d6492c7964239ae94`.
+- [x] Historical remote source is committed on `infinidive-production`; Actions run 33514397476 tested commit `8e4be78267a043072827963d6492c7964239ae94` under the prior workflow.
+- [ ] The final frozen local tree, fingerprinted as production `8e9810de2615332713f86f47bf2f28f38728fb75e51ea5bfaf2d16760927d863` and tests/CI `db398ae7804cf75e6741e13380993f9425d42b3e44de8da62631f159595f1597`, is committed and pushed.
 - [ ] Default/production branch is remotely playable and protected appropriately.
 - [ ] Risky migration work has a recoverable branch/tag/checkpoint.
 - [ ] Release version, changelog, and tag agree.
@@ -76,7 +77,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Every organ has a boss-specific procedural external state and a validated mechanical loss consequence; target-device readability/balance remains unchecked.
 - [ ] Every authored room safe rule corresponds to visible, playable geometry/behavior.
 - [x] Every room contract enforces a full telegraph, matching safe gap, active-window cleanup, and maximum-active bound under normal and hitch playback.
-- [ ] Internal zones use more than a generic defender and three broad live pattern geometries; 42 contracts and playback invariants alone do not satisfy this fidelity gate.
+- [x] Internal zones execute eight runtime categories, six movement models, 25 projectile profiles, and ten defender archetypes through the new compiled executor; human/device readability and visual fidelity remain separate open gates.
 - [ ] All organ orders are balanced; none is mandatory.
 - [ ] No weapon or mutation dominates successful runs based on real test data.
 
@@ -144,14 +145,16 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 7. Automated QA and CI
 
-- [x] Latest local JUnit-style artifact reports 2,538 assertions and 0 failures; wall time is intentionally omitted because the artifact is regenerated on reruns.
-- [x] Seven focused local suites pass: backend 82, permanent upgrades 120, tutorial 198, room mechanics 2,583, meta goals 111, audio 505, and organ transformations 325; eight invocations total 6,462 assertions and 0 failures.
+- [x] Latest local JUnit-style artifact reports main `2,631/0`; wall time is intentionally omitted because the artifact is regenerated on reruns.
+- [x] Final frozen local matrix passes `28,410/0` across 13 suites: main 2,631; backend 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta 111; audio 505. The six room suites total `24,438/0`.
+- [x] Editor import and every suite pass the isolated strict wrapper with exact sentinel/count validation and zero engine `ERROR`, script-error, or parse-error lines.
 - [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.
-- [x] A committed CI workflow imports, tests, exports Web/Android, browser-smoke-tests Web, and attempts Pages deployment.
-- [ ] The complete CI workflow passes on GitHub. Current run 33514397476 passed validate/Web/Android, but deploy job 99878161111 failed at Get Pages `Not Found` / Create Pages `Resource not accessible by integration`.
-- [x] Current-commit validate job 99877648950 passed all eight invocations: main 2,538; backend 82; upgrades 120; tutorial 198; rooms 2,583; organ 325; meta 111; audio 505; all zero failures.
-- [x] Current-commit Web job 99877839855 passed and its CI-served Chromium smoke returned HTTP 200, Godot 4.7.2, WebGL2, canvas 540×960, hidden loading status, and no page errors.
+- [x] Paused `BREACH_OPEN` rejects Dive without replacing the pause overlay; manual resume restores the legal Dive path in regression coverage.
+- [x] The current working-tree CI workflow imports, tests, exports Web/Android, browser-smoke-tests Web, and attempts Pages deployment.
+- [ ] The complete current workflow passes on GitHub. Historical run 33514397476 passed its prior validate/Web/Android jobs, but deploy job 99878161111 failed at Get Pages `Not Found` / Create Pages `Resource not accessible by integration`.
+- [x] Historical validate job 99877648950 passed the then-configured eight invocations for commit `8e4be782`; it is not the frozen 13-suite matrix.
+- [x] Historical Web job 99877839855 passed and its CI-served Chromium smoke returned HTTP 200, Godot 4.7.2, WebGL2, canvas 540×960, hidden loading status, and no page errors; the frozen local Web export has not received a real-browser smoke.
 - [x] Local complete-boss victory smoke tests pass for four bosses × six organ orders.
 - [x] Combined failure, 55-Bio banking, Forge upgrade, 110-HP new run, second failure, instant retry, and separate-process relaunch smoke passes.
 - [ ] A previously shipped-build update fixture, background/force-close reward timing, and repeated Abyss-depth smoke pass.
@@ -159,13 +162,17 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Malformed and deterministic-fuzz Friend Rift corpora fail closed in the main headless suite.
 - [ ] Pause/backgrounding cannot avoid or duplicate damage/rewards incorrectly.
 - [ ] Procedural routes pass a large seeded-layout sweep.
+- [x] Recorded-path travel retires at the first arena exit even if a later point re-enters during the same hitch; a true hit before that exit remains valid.
+- [x] CI inventories all 13 standalone suites plus the nested relaunch probe and soak scene; new or stale scenes fail validation.
+- [x] Soak reports use a complete two-phase transaction with bound Markdown hash and cleanup completion marker. The validator recomputes current source, rejects stale/incomplete/cleanup-pending `PASS`, permits partial/early diagnostic `FAIL`, and covers open/write/verify/commit/cleanup plus truncated/mixed pairs.
 
 ## 8. Performance and resilience
 
 - [x] Projectile pools have explicit caps and segment collision.
 - [ ] Cold start is measured against the target on representative devices.
 - [x] A 30-minute Linux headless structural soak completed for its loaded snapshot with zero failures and a bounded static-memory trend; repeat after code freeze for RC evidence.
-- [x] A current-tree 90.02-second source-locked soak completed 1,563 cycles, 157 restarts, 157 Dive transitions, 78 save writes, and 676 offline events with peak 540 projectiles, an unchanged fingerprint, and zero failures.
+- [x] Final 8.014-second pair passes: 87 cycles, 9 restarts/Dives, 6 saves, 529 queued events / 2 reloads / final 500, peak 540, 7/7, transaction `b5a5db690e1513095a2cf63f`, JSON `dbcbf0bdb4fc9e6fb763a5c344f274872cb13875696764fe118a4bf8c3901bdb`, Markdown `15cd17499c54496ad909536039a3706f46c2fc197c856aa4b9fd89feaf2f5167`.
+- [x] Final 90.118-second pair passes: 1,141 cycles, 115 restarts/Dives, 58 saves, 634 queued events / 3 reloads / final 500, peak 540, 7/7, stable delta 87,560 bytes, slope 216,364.835675299 B/min, transaction `22c5717c57c6018e8189b84f`, JSON `119157a6aaf32943c30062dd2b51fe0ee1182b525b50acd0017c8f8c2150c5cf`, Markdown `30c3b34a24347a5d6267929dc1a1f37bbd3b4a2f7374d64a6b446b6e66679bea`.
 - [x] Headless soak completed 3,239 repeated restarts without retained run/projectile nodes.
 - [x] Headless soak completed 3,239 outside-inside-outside transitions without recorded duplicate/retained state.
 - [ ] Maximum-projectile stress test passes at target frame rate.
@@ -173,14 +180,16 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [ ] Offline/online transition test passes if networking is enabled.
 - [ ] Background return is fast and stable.
 - [ ] No blocking network or save operation occurs during combat.
-- [ ] Final package size is recorded for Web, Android, and iOS.
+- [x] Final current-source package names, sizes, hashes, `BUILD_EVIDENCE.md`, and `SHA256SUMS` are recorded under `../build/final-0.1.0-8e9810de/`; none is browser, native-install, production-signing, physical-device, or store evidence.
 
 ## 9. Web release
 
-- [x] A current-working-tree Godot Web evidence export exists under `../../build/web/`: HTML 2,618 bytes / `190b5852ff3c94b4d2e6ce2849bdbc92cb64e77c6cb972d35165b9cf544713b5`; PCK 440,384 / `f9acf67d893ab6513f2b7fde450fcd2129331ba8252b3464132d94892b85b9d4`; WASM 39,514,754 / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`. The checked-in preset's default target remains `../build/web/`.
+- [x] Fresh current-source Web evidence under `../build/final-0.1.0-8e9810de/web/` is complete, hashed, and passes static/local-HTTP validation; no local real-browser canvas was available.
+- [x] Web ZIP `INFINIDIVE-0.1.0-prealpha-web-8e9810de.zip` is recorded in passing `SHA256SUMS` with SHA-256 `4b0ab0515d12c23e5426dd952e47eff21006dc0e066dfd52697ef46e2836bba0`.
 - [x] Static Web validation passes and confirms tooling/adaptive-icon sources are excluded from the package.
-- [x] Current-commit remote Web output records HTML 2,618 bytes, PCK 440,384 bytes, and WASM 39,514,754 bytes in Pages artifact `9803007777`; smoke artifact `9803006599` retains the Chromium evidence. No remote hashes are inferred from the separately recorded local hashes.
-- [x] The current-commit remote Web artifact boots through CI-served HTTP in headless Chromium with no page errors; this does not cover touch gameplay, Safari, or the public host.
+- [x] Local HTTP smoke returns 200 for the frozen game root, privacy page, and support page; this is not a real-browser canvas/WebGL/touch run.
+- [x] Historical remote Web output for commit `8e4be782` records HTML 2,618, PCK 440,384, and WASM 39,514,754 in Pages artifact `9803007777`; smoke artifact `9803006599` retains its Chromium evidence. These are not the frozen local files.
+- [x] The historical remote Web artifact boots through CI-served HTTP in headless Chromium with no page errors; this does not cover the frozen export, touch gameplay, Safari, or the public host.
 - [ ] Export is smoke-tested in desktop Safari and Chrome.
 - [ ] Export is touch-tested in mobile Safari and mobile Chrome.
 - [ ] Hosting sends any headers required by the exported Godot configuration.
@@ -191,8 +200,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 10. Android internal test
 
-- [x] A current-working-tree arm64 portrait debug APK exists at `../../build/android/infinidive-debug.apk`: 28,878,673 bytes / SHA-256 `2d3d5fa6f283381fd31aa1702df2cc697c80f12d0d7a96e6c1e22b59c33cdcef`; structural validation passes.
-- [x] Current-commit Android job 99877839931 passed using build-tools 36 and produced remote debug APK SHA-256 `9b981f4d0accc600ef8f869e600b16f5585533ea1fe4cf8c71a983cfbdd87172` in artifact `9802998519`.
+- [x] Fresh arm64 portrait debug APK `INFINIDIVE-0.1.0-prealpha-debug-8e9810de.apk` is hashed (`d089cebf2207391634fa6b2719d9b8c0a56e654619c33b05292e47aacc78bfa6`) and passes package/min24/target36/arm64/exact-VIBRATE/alignment/Debug-v2-v3 validation.
+- [x] Historical Android job 99877839931 for commit `8e4be782` passed using build-tools 36 and produced remote debug APK SHA-256 `9b981f4d0accc600ef8f869e600b16f5585533ea1fe4cf8c71a983cfbdd87172` in artifact `9802998519`; it is not the frozen local APK.
 - [x] Its manifest verifies `com.matan.infinidive`, version `0.1.0 (1)`, min SDK 24, target SDK 36, and exactly normal `android.permission.VIBRATE`.
 - [x] The APK passes zip alignment and v2/v3 signature verification with `CN=Android Debug`; it is not production-distributable evidence.
 - [x] Both reconciled Android presets request only normal `android.permission.VIBRATE` for optional haptics; it has no runtime prompt and does not collect data.
@@ -210,10 +219,11 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 11. iOS TestFlight
 
-- [x] A retained earlier 47-file iPhone-targeted Xcode scaffold is present at `../../build/ios-iphone-current/INFINIDIVE.xcodeproj`; its frameworks, plists, entitlements, and export options parse.
-- [x] `--export-pack iOS` refreshed only the scaffold's current-tree PCK: 440,480 bytes / SHA-256 `ac426ba74dd8993ea129448d2258d4f1b36ea3ee2fd48c28fd342bda53401db6`.
-- [x] The unchanged retained scaffold records pbxproj SHA-256 `dbbc0f658d31f09a8ad0b020a4ef1d1f6072e422088d13c996dd0d09ee7748bb` and 411-byte export-options plist SHA-256 `50c3cbc7d11c6c3c37357dc14e59ef93f1c011897467a9b94bb11637a795ea7d`.
-- [ ] The full current working tree is re-exported and compiled for iOS; direct project export failed because the preset has no Apple Development Team ID.
+- [x] Full iOS export was attempted and failed exactly because the Development Team is blank.
+- [x] Fresh current-source iOS PCK is 625,908 bytes / `8cf2bd0732b1df958f65958cd45fee65d2387527f6a7cf08b6287dff1f3ccf83` and passes the headless main-pack probe; the owner Team ID remains required for full native export.
+- [x] Unsigned iOS ZIP `INFINIDIVE-0.1.0-prealpha-ios-unsigned-8e9810de.zip` is recorded in passing `SHA256SUMS` with SHA-256 `5e3276c7d3c92a21ef154e776c290e4308424975c0af4f9eb604194537e51ede`; no compiled, signed, installable iOS build is claimed.
+- [x] The assembled unsigned scaffold records unchanged pbxproj SHA-256 `dbbc0f658d31f09a8ad0b020a4ef1d1f6072e422088d13c996dd0d09ee7748bb` and 413-byte export-options plist SHA-256 `7c41fe82380ed9bede2ad63898916de5b45e85839ef5800fafb9fa595fb7d661`.
+- [ ] The full current source is successfully exported as a regenerated Xcode project and compiled for iOS; the attempt failed because the preset has no Apple Development Team ID, although the current-source PCK was exported separately.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
 - [x] The retained unsigned scaffold contains 47 files and records an approximately 368 MB directory size; this does not claim that the scaffold itself was regenerated for the current tree.
 - [ ] Bundle ID, Apple team, capabilities, and minimum iOS version receive final owner/store approval.
@@ -228,7 +238,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 - [x] Original 1024×1024 app-icon source/raster exists; the raster is verified RGB without alpha.
 - [x] Dedicated Google Play icon raster exists at 512×512, 141,587 bytes, 8-bit/color RGBA; final visual and console-upload validation remain pending.
-- [x] Exact-size RGB/no-alpha iOS icon rasters are wired in the preset and verified in the retained earlier-scaffold Xcode asset catalog; current-tree full re-export remains blocked by the Team ID.
+- [x] Exact-size RGB/no-alpha iOS icon rasters are wired in the preset and verified in the retained historical scaffold's Xcode asset catalog; frozen-source full re-export remains blocked by the Team ID.
 - [ ] App icon is visually tested at small sizes and wired into the final Android asset catalog.
 - [x] Five direct runtime screenshots exist at 1080×1920 with provenance and hashes.
 - [ ] Final iPhone screenshots are recaptured from the RC at Apple-accepted device dimensions.

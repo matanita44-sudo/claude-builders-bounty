@@ -1,19 +1,46 @@
 {
 	"counts": {
-		"boss_restarts": 157,
-		"dive_transitions": 157,
-		"enemy_projectiles_spawned": 188448,
-		"iterations": 1563,
-		"offline_events_queued": 676,
+		"boss_restarts": 115,
+		"dive_transitions": 115,
+		"enemy_projectiles_spawned": 137588,
+		"iterations": 1141,
+		"offline_events_queued": 634,
 		"offline_queue_final_size": 500,
 		"offline_queue_reloads": 3,
-		"player_projectiles_spawned": 95955,
-		"projectile_cycles": 1563,
-		"save_reloads": 1,
-		"save_writes": 78
+		"player_projectiles_spawned": 70038,
+		"projectile_cycles": 1141,
+		"projectile_model_steps": {
+			"delayed_linear": 19652,
+			"expanding": 19652,
+			"linear": 19659,
+			"lunge": 19657,
+			"node_link": 19655,
+			"recorded_path": 19658,
+			"soft_homing": 19655
+		},
+		"projectile_models_executed": {
+			"delayed_linear": 19652,
+			"expanding": 19652,
+			"linear": 19659,
+			"lunge": 19657,
+			"node_link": 19655,
+			"recorded_path": 19658,
+			"soft_homing": 19655
+		},
+		"projectile_models_requested": {
+			"delayed_linear": 19652,
+			"expanding": 19652,
+			"linear": 19659,
+			"lunge": 19657,
+			"node_link": 19655,
+			"recorded_path": 19658,
+			"soft_homing": 19655
+		},
+		"save_reloads": 0,
+		"save_writes": 58
 	},
 	"display_server": "headless",
-	"elapsed_wall_seconds": 90.015,
+	"elapsed_wall_seconds": 90.118,
 	"engine": {
 		"build": "official",
 		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
@@ -26,181 +53,191 @@
 		"timestamp": 0
 	},
 	"failures": [],
-	"finished_at_utc": "2026-09-01T13:29:48",
+	"finished_at_utc": "2026-09-01T20:32:52",
 	"memory": {
-		"end_bytes": 37072906,
-		"peak_bytes": 37400710,
-		"sample_count": 20,
-		"slope_bytes_per_minute": 69348.4082797773,
-		"stable_delta_bytes": -17784,
-		"stable_sample_count": 15,
-		"stable_start_bytes": 37090690,
-		"start_bytes": 31309426,
-		"warmup_seconds": 18.003
+		"end_bytes": 40821919,
+		"peak_bytes": 40980015,
+		"sample_count": 21,
+		"slope_bytes_per_minute": 216364.835675299,
+		"stable_delta_bytes": 87560,
+		"stable_sample_count": 16,
+		"stable_start_bytes": 40734359,
+		"start_bytes": 34471919,
+		"warmup_seconds": 18.0236
 	},
 	"memory_samples": [
 		{
 			"elapsed_seconds": 0.0,
-			"memory_bytes": 31309426,
+			"memory_bytes": 34471919,
 			"node_count": 11,
-			"object_count": 1522,
+			"object_count": 1525,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 0.209,
-			"memory_bytes": 36165726,
+			"elapsed_seconds": 1.444,
+			"memory_bytes": 40652367,
 			"node_count": 11,
-			"object_count": 1534,
+			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 5.022,
-			"memory_bytes": 37189462,
+			"elapsed_seconds": 5.004,
+			"memory_bytes": 40732063,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 10.022,
-			"memory_bytes": 37161086,
+			"elapsed_seconds": 10.055,
+			"memory_bytes": 40750515,
 			"node_count": 11,
-			"object_count": 1534,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 15.047,
-			"memory_bytes": 37132086,
+			"elapsed_seconds": 15.021,
+			"memory_bytes": 40746823,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 20.017,
-			"memory_bytes": 37090690,
+			"elapsed_seconds": 20.046,
+			"memory_bytes": 40734359,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 25.001,
-			"memory_bytes": 37079870,
+			"elapsed_seconds": 25.206,
+			"memory_bytes": 40705947,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 30.09,
-			"memory_bytes": 37041318,
+			"elapsed_seconds": 30.019,
+			"memory_bytes": 40675387,
 			"node_count": 11,
-			"object_count": 1534,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 35.037,
-			"memory_bytes": 37004410,
+			"elapsed_seconds": 35.207,
+			"memory_bytes": 40676963,
 			"node_count": 11,
-			"object_count": 1534,
+			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 40.006,
-			"memory_bytes": 37000334,
+			"elapsed_seconds": 40.035,
+			"memory_bytes": 40649559,
 			"node_count": 11,
-			"object_count": 1534,
+			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 45.035,
-			"memory_bytes": 36997998,
+			"elapsed_seconds": 45.209,
+			"memory_bytes": 40617571,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 50.01,
-			"memory_bytes": 37400710,
+			"elapsed_seconds": 50.038,
+			"memory_bytes": 40587599,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 55.04,
-			"memory_bytes": 37347350,
+			"elapsed_seconds": 55.018,
+			"memory_bytes": 40588067,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 60.048,
-			"memory_bytes": 37294086,
+			"elapsed_seconds": 60.031,
+			"memory_bytes": 40588871,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 65.033,
-			"memory_bytes": 37241330,
+			"elapsed_seconds": 65.049,
+			"memory_bytes": 40954863,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 70.049,
-			"memory_bytes": 37194530,
+			"elapsed_seconds": 70.016,
+			"memory_bytes": 40980015,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 75.021,
-			"memory_bytes": 37146114,
+			"elapsed_seconds": 75.004,
+			"memory_bytes": 40939675,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 80.017,
-			"memory_bytes": 37092790,
+			"elapsed_seconds": 80.081,
+			"memory_bytes": 40901359,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1537,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 85.038,
-			"memory_bytes": 37072478,
+			"elapsed_seconds": 85.039,
+			"memory_bytes": 40862023,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		},
 		{
-			"elapsed_seconds": 90.015,
-			"memory_bytes": 37072906,
+			"elapsed_seconds": 90.052,
+			"memory_bytes": 40824767,
 			"node_count": 11,
-			"object_count": 1532,
+			"object_count": 1537,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 90.118,
+			"memory_bytes": 40821919,
+			"node_count": 11,
+			"object_count": 1535,
 			"orphan_node_count": 0
 		}
 	],
 	"object_counts": {
 		"baseline_nodes": 11,
-		"baseline_objects": 1522,
+		"baseline_objects": 1525,
 		"final_nodes": 10,
-		"final_objects": 1530
+		"final_objects": 1533
 	},
 	"passed": true,
 	"peaks": {
 		"enemy_projectiles": 350,
 		"node_count": 32,
-		"object_count": 1594,
+		"object_count": 1597,
 		"orphan_node_count": 0,
 		"player_projectiles": 190,
 		"total_projectiles": 540
 	},
+	"report_markdown_sha256": "30c3b34a24347a5d6267929dc1a1f37bbd3b4a2f7374d64a6b446b6e66679bea",
+	"report_transaction_complete": true,
+	"report_transaction_id": "22c5717c57c6018e8189b84f",
 	"requested_duration_seconds": 90.0,
 	"schema": 1,
 	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
-	"seed": 2039070,
+	"seed": 203541,
 	"source_changed_during_run": false,
-	"source_fingerprint_end": "ecee995c319afeffe0b09533a45bcdaa2db01c82f17d6d26cd93050150c0f098",
-	"source_fingerprint_start": "ecee995c319afeffe0b09533a45bcdaa2db01c82f17d6d26cd93050150c0f098",
-	"started_at_utc": "2026-09-01T13:28:18"
+	"source_fingerprint_end": "8e9810de2615332713f86f47bf2f28f38728fb75e51ea5bfaf2d16760927d863",
+	"source_fingerprint_start": "8e9810de2615332713f86f47bf2f28f38728fb75e51ea5bfaf2d16760927d863",
+	"started_at_utc": "2026-09-01T20:31:22"
 }

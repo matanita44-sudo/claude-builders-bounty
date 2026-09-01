@@ -55,6 +55,11 @@ func configure(stats: Dictionary) -> void:
 	shield_hits = int(stats.get("starting_shield", 0))
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Menus, pause, and dive transitions own the touch surface while controls are
+	# disabled. Do not retain a hidden drag target or emit a gesture that can leak
+	# into the next playable state.
+	if not controls_active:
+		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and _touch_id == -1:
@@ -103,19 +108,22 @@ func _physics_process(delta: float) -> void:
 			dash_charges += 1
 			_dash_announced_empty = false
 			dash_ready.emit()
+	var follow_delta := delta
 	if dash_time > 0.0:
-		dash_time -= delta
-		position += velocity * delta
-	else:
+		var dash_delta := minf(delta, dash_time)
+		dash_time = maxf(0.0, dash_time - dash_delta)
+		position += velocity * dash_delta
+		follow_delta -= dash_delta
+	if follow_delta > 0.0:
 		var offset := _target - position
 		if _dragging and offset.length() > DEAD_ZONE:
 			var desired := offset.normalized() * minf(max_speed, offset.length() * responsiveness)
-			var blend := 1.0 - exp(-responsiveness * delta)
+			var blend := 1.0 - exp(-responsiveness * follow_delta)
 			velocity = velocity.lerp(desired, blend)
 			_last_input = velocity.normalized() if velocity.length_squared() > 1.0 else _last_input
 		else:
-			velocity = velocity.lerp(Vector2.ZERO, 1.0 - exp(-9.0 * delta))
-		position += velocity * delta
+			velocity = velocity.lerp(Vector2.ZERO, 1.0 - exp(-9.0 * follow_delta))
+		position += velocity * follow_delta
 	position.x = clampf(position.x, combat_bounds.position.x, combat_bounds.end.x)
 	position.y = clampf(position.y, combat_bounds.position.y, combat_bounds.end.y)
 	_target.x = clampf(_target.x, combat_bounds.position.x, combat_bounds.end.x)
@@ -184,6 +192,15 @@ func set_controls_active(active: bool) -> void:
 		_touch_id = -1
 		velocity = Vector2.ZERO
 		_target = position
+
+func place_at(safe_position: Vector2) -> void:
+	position = Vector2(
+		clampf(safe_position.x, combat_bounds.position.x, combat_bounds.end.x),
+		clampf(safe_position.y, combat_bounds.position.y, combat_bounds.end.y)
+	)
+	_target = position
+	velocity = Vector2.ZERO
+	reset_physics_interpolation()
 
 func _draw() -> void:
 	for index in range(_trail.size() - 1, -1, -1):

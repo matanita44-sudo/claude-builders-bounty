@@ -65,7 +65,7 @@ Combat is paused during organ selection, mutation selection, death and victory. 
 - Destroying phase armor opens a breach and clears hostile projectiles.
 - The breach remains open for a seven-second baseline window, multiplied by Breach Anchor, then closes if the player does not Dive.
 - Exterior attacks are drawn from one baseline rupture pattern plus abilities whose organs are still alive.
-- Destroying an organ currently removes its linked ability from the attack pool completely.
+- Destroying an organ always removes its intact ability. Seven organs replace it with a validated safer degraded pattern; five disable the system completely.
 
 ### Internal route
 
@@ -77,13 +77,13 @@ For a chosen organ, RoomGenerator creates a deterministic five-entry route:
 4. One eligible hazard module.
 5. The organ's authored chamber.
 
-The catalog contains 30 non-chamber modules: eight traversal, ten combat and twelve hazard records, plus 12 organ chambers. `RoomMechanics` provides an explicit deterministic contract for each of the 42 hazard IDs, including schedule, telegraph, normalized safe positions, active windows, spawn caps and cleanup identity. Runtime consumes those safety/timing bounds, and focused playback verifies full warnings, matching warning/projectile gaps, bounded active waves, cleanup, and deterministic behavior under normal and hitch timing. It still renders only three broad execution geometries: rings, defender/projectile spawns, and a vertical gap wall shared by the declared lane and sweep families. Named pattern and movement-model IDs are not 42 bespoke visual modules, and automated playerless playback is not proof of human reachability.
+The catalog contains 30 non-chamber modules: eight traversal, ten combat and twelve hazard records, plus 12 organ chambers. `RoomMechanics` provides an explicit deterministic contract for each of the 42 hazard IDs, including schedule, telegraph, normalized safe positions, active windows, spawn caps and cleanup identity. The pure runtime compiler expands those contracts into eight runtime categories, six movement models, 42 spawn profiles, 25 projectile profiles, and ten defender archetypes. Runtime consumes the compiled geometry, travel, movement, actors, warning/safe-pocket data, frozen preview/digest, compiler-signed owner/cycle identity, caps, and cleanup. Focused playback verifies normal/hitch schedules, collision/drawing parity, 30/60 Hz travel, tracking suppression, first-arena-exit terminal behavior, and owned cleanup. This is meaningful code-drawn differentiation, not 42 bespoke art scenes, and automated playerless playback is not proof of human readability, reachability, or enjoyment.
 
 ### Organ chamber and return
 
 - Organ health is its catalog HP multiplied by 1.65 and the selected difficulty's HP multiplier.
 - Internal defenders accompany the chamber.
-- Destroying the organ awards run Bio-Matter and score, disables the linked ability, and offers three deterministic non-duplicate mutations.
+- Destroying the organ awards run Bio-Matter and score, removes the intact linked ability, applies its degraded-or-disabled loss contract, and offers three deterministic non-duplicate mutations.
 - Selecting a mutation returns the player to exterior combat.
 - After the third organ, the core becomes the final target.
 
@@ -306,7 +306,7 @@ Not established by this snapshot:
 - Monetization, purchases, ads or restore flow
 - Public deployment success
 - Android or iOS signed builds
-- A completed remote browser workflow, touch-gameplay browser automation, release-candidate performance/device QA, or a full 30-minute code-frozen soak rerun (a 90.02-second fingerprint-clean current-tree soak passes)
+- A completed current remote browser workflow, final-Web touch-gameplay automation, release-candidate performance/device QA, or a full 30-minute code-frozen soak rerun (the hardened 8.014-second and 90.118-second transactional pairs pass)
 - Final Apple 6.9-inch screenshots, a supported-iPhone App Preview capture, store approval, or submission (five 1080×1920 development stills, an audio-complete 1080×1920 social trailer, and an 886×1920 Apple-format technical candidate exist; all are virtual-display evidence)
 
 ## Source precedence

@@ -4,6 +4,9 @@ extends Node2D
 const PermanentUpgradeEngineScript := preload("res://scripts/core/permanent_upgrade_engine.gd")
 const TutorialFlowScript := preload("res://scripts/core/tutorial_flow.gd")
 const RoomMechanicsScript := preload("res://scripts/core/room_mechanics.gd")
+const RoomPatternRuntimeScript := preload("res://scripts/core/room_pattern_runtime.gd")
+const RoomSpaceScript := preload("res://scripts/core/room_space.gd")
+const RoomDefenderEffectsScript := preload("res://scripts/core/room_defender_effects.gd")
 const MetaGoalServiceScript := preload("res://scripts/services/meta_goal_service.gd")
 
 signal run_finished(payload: Dictionary)
@@ -40,6 +43,29 @@ const STATE_TEXT_KEYS := {
 
 const WEAPON_BEHAVIORS := ["pulse", "scatter", "rail", "arc", "orbitals"]
 const INTERNAL_DEFENDER_TELEGRAPH_SECONDS := 0.55
+const INTERNAL_COMBAT_BOUNDS := Rect2(35.0, 390.0, 470.0, 430.0)
+const ROOM_DEFENDER_COMBAT_WINDOW := 3.20
+const ROOM_DEFENDER_ARMORED_WINDOW := 4.00
+const ROOM_PROJECTILE_TELEGRAPH_HORIZON := 0.82
+const ROOM_HISTORY_SAMPLE_SECONDS := 0.05
+const ROOM_MOTIF_CLEARANCE_EPSILON := 0.5
+const ROOM_MOTIF_SWEEP_MAX_SPATIAL_STEP := 0.5
+const ROOM_MOTIF_SWEEP_MAX_SUBSTEPS := 8192
+const ROOM_EXECUTION_CONTEXT_VERSION := 2
+const ROOM_EMISSION_CONTEXT_VERSION := 1
+const MUTATION_CATALOG_COMPLETE_BIO_REWARD := 120
+const ROOM_EFFECT_TIMER_BY_FLAG := {
+	"orbit_interrupted":"orbit_interrupt_seconds",
+	"pincer_side_broken":"priority_mark_seconds",
+	"cover_created":"cover_seconds",
+	"prism_cover_created":"prism_cover_seconds",
+	"tracking_disabled":"tracking_disabled_seconds",
+	"emitter_silenced":"emitter_silenced_seconds",
+	"link_broken":"link_broken_seconds",
+	"hatch_suppressed":"hatch_suppressed_seconds",
+	"echo_disrupted":"echo_disrupted_seconds",
+	"true_target_revealed":"true_target_revealed_seconds",
+}
 const COMBAT_SFX_INTERVALS := {
 	"armor_hit": 0.075,
 	"organ_damage": 0.09,
@@ -52,6 +78,9 @@ const WEAPON_SYNERGY_TAGS := {
 	"arc": ["internal", "projectile", "organ"],
 	"orbitals": ["orbital", "defense", "close", "shield"]
 }
+
+static var _room_runtime_catalog_checked := false
+static var _room_runtime_catalog_errors := PackedStringArray()
 
 var config: Dictionary = {}
 var boss_definition: Dictionary = {}
@@ -110,10 +139,27 @@ var _tutorial_flow := TutorialFlowScript.new()
 var _meta_goals := MetaGoalServiceScript.new()
 var _room_generator := RoomGenerator.new()
 var _room_contract: Dictionary = {}
+var _room_pattern_plan: Dictionary = {}
+var _room_pattern_rejection_key := ""
 var _room_elapsed := 0.0
 var _room_event_index := 0
 var _room_cycle_index := 0
 var _active_room_waves: Dictionary = {}
+var _active_room_actor_groups: Dictionary = {}
+var _active_room_motifs: Dictionary = {}
+var _pending_room_emissions: Array[Dictionary] = []
+var _room_player_history: Array[Dictionary] = []
+var _room_history_next_sample := 0.0
+var _room_history_frame_time := 0.0
+var _room_history_frame_position := Vector2.ZERO
+var _room_history_initialized := false
+var _room_previous_player_position := Vector2.ZERO
+var _room_runtime_trace: Array[Dictionary] = []
+var _room_defender_effect_state: Dictionary = {}
+var _room_defender_effect_events: Dictionary = {}
+var _room_defender_effect_sources: Dictionary = {}
+var _room_defender_covers: Array[Dictionary] = []
+var _room_defender_kill_sequence := 0
 var _enemies: Array[Dictionary] = []
 var _enemy_serial := 0
 var _telegraph: Dictionary = {}
@@ -338,6 +384,11 @@ func _ready() -> void:
 	var room_errors := RoomMechanicsScript.validate_catalog(GameData.rooms, true)
 	if not room_errors.is_empty():
 		push_error("Invalid room mechanics catalog: %s" % "; ".join(room_errors))
+	if not _room_runtime_catalog_checked:
+		_room_runtime_catalog_errors = RoomPatternRuntimeScript.validate_catalog(GameData.rooms)
+		_room_runtime_catalog_checked = true
+	if not _room_runtime_catalog_errors.is_empty():
+		push_error("Invalid room runtime catalog: %s" % "; ".join(_room_runtime_catalog_errors))
 	_rng.seed = int(config.seed)
 	run_id = "%d-%d-%d-%s" % [Time.get_unix_time_from_system(), Time.get_ticks_usec(), int(config.seed), String(config.boss)]
 	if not _meta_goals.initialize(SaveManager.profile):
@@ -424,12 +475,13 @@ func _meta_progress(event_name: String, payload: Dictionary, persist_now: bool =
 		_persist_meta_profile()
 	return result
 
-func _persist_meta_profile() -> bool:
-	if not _meta_dirty:
+func _persist_meta_profile(force_write: bool = false) -> bool:
+	if not _meta_dirty and not force_write:
 		return true
 	if not SaveManager.save_profile():
 		return false
-	_meta_goals.mark_profile_persisted()
+	if _meta_dirty:
+		_meta_goals.mark_profile_persisted()
 	_meta_dirty = false
 	return true
 
@@ -580,7 +632,8 @@ func _physics_process(delta: float) -> void:
 				_begin_internal_route()
 		RunState.INTERNAL_ROOMS:
 			_update_combat(delta,false)
-			_update_room(delta)
+			if state == RunState.INTERNAL_ROOMS:
+				_update_room(delta)
 		RunState.ORGAN_CHAMBER:
 			_update_combat(delta,false)
 		RunState.DIVING_OUT:
@@ -657,6 +710,8 @@ func _update_combat(delta: float, exterior: bool) -> void:
 	_update_bio_pickups(delta)
 	_update_enemies(delta)
 	_fire_timer_step(delta)
+	if not exterior:
+		_update_room_defender_effects(delta)
 	var targets := _target_infos(exterior)
 	var hit_result := _projectiles.step(delta,targets,_player.position,12.0)
 	_update_attack_avoidance(hit_result.player_hits)
@@ -664,6 +719,8 @@ func _update_combat(delta: float, exterior: bool) -> void:
 		_target_hit_count += 1
 		_damage_target(raw_hit)
 	_apply_player_hits(hit_result.player_hits)
+	if state in [RunState.DEAD,RunState.VICTORY]:
+		return
 	_update_dash_wakes(delta, exterior)
 	_update_orbitals(delta,exterior)
 	if exterior:
@@ -741,11 +798,18 @@ func _update_pending_echoes(delta: float) -> void:
 func _aim_target() -> Vector2:
 	var nearest := Vector2.ZERO
 	var best := INF
+	var marked_nearest := Vector2.ZERO
+	var marked_best := INF
 	for enemy in _enemies:
 		var distance := _player.position.distance_squared_to(Vector2(enemy.position))
+		if float(enemy.get("effect_priority_seconds",0.0))>0.0 and distance<marked_best:
+			marked_best=distance
+			marked_nearest=enemy.position
 		if distance<best:
 			best=distance
 			nearest=enemy.position
+	if marked_nearest != Vector2.ZERO and _aim_assist_enabled():
+		return marked_nearest
 	if nearest != Vector2.ZERO and _aim_assist_enabled():
 		return nearest
 	if state == RunState.ORGAN_CHAMBER:
@@ -786,6 +850,7 @@ func _damage_target(hit: Dictionary) -> void:
 			if armor_health<=0.0:
 				_open_breach()
 	elif target_id == "organ" and state == RunState.ORGAN_CHAMBER:
+		amount *= _room_effect_value_max("true_target_revealed","true_target_damage_multiplier",1.0)
 		_boss_visual.flash_hit()
 		_play_combat_sfx_limited("organ_damage", _rng.randf_range(0.94, 1.06), 0.58)
 		organ_health=maxf(0.0,organ_health-amount)
@@ -802,6 +867,7 @@ func _damage_target(hit: Dictionary) -> void:
 	else:
 		for index in _enemies.size():
 			if String(_enemies[index].id)==target_id:
+				amount *= _room_enemy_damage_multiplier(_enemies[index] as Dictionary)
 				_enemies[index].health=float(_enemies[index].health)-amount
 				if float(_enemies[index].health)<=0.0:
 					_kill_enemy(index)
@@ -841,11 +907,15 @@ func _damage_enemy_by_id(enemy_id: String, amount: float) -> bool:
 	for index in _enemies.size():
 		if String(_enemies[index].id) != enemy_id:
 			continue
+		amount *= _room_enemy_damage_multiplier(_enemies[index] as Dictionary)
 		_enemies[index].health = float(_enemies[index].health)-amount
 		if float(_enemies[index].health)<=0.0:
 			_kill_enemy(index)
 		return true
 	return false
+
+func _room_enemy_damage_multiplier(enemy: Dictionary) -> float:
+	return maxf(1.0,float(enemy.get("effect_damage_multiplier",1.0))) if float(enemy.get("effect_priority_seconds",0.0))>0.0 else 1.0
 
 func _apply_player_hits(hits: Array) -> void:
 	for raw_hit in hits:
@@ -1039,6 +1109,17 @@ func _ability_display(ability: String) -> String:
 func rotation_phase() -> float:
 	return fmod(elapsed*0.55,TAU)
 
+static func room_space_position(normalized_position: Array) -> Vector2:
+	return RoomSpaceScript.normalized_to_world(RoomSpaceScript.clamp_normalized(normalized_position), INTERNAL_COMBAT_BOUNDS)
+
+static func room_space_normalized(screen_position: Vector2) -> Vector2:
+	var normalized := RoomSpaceScript.world_to_normalized(screen_position, INTERNAL_COMBAT_BOUNDS)
+	return Vector2(float(normalized[0]), float(normalized[1]))
+
+func _place_player_at_room_entry() -> void:
+	_player.place_at(room_space_position(RoomMechanicsScript.ENTRY_POINT))
+	_room_previous_player_position = _player.position
+
 func _update_internal_hazards(delta: float) -> void:
 	if state not in [RunState.INTERNAL_ROOMS,RunState.ORGAN_CHAMBER]:
 		return
@@ -1048,13 +1129,24 @@ func _update_internal_hazards(delta: float) -> void:
 	# validated safe fallback; if even that failed, this room produces no damage.
 	if not bool(_room_contract.get("valid", false)):
 		return
+	_sample_room_player_history()
+	_update_pending_room_emissions(delta)
+	_update_active_room_motifs(delta)
+	if state not in [RunState.INTERNAL_ROOMS,RunState.ORGAN_CHAMBER] or _player.health<=0.0:
+		return
 	_update_contract_hazards(delta)
 
 func _update_contract_hazards(delta: float) -> void:
+	if not bool(_room_pattern_plan.get("valid",false)) or String(_room_pattern_plan.get("room_id","")) != String(_room_contract.get("room_id","")):
+		if not _compile_room_pattern_plan():
+			return
 	_room_elapsed += delta
 	_expire_contract_waves()
+	_expire_room_actor_groups()
 	var duration := maxf(0.1, float(_room_contract.get("duration", 1.0)))
-	var events: Array = _room_contract.get("events", [])
+	var events: Array = _room_pattern_plan.get("events", []) if bool(_room_pattern_plan.get("valid", false)) else []
+	if events.is_empty():
+		return
 	if not _telegraph.is_empty():
 		_telegraph.timer = float(_telegraph.timer) - delta
 		if float(_telegraph.timer) <= 0.0:
@@ -1062,10 +1154,21 @@ func _update_contract_hazards(delta: float) -> void:
 			_telegraph.clear()
 			_room_event_index += 1
 		return
-	if state == RunState.ORGAN_CHAMBER and _room_elapsed >= duration and _room_event_index >= events.size() and _active_room_waves.is_empty():
+	if state == RunState.ORGAN_CHAMBER and _room_elapsed >= duration and _room_event_index >= events.size() and _active_room_waves.is_empty() and _active_room_actor_groups.is_empty():
 		_room_elapsed = fmod(_room_elapsed, duration)
 		_room_event_index = 0
 		_room_cycle_index += 1
+		# A cycle owns its defender-effect lineage. At this boundary every wave
+		# and actor is resolved, so retaining receipts/scopes can only leak stale
+		# state and grow memory across a long organ fight.
+		_reset_room_defender_effects()
+		_place_player_at_room_entry()
+		_room_player_history.clear()
+		_room_history_next_sample = _room_elapsed
+		_room_history_frame_time = _room_elapsed
+		_room_history_frame_position = room_space_normalized(_player.position)
+		_room_history_initialized = false
+		_trace_room_runtime("cycle_reset", {"cycle":_room_cycle_index})
 	# The authored safe corridor belongs to exactly one active wave. Do not arm
 	# the next warning until the prior active window has been retired.
 	if not _active_room_waves.is_empty():
@@ -1073,33 +1176,70 @@ func _update_contract_hazards(delta: float) -> void:
 	if _room_event_index >= events.size():
 		return
 	var event := events[_room_event_index] as Dictionary
-	var base_telegraph := float((_room_contract.get("timing", {}) as Dictionary).get("telegraph_seconds", 0.45))
-	var telegraph_seconds := base_telegraph * _assist_number("assist_telegraph", 1.0)
+	var base_telegraph := float((_room_pattern_plan.get("timing", {}) as Dictionary).get("telegraph_seconds", 0.45))
+	var assist_telegraph := _assist_number("assist_telegraph", 1.0)
+	var telegraph_seconds := base_telegraph * assist_telegraph
 	var telegraph_at := maxf(0.0, float(event.get("active_at", 0.0)) - telegraph_seconds)
 	if _room_elapsed >= telegraph_at:
-		var safe_position_data: Array = event.get("safe_position", [0.5,0.5])
-		var safe_position := Vector2(float(safe_position_data[0]) * 540.0, 330.0 + float(safe_position_data[1]) * 420.0)
+		var safe_contract := event.get("safe", {}) as Dictionary
+		var safe_position_data: Array = safe_contract.get("position", [0.5,0.5])
+		var safe_position := room_space_position(safe_position_data)
 		var runtime_event := event.duplicate(true)
 		var active_seconds := maxf(0.08, float(event.get("clear_at", 0.0)) - float(event.get("active_at", 0.0)))
 		var family := String(_room_contract.get("family", "lane"))
-		var projectile := _room_contract.get("projectile", {}) as Dictionary
-		var effective_speed := maxf(150.0, float(projectile.get("speed_pixels_per_second", 230.0))) * _difficulty_projectile_speed()
-		var pattern_origin := Vector2(270.0, 225.0)
-		if family == "ring":
-			var toward_player := _player.position - pattern_origin
-			var reachable_distance := effective_speed * active_seconds * 0.68
-			if toward_player.length() > reachable_distance + 55.0:
-				pattern_origin = _player.position - toward_player.normalized() * reachable_distance
-		else:
-			pattern_origin.y = clampf(_player.position.y - effective_speed * active_seconds * 0.68, 275.0, _player.position.y - 36.0)
+		var pattern_origin := _room_event_origin_world(event)
 		runtime_event.runtime_active_seconds = active_seconds
-		runtime_event.runtime_gap_x = clampf(safe_position.x, 80.0, 460.0)
+		runtime_event.runtime_telegraph_seconds = telegraph_seconds
+		runtime_event.runtime_cycle_index = _room_cycle_index
+		runtime_event.runtime_canonical_wave_id = String(event.get("owner_wave_id",""))
+		runtime_event.runtime_difficulty_context = _room_difficulty_context(assist_telegraph)
+		runtime_event.runtime_gap_x = safe_position.x
 		runtime_event.runtime_origin = [pattern_origin.x, pattern_origin.y]
-		runtime_event.runtime_wave_id = "room:%s:%d:%d" % [String(_room_contract.get("room_id", "fallback")), _room_cycle_index, int(event.get("index", _room_event_index))]
+		runtime_event.runtime_wave_id = _room_live_wave_id(runtime_event,_room_cycle_index)
+		runtime_event.runtime_effect_scope_id = _room_defender_effect_scope_id(String((event.get("spawn",{}) as Dictionary).get("defender_archetype","none")))
+		var telegraph_world_positions := _room_event_world_positions(runtime_event,safe_position)
+		if _room_event_has_structural_hazard(runtime_event) and telegraph_world_positions.is_empty():
+			_trace_room_runtime("structural_geometry_rejected",{
+				"event_index":int(event.get("index",_room_event_index)),
+				"wave_id":String(runtime_event.runtime_wave_id),
+				"reason":"no_safe_placement",
+			})
+			_room_event_index += 1
+			return
+		var serialized_world_positions: Array = []
+		for world_position in telegraph_world_positions:
+			serialized_world_positions.append([world_position.x,world_position.y])
+		runtime_event.runtime_world_positions = serialized_world_positions
+		var player_snapshot := _player.position if _player != null else safe_position
+		runtime_event.runtime_player_snapshot = [player_snapshot.x,player_snapshot.y]
+		runtime_event.runtime_player_history_snapshot = _room_history_snapshot()
+		var projectile_runtime := _build_room_projectile_specs(runtime_event,telegraph_world_positions,safe_position,active_seconds)
+		runtime_event.runtime_projectile_specs = (projectile_runtime.get("specs",[]) as Array).duplicate(true)
+		var runtime_projectile_previews := _build_room_projectile_previews(runtime_event.runtime_projectile_specs as Array)
+		if not _room_projectile_previews_valid(runtime_event.runtime_projectile_specs as Array,runtime_projectile_previews):
+			_trace_room_runtime("projectile_preview_rejected",{
+				"event_index":int(event.get("index",_room_event_index)),
+				"wave_id":String(runtime_event.runtime_wave_id),
+				"reason":"invalid_or_incomplete_preview",
+				"spec_count":int((runtime_event.runtime_projectile_specs as Array).size()),
+				"preview_count":runtime_projectile_previews.size(),
+			})
+			_room_event_index += 1
+			return
+		runtime_event.runtime_projectile_previews = runtime_projectile_previews
+		runtime_event.runtime_projectile_seconds = float(projectile_runtime.get("follow_through_seconds",active_seconds))
+		runtime_event.runtime_threat_position = projectile_runtime.get("threat_position",[safe_position.x,safe_position.y])
+		runtime_event.runtime_projectile_threat_seconds = float(projectile_runtime.get("threat_seconds",0.0))
+		var actor_seconds := _room_defender_combat_seconds(runtime_event)
+		runtime_event.runtime_actor_seconds = actor_seconds
+		runtime_event.runtime_wave_seconds = active_seconds
+		runtime_event.runtime_replay_digest = _room_history_digest()
+		var execution_context_digest := _freeze_room_execution_context(runtime_event)
 		# A hitch may arrive after the authored activation time. Never compress a
 		# warning to a token frame: delay activation for a full visible telegraph.
 		var warning_timer := maxf(telegraph_seconds, float(event.get("active_at", 0.0)) - _room_elapsed)
 		_telegraph = {
+			"source": "room_pattern",
 			"ability": String(_room_contract.get("hazard", "cell_bloom")),
 			"timer": warning_timer,
 			"total": warning_timer,
@@ -1108,89 +1248,1394 @@ func _update_contract_hazards(delta: float) -> void:
 			"gap_x": float(runtime_event.runtime_gap_x),
 			"pattern_origin": pattern_origin,
 			"contract_family": family,
+			"visual_signature":String(event.get("visual_signature", "")),
+			"spawn_visual_token":String((event.get("spawn", {}) as Dictionary).get("visual_token", "")),
+			"projectile_visual_token":String((event.get("projectile", {}) as Dictionary).get("visual_token", "")),
+			"movement_visual_token":String((event.get("movement", {}) as Dictionary).get("visual_token", "")),
 			"event": runtime_event
 		}
+		_trace_room_runtime("telegraph", {
+			"event_index":int(event.get("index", _room_event_index)),
+			"wave_id":String(runtime_event.runtime_wave_id),
+			"canonical_wave_id":String(runtime_event.runtime_canonical_wave_id),
+			"live_wave_id":String(runtime_event.runtime_wave_id),
+			"execution_context_digest":execution_context_digest,
+			"visual_signature":String(event.get("visual_signature", "")),
+			"safe_position":[safe_position.x,safe_position.y],
+			"projectile_seconds":float(runtime_event.runtime_projectile_seconds),
+			"actor_seconds":actor_seconds,
+		})
 		AudioManager.play_sfx("heartbeat", 0.9, 0.48)
 
-func _spawn_contract_pattern(event: Dictionary) -> void:
-	var family := String(_room_contract.get("family", "lane"))
-	var hazard := String(_room_contract.get("hazard", "cell_bloom"))
-	var projectile: Dictionary = _room_contract.get("projectile", {})
-	var spawn: Dictionary = _room_contract.get("spawn", {})
-	var safe_data: Array = event.get("safe_position", [0.5,0.5])
-	var safe_position := Vector2(float(safe_data[0]) * 540.0, 330.0 + float(safe_data[1]) * 420.0)
-	var speed := maxf(150.0, float(projectile.get("speed_pixels_per_second", 230.0))) * _difficulty_projectile_speed()
-	var radius := maxf(5.0, float(projectile.get("radius_pixels", 8.0)))
-	var damage := maxf(7.0, float(projectile.get("damage", 10.0)))
-	var active_seconds := maxf(0.08, float(event.get("runtime_active_seconds", float(event.get("clear_at", 0.0)) - float(event.get("active_at", 0.0)))))
-	var lifetime := clampf(float(projectile.get("lifetime_seconds", active_seconds)), 0.05, active_seconds)
-	var cause_id := "hazard:%s" % hazard
-	var wave_id := String(event.get("runtime_wave_id", "room:%s:%d:%d" % [String(_room_contract.get("room_id", "fallback")), _room_cycle_index, _room_event_index]))
-	var origin_data: Array = event.get("runtime_origin", [270.0,225.0])
-	var pattern_origin := Vector2(float(origin_data[0]),float(origin_data[1]))
-	var gap_x := clampf(float(event.get("runtime_gap_x", safe_position.x)),80.0,460.0)
-	_active_room_waves[wave_id] = _room_elapsed + active_seconds
-	match family:
+func _room_event_origin_world(event: Dictionary) -> Vector2:
+	var projectile := event.get("projectile", {}) as Dictionary
+	var emitters := projectile.get("emitters", []) as Array
+	if not emitters.is_empty():
+		return room_space_position(emitters[0] as Array)
+	var positions := (event.get("spawn", {}) as Dictionary).get("positions", []) as Array
+	if not positions.is_empty():
+		return room_space_position((positions[0] as Dictionary).get("position", [0.5,0.2]) as Array)
+	return room_space_position([0.5,0.2])
+
+static func room_runtime_category(event: Dictionary) -> String:
+	return RoomPatternRuntimeScript.runtime_category_for_event(event)
+
+func _sample_room_player_history() -> void:
+	if _player == null:
+		return
+	var current_time := _room_elapsed
+	var current_position := room_space_normalized(_player.position)
+	if not _room_history_initialized or current_time < _room_history_frame_time:
+		_room_history_frame_time = current_time
+		_room_history_frame_position = current_position
+		_room_history_initialized = true
+	while _room_history_next_sample <= current_time + 0.0001:
+		var sample_position := current_position
+		var frame_seconds := current_time - _room_history_frame_time
+		if frame_seconds > 0.0001:
+			var ratio := clampf((_room_history_next_sample - _room_history_frame_time) / frame_seconds, 0.0, 1.0)
+			sample_position = _room_history_frame_position.lerp(current_position, ratio)
+		_room_player_history.append({
+			"time_ms":roundi(_room_history_next_sample*1000.0),
+			"position":[sample_position.x,sample_position.y],
+		})
+		_room_history_next_sample += ROOM_HISTORY_SAMPLE_SECONDS
+	while _room_player_history.size() > 52:
+		_room_player_history.pop_front()
+	_room_history_frame_time = current_time
+	_room_history_frame_position = current_position
+
+func _room_history_digest() -> String:
+	var parts := PackedStringArray()
+	for sample in _room_player_history:
+		var position := (sample as Dictionary).get("position", [0.5,0.9]) as Array
+		parts.append("%d:%d:%d" % [
+			int((sample as Dictionary).get("time_ms", 0)),
+			roundi(float(position[0])*1000.0),
+			roundi(float(position[1])*1000.0),
+		])
+	return "history:none" if parts.is_empty() else "history:%s" % "|".join(parts).sha256_text().left(16)
+
+static func room_runtime_canonical_digest(label: String, payload: Variant) -> String:
+	var canonical: Variant = _room_runtime_canonical_value(payload)
+	var serialized: String = JSON.stringify(canonical, "", true, true)
+	return "%s:%s" % [label, serialized.sha256_text()]
+
+static func _room_runtime_canonical_value(value: Variant) -> Variant:
+	var type_id := typeof(value)
+	match type_id:
+		TYPE_NIL:
+			return {"type":"nil"}
+		TYPE_BOOL:
+			return {"type":"bool", "value":bool(value)}
+		TYPE_INT:
+			return {"type":"int", "value":int(value)}
+		TYPE_FLOAT:
+			var number := float(value)
+			if is_nan(number):
+				return {"type":"float", "value":"nan"}
+			if is_inf(number):
+				return {"type":"float", "value":"-inf" if number < 0.0 else "inf"}
+			return {"type":"float", "value":number}
+		TYPE_STRING, TYPE_STRING_NAME:
+			return {"type":"string", "value":String(value)}
+		TYPE_VECTOR2:
+			var vector := Vector2(value)
+			return {"type":"vector2", "x":vector.x, "y":vector.y}
+		TYPE_DICTIONARY:
+			var source := value as Dictionary
+			var keys := source.keys()
+			keys.sort_custom(func(first: Variant, second: Variant) -> bool: return String(first) < String(second))
+			var entries: Array = []
+			for raw_key in keys:
+				entries.append([
+					_room_runtime_canonical_value(raw_key),
+					_room_runtime_canonical_value(source[raw_key]),
+				])
+			return {"type":"dictionary", "entries":entries}
+		TYPE_ARRAY:
+			var items: Array = []
+			for item in value as Array:
+				items.append(_room_runtime_canonical_value(item))
+			return {"type":"array", "items":items}
+	if type_id >= TYPE_PACKED_BYTE_ARRAY:
+		var packed_items: Array = []
+		for item in value:
+			packed_items.append(_room_runtime_canonical_value(item))
+		return {"type":type_string(type_id), "items":packed_items}
+	return {"type":type_string(type_id), "value":var_to_str(value)}
+
+func _room_contract_key() -> String:
+	return room_runtime_canonical_digest("room-contract-v1", _room_contract)
+
+func _room_history_snapshot() -> Array:
+	var snapshot: Array = []
+	for raw_sample in _room_player_history:
+		var sample := raw_sample as Dictionary
+		var position := sample.get("position", [0.5,0.9]) as Array
+		if position.size() != 2:
+			continue
+		snapshot.append({
+			"time_ms":int(sample.get("time_ms",0)),
+			"position_millionths":[
+				roundi(float(position[0])*1000000.0),
+				roundi(float(position[1])*1000000.0),
+			],
+		})
+	return snapshot
+
+func _room_difficulty_context(assist_telegraph: float) -> Dictionary:
+	var assist_projectile_speed := _assist_number("assist_projectile_speed",1.0)
+	return {
+		"difficulty":String(config.get("difficulty","diver")),
+		"mode":String(config.get("mode","story")),
+		"abyss_depth":int(config.get("abyss_depth",0)),
+		"competitive":bool(config.get("competitive",false)),
+		"assist_telegraph":assist_telegraph,
+		"assist_projectile_speed":assist_projectile_speed,
+		# This exact multiplier is consumed by the frozen projectile builder below.
+		"projectile_speed_multiplier":_difficulty_projectile_speed(),
+	}
+
+func _room_live_wave_id(event: Dictionary, cycle_index: int) -> String:
+	var canonical_owner := String(event.get("owner_wave_id",event.get("wave_key","")))
+	return "room:%s:cycle:%d" % [canonical_owner,cycle_index]
+
+func _room_execution_context_payload(event: Dictionary) -> Dictionary:
+	return {
+		"schema":ROOM_EXECUTION_CONTEXT_VERSION,
+		"plan":{
+			"signature":String(_room_pattern_plan.get("plan_signature","")),
+			"geometry_signature":String(_room_pattern_plan.get("geometry_signature","")),
+			"lifecycle_signature":String(_room_pattern_plan.get("lifecycle_signature","")),
+		},
+		"event":{
+			"index":int(event.get("index",-1)),
+			"event_seed":int(event.get("event_seed",-1)),
+			"geometry_signature":String(event.get("geometry_signature","")),
+			"lifecycle_signature":String(event.get("lifecycle_signature","")),
+			"visual_signature":String(event.get("visual_signature","")),
+			# These are the executable compiler blocks. Signing their deep values here
+			# closes the gap between a valid compiler signature and activation time.
+			"spawn":(event.get("spawn",{}) as Dictionary).duplicate(true),
+			"projectile":(event.get("projectile",{}) as Dictionary).duplicate(true),
+			"movement":(event.get("movement",{}) as Dictionary).duplicate(true),
+			"safe":(event.get("safe",{}) as Dictionary).duplicate(true),
+			"operations":(event.get("operations",[]) as Array).duplicate(true),
+		},
+		"room":{
+			"room_id":String(_room_pattern_plan.get("room_id",_room_contract.get("room_id",""))),
+			"runtime_seed":int(_room_pattern_plan.get("runtime_seed",_room_contract.get("runtime_seed",-1))),
+			"contract_key":_room_contract_key(),
+			"cycle":_room_cycle_index,
+			"frozen_cycle":int(event.get("runtime_cycle_index",-1)),
+		},
+		"ownership":{
+			"canonical_wave_id":String(event.get("owner_wave_id","")),
+			"frozen_canonical_wave_id":String(event.get("runtime_canonical_wave_id","")),
+			"live_wave_id":String(event.get("runtime_wave_id","")),
+		},
+		"difficulty":(event.get("runtime_difficulty_context",{}) as Dictionary).duplicate(true),
+		"telegraph_seconds":float(event.get("runtime_telegraph_seconds",0.0)),
+		"active_seconds":float(event.get("runtime_active_seconds",0.0)),
+		"wave_seconds":float(event.get("runtime_wave_seconds",0.0)),
+		"actor_seconds":float(event.get("runtime_actor_seconds",0.0)),
+		"projectile_seconds":float(event.get("runtime_projectile_seconds",0.0)),
+		"projectile_threat_seconds":float(event.get("runtime_projectile_threat_seconds",0.0)),
+		"projectile_threat_position":event.get("runtime_threat_position",[]),
+		"player_snapshot":event.get("runtime_player_snapshot",[]),
+		"player_history_snapshot":event.get("runtime_player_history_snapshot",[]),
+		"player_history_digest":String(event.get("runtime_replay_digest","")),
+		"world_positions":event.get("runtime_world_positions",[]),
+		"effect_scope_id":String(event.get("runtime_effect_scope_id","")),
+		"runtime_projectile_specs":event.get("runtime_projectile_specs",[]),
+		"runtime_projectile_previews":event.get("runtime_projectile_previews",[]),
+	}
+
+func _freeze_room_execution_context(event: Dictionary) -> String:
+	var payload := _room_execution_context_payload(event)
+	var digest := room_runtime_canonical_digest("room-execution-v2",payload)
+	event.runtime_execution_context=payload.duplicate(true)
+	event.runtime_execution_context_digest=digest
+	return digest
+
+func _validate_room_execution_context(event: Dictionary) -> Dictionary:
+	if not event.has("runtime_execution_context_digest") or not event.has("runtime_execution_context"):
+		# Direct unsigned helper fixtures remain available, but every compiled event
+		# carries geometry identity and therefore must carry its live envelope too.
+		return {
+			"valid":not event.has("geometry_signature"),
+			"reason":"missing_execution_context",
+		}
+	var frozen_value: Variant = event.get("runtime_execution_context",null)
+	if typeof(frozen_value) != TYPE_DICTIONARY:
+		return {"valid":false,"reason":"malformed_execution_context"}
+	var frozen := frozen_value as Dictionary
+	var expected_digest := String(event.get("runtime_execution_context_digest",""))
+	var frozen_digest := room_runtime_canonical_digest("room-execution-v2",frozen)
+	var current_payload := _room_execution_context_payload(event)
+	var current_digest := room_runtime_canonical_digest("room-execution-v2",current_payload)
+	var expected_live_owner := _room_live_wave_id(event,_room_cycle_index)
+	if String(event.get("runtime_wave_id","")) != expected_live_owner:
+		return {
+			"valid":false,
+			"reason":"live_owner_mismatch",
+			"expected_digest":expected_digest,
+			"actual_digest":current_digest,
+		}
+	if expected_digest.is_empty() or frozen_digest != expected_digest:
+		return {
+			"valid":false,
+			"reason":"frozen_context_digest_mismatch",
+			"expected_digest":expected_digest,
+			"actual_digest":frozen_digest,
+		}
+	if current_digest != expected_digest:
+		return {
+			"valid":false,
+			"reason":"live_context_digest_mismatch",
+			"expected_digest":expected_digest,
+			"actual_digest":current_digest,
+		}
+	return {"valid":true,"digest":expected_digest}
+
+func _room_event_world_positions(event: Dictionary, safe_position: Vector2) -> Array[Vector2]:
+	var positions: Array[Vector2] = []
+	var runtime_positions := event.get("runtime_world_positions", []) as Array
+	if not runtime_positions.is_empty():
+		for raw_position in runtime_positions:
+			var position_data := raw_position as Array
+			if position_data.size()==2:
+				positions.append(Vector2(float(position_data[0]),float(position_data[1])))
+		return positions
+	var spawn := event.get("spawn", {}) as Dictionary
+	var source_positions := spawn.get("positions", []) as Array
+	var movement := event.get("movement", {}) as Dictionary
+	if String(movement.get("source_model", "")) == "replay" and not _room_player_history.is_empty():
+		var requested := maxi(1, source_positions.size())
+		var history_stride := maxi(1,floori(float(_room_player_history.size())/float(requested)))
+		for index in range(requested):
+			var history_index := clampi(_room_player_history.size()-1-index*history_stride,0,_room_player_history.size()-1)
+			var sample := _room_player_history[history_index] as Dictionary
+			positions.append(room_space_position(sample.get("position", [0.5,0.9]) as Array))
+	else:
+		for raw_record in source_positions:
+			var record := raw_record as Dictionary
+			positions.append(room_space_position(record.get("position", [0.5,0.2]) as Array))
+	var safe_radius := maxf(34.0, float((event.get("safe", {}) as Dictionary).get("clearance", 0.1))*minf(INTERNAL_COMBAT_BOUNDS.size.x, INTERNAL_COMBAT_BOUNDS.size.y))
+	for index in range(positions.size()):
+		var offset := positions[index]-safe_position
+		if offset.length() >= safe_radius+18.0:
+			continue
+		if offset.length_squared() < 0.001:
+			offset = Vector2.LEFT if index%2==0 else Vector2.RIGHT
+		positions[index] = safe_position+offset.normalized()*(safe_radius+18.0)
+		positions[index].x=clampf(positions[index].x,INTERNAL_COMBAT_BOUNDS.position.x,INTERNAL_COMBAT_BOUNDS.end.x)
+		positions[index].y=clampf(positions[index].y,INTERNAL_COMBAT_BOUNDS.position.y,INTERNAL_COMBAT_BOUNDS.end.y)
+	return _room_structural_safe_start_positions(event,positions,safe_position,safe_radius)
+
+func _room_structural_safe_start_positions(event: Dictionary, positions: Array[Vector2], safe_position: Vector2, safe_radius: float) -> Array[Vector2]:
+	if positions.is_empty():
+		return positions
+	var spawn := event.get("spawn",{}) as Dictionary
+	var collision := spawn.get("collision",{}) as Dictionary
+	if not _room_event_has_structural_hazard(event) or not bool(collision.get("enabled",false)):
+		return positions
+	var motif := {
+		"collision":collision,
+		"spawn":spawn,
+		"positions":positions,
+		"safe_position":safe_position,
+		"safe_clearance_pixels":safe_radius,
+	}
+	if _room_motif_signed_safe_clearance(motif,positions) >= ROOM_MOTIF_CLEARANCE_EPSILON:
+		return positions
+	var centroid := Vector2.ZERO
+	for raw_position in positions:
+		centroid += Vector2(raw_position)
+	centroid /= float(positions.size())
+	var preferred_direction := (centroid-safe_position).normalized()
+	if preferred_direction.length_squared() <= 0.0001:
+		preferred_direction=Vector2.from_angle(float(abs(String(event.get("visual_signature","room")).hash())%360)*PI/180.0)
+	var directions: Array[Vector2] = [preferred_direction]
+	for direction_index in range(24):
+		directions.append(Vector2.from_angle(float(direction_index)*TAU/24.0))
+	var best_positions: Array[Vector2] = []
+	var best_distance := INF
+	for direction in directions:
+		var maximum_shift := _room_position_group_shift_limit(positions,direction)
+		if maximum_shift <= 0.001:
+			continue
+		var prior_distance := 0.0
+		for search_index in range(1,25):
+			var distance := maximum_shift*float(search_index)/24.0
+			if distance >= best_distance:
+				break
+			var candidate := _shift_room_positions(positions,direction*distance)
+			if _room_motif_signed_safe_clearance(motif,candidate) < ROOM_MOTIF_CLEARANCE_EPSILON:
+				prior_distance=distance
+				continue
+			var low := prior_distance
+			var high := distance
+			for _iteration in 10:
+				var midpoint := (low+high)*0.5
+				var midpoint_positions := _shift_room_positions(positions,direction*midpoint)
+				if _room_motif_signed_safe_clearance(motif,midpoint_positions) >= ROOM_MOTIF_CLEARANCE_EPSILON:
+					high=midpoint
+					candidate=midpoint_positions
+				else:
+					low=midpoint
+			best_distance=high
+			best_positions=candidate
+			break
+	# Never reactivate the original unsafe collider when no in-bounds placement
+	# exists. The caller records and skips this malformed event fail-closed.
+	return best_positions
+
+static func _room_event_has_structural_hazard(event: Dictionary) -> bool:
+	for raw_operation in event.get("operations",[]) as Array:
+		if String((raw_operation as Dictionary).get("op","")) == "hold_structural_hazard":
+			return true
+	return false
+
+static func _shift_room_positions(positions: Array[Vector2], offset: Vector2) -> Array[Vector2]:
+	var shifted: Array[Vector2] = []
+	for position in positions:
+		shifted.append(position+offset)
+	return shifted
+
+static func _room_position_group_shift_limit(positions: Array[Vector2], direction: Vector2) -> float:
+	var limit := INTERNAL_COMBAT_BOUNDS.size.length()
+	for position in positions:
+		if direction.x > 0.0001:
+			limit=minf(limit,(INTERNAL_COMBAT_BOUNDS.end.x-position.x)/direction.x)
+		elif direction.x < -0.0001:
+			limit=minf(limit,(INTERNAL_COMBAT_BOUNDS.position.x-position.x)/direction.x)
+		if direction.y > 0.0001:
+			limit=minf(limit,(INTERNAL_COMBAT_BOUNDS.end.y-position.y)/direction.y)
+		elif direction.y < -0.0001:
+			limit=minf(limit,(INTERNAL_COMBAT_BOUNDS.position.y-position.y)/direction.y)
+	return maxf(0.0,limit)
+
+func _room_projectile_follow_through_seconds(event: Dictionary, active_seconds: float) -> float:
+	var projectile := event.get("projectile", {}) as Dictionary
+	if int(projectile.get("count", 0)) <= 0:
+		return active_seconds
+	# Only one published safe corridor may be damaging at a time. The frozen
+	# first trajectory is placed to become dangerous inside this window.
+	return active_seconds
+
+func _room_defender_combat_seconds(event: Dictionary) -> float:
+	var spawn := event.get("spawn",{}) as Dictionary
+	if int(spawn.get("enemy_count",0))<=0:
+		return 0.0
+	var behavior := spawn.get("defender_behavior",{}) as Dictionary
+	return ROOM_DEFENDER_ARMORED_WINDOW if String(behavior.get("health_class","medium"))=="armored" else ROOM_DEFENDER_COMBAT_WINDOW
+
+func _build_room_projectile_specs(event: Dictionary, world_positions: Array[Vector2], safe_position: Vector2, active_seconds: float) -> Dictionary:
+	var projectile := event.get("projectile",{}) as Dictionary
+	var count := clampi(int(projectile.get("count",0)),0,RoomPatternRuntimeScript.MAX_PROJECTILES_PER_EVENT)
+	var follow_through := _room_projectile_follow_through_seconds(event,active_seconds)
+	if count<=0:
+		return {"specs":[],"follow_through_seconds":active_seconds,"max_delay_seconds":0.0,"threat_position":[safe_position.x,safe_position.y]}
+	var emitter_data := projectile.get("emitters",[]) as Array
+	var emitters: Array[Vector2] = []
+	for raw_emitter in emitter_data:
+		emitters.append(room_space_position(raw_emitter as Array))
+	if emitters.is_empty():
+		emitters = world_positions.duplicate()
+	if emitters.is_empty():
+		emitters.append(room_space_position([0.5,0.2]))
+	var directions := projectile.get("directions_degrees",[]) as Array
+	var difficulty_context := event.get("runtime_difficulty_context",{}) as Dictionary
+	var speed_multiplier := float(difficulty_context.projectile_speed_multiplier) if difficulty_context.has("projectile_speed_multiplier") else _difficulty_projectile_speed()
+	var speed := maxf(80.0,float(projectile.get("speed_pixels_per_second",180.0)))*speed_multiplier
+	var radius := maxf(4.0,float(projectile.get("radius_pixels",7.0)))
+	var damage := maxf(1.0,float(projectile.get("damage",8.0)))
+	var travel_model := String(projectile.get("travel_model","linear"))
+	var visual_token := String(projectile.get("visual_token","room_spike"))
+	var snapshot_data := event.get("runtime_player_snapshot",[safe_position.x,safe_position.y]) as Array
+	var frozen_target := Vector2(float(snapshot_data[0]),float(snapshot_data[1])) if snapshot_data.size()==2 else safe_position
+	if not is_finite(frozen_target.x) or not is_finite(frozen_target.y):
+		frozen_target=safe_position
+	var safe_radius := maxf(34.0,float((event.get("safe",{}) as Dictionary).get("clearance",0.1))*minf(INTERNAL_COMBAT_BOUNDS.size.x,INTERNAL_COMBAT_BOUNDS.size.y))
+	var projectile_exclusion_radius := safe_radius+radius+14.0
+	var threat_speed := speed
+	match travel_model:
+		"lunge": threat_speed*=1.28
+		"expanding": threat_speed*=0.82
+		"recorded_path": threat_speed*=0.32
+	var threat_delay := clampf(active_seconds*0.58,0.16,minf(0.30,maxf(0.16,active_seconds-0.04)))
+	var threat := _room_projectile_threat_segment(event,safe_position,projectile_exclusion_radius,threat_speed,threat_delay)
+	var threat_position := Vector2(threat.get("target",safe_position))
+	var specs: Array[Dictionary] = []
+	var max_delay := 0.0
+	for index in range(count):
+		var origin := emitters[index%emitters.size()]
+		if travel_model=="recorded_path" and not world_positions.is_empty():
+			origin=world_positions[index%world_positions.size()]
+		var safe_offset := origin-safe_position
+		if safe_offset.length()<projectile_exclusion_radius:
+			if safe_offset.length_squared()<0.001:
+				safe_offset=Vector2.LEFT if index%2==0 else Vector2.RIGHT
+			origin=safe_position+safe_offset.normalized()*(projectile_exclusion_radius+1.0)
+		var direction_degrees := float(directions[index%directions.size()]) if not directions.is_empty() else -90.0
+		var direction := Vector2.from_angle(deg_to_rad(direction_degrees))
+		var travel_speed := speed
+		match travel_model:
+			"lunge": travel_speed*=1.28
+			"expanding": travel_speed*=0.82
+			"recorded_path": travel_speed*=0.32
+		var velocity := _room_safe_velocity(origin,direction*travel_speed,safe_position,projectile_exclusion_radius,follow_through)
+		if index==0:
+			origin=Vector2(threat.get("origin",origin))
+			var target := Vector2(threat.get("target",origin+velocity*threat_delay))
+			velocity=(target-origin).normalized()*travel_speed
+		var delay := 0.10*float(index%3) if travel_model=="delayed_linear" and index%3!=0 else 0.0
+		max_delay=maxf(max_delay,delay)
+		specs.append({
+			"origin":origin,
+			"velocity":velocity,
+			"damage":damage,
+			"delay_seconds":delay,
+			"options":{
+				"radius":radius,
+				"life":follow_through,
+				"visual_token":visual_token,
+				"travel_model":travel_model,
+				"homing":float(projectile.get("tracking_strength",0.0))*1.8 if travel_model=="soft_homing" else 0.0,
+				"frozen_target":frozen_target,
+				"safe_position":safe_position,
+				# ProjectilePool expands this center-safe disk by the projectile's
+				# live radius (including expanding waves). Keep the player's 14 px
+				# clearance here and count projectile radius exactly once.
+				"safe_radius":safe_radius+14.0,
+			}
+		})
+	specs = _room_projectile_specs_after_defender_effects(specs,event)
+	return {
+		"specs":specs,
+		"follow_through_seconds":follow_through,
+		"max_delay_seconds":max_delay,
+		"threat_position":[threat_position.x,threat_position.y],
+		"threat_seconds":Vector2(threat.get("origin",threat_position)).distance_to(threat_position)/maxf(1.0,threat_speed),
+	}
+
+func _build_room_projectile_previews(raw_specs: Array) -> Array[Dictionary]:
+	var previews: Array[Dictionary] = []
+	if _projectiles==null:
+		return previews
+	var preview_count := mini(raw_specs.size(),RoomPatternRuntimeScript.MAX_PROJECTILES_PER_EVENT)
+	for emission_index in range(preview_count):
+		var spec := raw_specs[emission_index] as Dictionary
+		var origin := Vector2(spec.get("origin",Vector2.ZERO))
+		var velocity := Vector2(spec.get("velocity",Vector2.ZERO))
+		var delay_seconds := float(spec.get("delay_seconds",0.0))
+		if not is_finite(origin.x) or not is_finite(origin.y) \
+				or not is_finite(velocity.x) or not is_finite(velocity.y) \
+				or not is_finite(delay_seconds) or delay_seconds<0.0:
+			return []
+		var options := (spec.get("options",{}) as Dictionary).duplicate(true)
+		options.preview_duration=minf(maxf(0.0,float(options.get("life",ROOM_PROJECTILE_TELEGRAPH_HORIZON))),ROOM_PROJECTILE_TELEGRAPH_HORIZON)
+		var raw_samples := _projectiles.preview_enemy_travel(origin,velocity,options)
+		if raw_samples.is_empty() or raw_samples.size()>ProjectilePool.MAX_PREVIEW_SAMPLES:
+			return []
+		var samples: Array[Dictionary] = []
+		for raw_sample in raw_samples:
+			var sample := raw_sample as Dictionary
+			var age := float(sample.get("age",NAN))
+			var position := Vector2(sample.get("position",Vector2(NAN,NAN)))
+			var radius := float(sample.get("radius",NAN))
+			if not is_finite(age) or age<0.0 \
+					or not is_finite(position.x) or not is_finite(position.y) \
+					or not is_finite(radius) or radius<0.0:
+				return []
+			samples.append({"age":age,"position":position,"radius":radius})
+		previews.append({
+			"emission_index":emission_index,
+			"delay_seconds":delay_seconds,
+			"samples":samples,
+		})
+	return previews
+
+static func _room_projectile_previews_valid(raw_specs: Array, raw_previews: Array) -> bool:
+	if raw_specs.size()!=raw_previews.size() or raw_previews.size()>RoomPatternRuntimeScript.MAX_PROJECTILES_PER_EVENT:
+		return false
+	for preview_index in range(raw_previews.size()):
+		if typeof(raw_specs[preview_index])!=TYPE_DICTIONARY or typeof(raw_previews[preview_index])!=TYPE_DICTIONARY:
+			return false
+		var spec := raw_specs[preview_index] as Dictionary
+		var preview := raw_previews[preview_index] as Dictionary
+		if int(preview.get("emission_index",-1))!=preview_index:
+			return false
+		var raw_delay: Variant = preview.get("delay_seconds",NAN)
+		if typeof(raw_delay) not in [TYPE_INT,TYPE_FLOAT]:
+			return false
+		var delay_seconds := float(raw_delay)
+		if not is_finite(delay_seconds) or delay_seconds<0.0 or not is_equal_approx(delay_seconds,float(spec.get("delay_seconds",0.0))):
+			return false
+		var samples_value: Variant = preview.get("samples",null)
+		if typeof(samples_value)!=TYPE_ARRAY:
+			return false
+		var samples := samples_value as Array
+		if samples.is_empty() or samples.size()>ProjectilePool.MAX_PREVIEW_SAMPLES:
+			return false
+		var options := spec.get("options",{}) as Dictionary
+		var expected_duration := minf(maxf(0.0,float(options.get("life",ROOM_PROJECTILE_TELEGRAPH_HORIZON))),ROOM_PROJECTILE_TELEGRAPH_HORIZON)
+		var previous_age := -INF
+		for sample_index in range(samples.size()):
+			if typeof(samples[sample_index])!=TYPE_DICTIONARY:
+				return false
+			var sample := samples[sample_index] as Dictionary
+			var raw_age: Variant = sample.get("age",NAN)
+			var raw_radius: Variant = sample.get("radius",NAN)
+			var raw_position: Variant = sample.get("position",null)
+			if typeof(raw_age) not in [TYPE_INT,TYPE_FLOAT] or typeof(raw_radius) not in [TYPE_INT,TYPE_FLOAT] or typeof(raw_position)!=TYPE_VECTOR2:
+				return false
+			var age := float(raw_age)
+			var radius := float(raw_radius)
+			var position := raw_position as Vector2
+			if not is_finite(age) or age<0.0 or age<=previous_age \
+					or not is_finite(position.x) or not is_finite(position.y) \
+					or not is_finite(radius) or radius<0.0:
+				return false
+			if sample_index==0 and (age>0.000001 or not position.is_equal_approx(Vector2(spec.get("origin",Vector2.ZERO)))):
+				return false
+			previous_age=age
+		if absf(previous_age-expected_duration)>0.0001:
+			return false
+	return true
+
+func _room_projectile_threat_segment(event: Dictionary, safe_position: Vector2, exclusion_radius: float, speed: float, threat_seconds: float) -> Dictionary:
+	var projectile := event.get("projectile",{}) as Dictionary
+	var primitive := String(projectile.get("primitive",""))
+	var inset := INTERNAL_COMBAT_BOUNDS.grow(-20.0)
+	var travel_distance := clampf(speed*threat_seconds,18.0,96.0)
+	if primitive=="gravity_drop":
+		var side := -1.0 if safe_position.x-inset.position.x > inset.end.x-safe_position.x else 1.0
+		var hazard_x := clampf(safe_position.x+side*(exclusion_radius+22.0),inset.position.x,inset.end.x)
+		if absf(hazard_x-safe_position.x)<exclusion_radius+4.0:
+			hazard_x=clampf(safe_position.x-side*(exclusion_radius+22.0),inset.position.x,inset.end.x)
+		var target_y := clampf(safe_position.y,inset.position.y+travel_distance,inset.end.y)
+		var target := Vector2(hazard_x,target_y)
+		return {"origin":target-Vector2.DOWN*travel_distance,"target":target}
+	var snapshot_data := event.get("runtime_player_snapshot",[safe_position.x,safe_position.y]) as Array
+	var snapshot := Vector2(float(snapshot_data[0]),float(snapshot_data[1])) if snapshot_data.size()==2 else safe_position
+	var candidates := [
+		{"direction":Vector2.LEFT,"space":safe_position.x-inset.position.x},
+		{"direction":Vector2.RIGHT,"space":inset.end.x-safe_position.x},
+		{"direction":Vector2.UP,"space":safe_position.y-inset.position.y},
+		{"direction":Vector2.DOWN,"space":inset.end.y-safe_position.y},
+	]
+	candidates.sort_custom(func(first: Dictionary,second: Dictionary)->bool:return float(first.space)>float(second.space))
+	var outward := Vector2((candidates[0] as Dictionary).direction)
+	var available := float((candidates[0] as Dictionary).space)
+	var target_distance := exclusion_radius+18.0
+	var target := safe_position+outward*target_distance
+	var snapshot_offset := snapshot-safe_position
+	if inset.has_point(snapshot) and snapshot_offset.length()>=target_distance:
+		outward=snapshot_offset.normalized()
+		target=snapshot
+		available=_room_distance_to_edge(safe_position,outward,inset)
+		target_distance=snapshot_offset.length()
+	var origin_distance := minf(available,target_distance+travel_distance)
+	if origin_distance>=target_distance+24.0:
+		return {"origin":safe_position+outward*origin_distance,"target":target}
+	var inner_distance := exclusion_radius+3.0
+	var approach_distance := maxf(inner_distance,target_distance-travel_distance)
+	return {"origin":safe_position+outward*approach_distance,"target":target}
+
+func _room_projectile_specs_after_defender_effects(raw_specs: Array, event: Dictionary, effect_scope_override: String = "") -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if raw_specs.is_empty():
+		return result
+	if _room_defender_effect_state.is_empty():
+		for raw_spec in raw_specs:
+			result.append(raw_spec as Dictionary)
+		return result
+	var spawn := event.get("spawn",{}) as Dictionary
+	var archetype := String(spawn.get("defender_archetype","none"))
+	var effect_scope_id := effect_scope_override if not effect_scope_override.is_empty() else String(event.get("runtime_effect_scope_id",""))
+	for raw_spec in raw_specs:
+		var spec := (raw_spec as Dictionary).duplicate(true)
+		var options := spec.get("options",{}) as Dictionary
+		var travel_model := String(options.get("travel_model",(event.get("projectile",{}) as Dictionary).get("travel_model","linear")))
+		var suppressed := false
+		if _room_effect_flag_active("link_broken",effect_scope_id) and (travel_model=="node_link" or archetype=="arc_linker"):
+			suppressed=true
+		elif _room_effect_flag_active("hatch_suppressed",effect_scope_id) and (travel_model=="lunge" or archetype=="hatchling"):
+			suppressed=true
+		elif _room_effect_flag_active("echo_disrupted",effect_scope_id) and (travel_model in ["recorded_path","delayed_linear"] or archetype=="echo_clone"):
+			suppressed=true
+		elif _room_effect_flag_active("emitter_silenced",effect_scope_id) and archetype=="resonance_mouth":
+			suppressed=true
+		elif _room_effect_flag_active("true_target_revealed",effect_scope_id) and archetype=="decoy_core":
+			suppressed=true
+		elif _room_effect_flag_active("tracking_disabled",effect_scope_id) and float(options.get("homing",0.0))>0.0:
+			# Straightening a warned homing arc can create a new, untelegraphed
+			# collision path. Tracking breaks therefore remove the owned threat.
+			suppressed=true
+		if suppressed:
+			continue
+		result.append(spec)
+	return result
+
+static func _room_distance_to_edge(origin: Vector2, direction: Vector2, bounds: Rect2) -> float:
+	var distances: Array[float] = []
+	if direction.x>0.0001:
+		distances.append((bounds.end.x-origin.x)/direction.x)
+	elif direction.x<-0.0001:
+		distances.append((bounds.position.x-origin.x)/direction.x)
+	if direction.y>0.0001:
+		distances.append((bounds.end.y-origin.y)/direction.y)
+	elif direction.y<-0.0001:
+		distances.append((bounds.position.y-origin.y)/direction.y)
+	var result := INF
+	for distance in distances:
+		if distance>=0.0:
+			result=minf(result,distance)
+	return 0.0 if result==INF else result
+
+func _room_effect_scope_snapshot(effect_scope_id: String) -> Dictionary:
+	if effect_scope_id.is_empty() or _room_defender_effect_state.is_empty():
+		return {}
+	var scopes := _room_defender_effect_state.get("scopes",{}) as Dictionary
+	return (scopes.get(effect_scope_id,{}) as Dictionary).duplicate(true)
+
+func _room_emission_payload(emission: Dictionary) -> Dictionary:
+	return {
+		"schema":ROOM_EMISSION_CONTEXT_VERSION,
+		"phase":String(emission.get("phase","queued")),
+		"wave_id":String(emission.get("wave_id","")),
+		"canonical_wave_id":String(emission.get("canonical_wave_id","")),
+		"event_index":int(emission.get("event_index",-1)),
+		"emission_index":int(emission.get("emission_index",-1)),
+		"execution_context_digest":String(emission.get("execution_context_digest","")),
+		"parent_emission_digest":String(emission.get("parent_emission_digest","")),
+		"spawn_at_room_time":float(emission.get("spawn_at_room_time",0.0)),
+		"scheduled_delay_seconds":float(emission.get("scheduled_delay_seconds",0.0)),
+		"effect_scope_id":String(emission.get("effect_scope_id","")),
+		"effect_scope_state":(emission.get("effect_scope_state",{}) as Dictionary).duplicate(true),
+		"effect_state_digest":String(emission.get("effect_state_digest","")),
+		"spec":(emission.get("spec",{}) as Dictionary).duplicate(true),
+	}
+
+func _freeze_room_emission(spec: Dictionary, event: Dictionary, wave_id: String, emission_index: int, spawn_at_room_time: float, parent_emission_digest: String = "", phase: String = "queued") -> Dictionary:
+	var options := spec.get("options",{}) as Dictionary
+	var effect_scope_id := String(options.get("effect_scope_id",event.get("runtime_effect_scope_id","")))
+	var effect_scope_state := _room_effect_scope_snapshot(effect_scope_id)
+	var emission := {
+		"phase":phase,
+		"wave_id":wave_id,
+		"canonical_wave_id":String(event.get("runtime_canonical_wave_id",event.get("owner_wave_id",""))),
+		"event_index":int(event.get("index",_room_event_index)),
+		"emission_index":emission_index,
+		"execution_context_digest":String(event.get("runtime_execution_context_digest","")),
+		"parent_emission_digest":parent_emission_digest,
+		"spawn_at_room_time":spawn_at_room_time,
+		"scheduled_delay_seconds":float(spec.get("delay_seconds",0.0)),
+		"effect_scope_id":effect_scope_id,
+		"effect_scope_state":effect_scope_state,
+		"effect_state_digest":room_runtime_canonical_digest("room-effect-state-v1",effect_scope_state),
+		"spec":spec.duplicate(true),
+	}
+	emission.emission_digest=room_runtime_canonical_digest("room-emission-v1",_room_emission_payload(emission))
+	return emission
+
+func _validate_room_emission(emission: Dictionary) -> Dictionary:
+	var expected_digest := String(emission.get("emission_digest",""))
+	var actual_digest := room_runtime_canonical_digest("room-emission-v1",_room_emission_payload(emission))
+	if expected_digest.is_empty() or actual_digest != expected_digest:
+		return {
+			"valid":false,
+			"reason":"emission_digest_mismatch",
+			"expected_digest":expected_digest,
+			"actual_digest":actual_digest,
+		}
+	return {"valid":true,"digest":expected_digest}
+
+func _emit_room_projectile_plan(event: Dictionary, wave_id: String, world_positions: Array[Vector2], safe_position: Vector2, active_seconds: float, cause_id: String) -> Dictionary:
+	var projectile := event.get("projectile",{}) as Dictionary
+	var has_frozen_runtime_specs := event.has("runtime_projectile_specs")
+	var runtime_specs := event.get("runtime_projectile_specs",[]) as Array
+	if not has_frozen_runtime_specs and int(projectile.get("count",0))>0:
+		runtime_specs=(_build_room_projectile_specs(event,world_positions,safe_position,active_seconds).get("specs",[]) as Array)
+	var effect_scope_id := String(event.get("runtime_effect_scope_id",_room_defender_effect_scope_id(String((event.get("spawn",{}) as Dictionary).get("defender_archetype","none")))))
+	runtime_specs=_room_projectile_specs_after_defender_effects(runtime_specs,event,effect_scope_id)
+	if runtime_specs.is_empty():
+		var empty_effect_scope_id := String(event.get("runtime_effect_scope_id",""))
+		var empty_effect_state := _room_effect_scope_snapshot(empty_effect_scope_id)
+		_trace_room_runtime("hold_structural_hazard",{
+			"event_index":int(event.get("index",_room_event_index)),
+			"wave_id":wave_id,
+			"canonical_wave_id":String(event.get("runtime_canonical_wave_id",event.get("owner_wave_id",""))),
+			"collider_count":world_positions.size(),
+			"effect_state_digest":room_runtime_canonical_digest("room-effect-state-v1",empty_effect_state),
+		})
+		return {"requested":0,"spawned":0,"pending":0}
+	var max_active := clampi(int(projectile.get("max_active",runtime_specs.size())),1,RoomPatternRuntimeScript.MAX_ACTIVE_PROJECTILES)
+	var owned_now := _projectiles.enemy_group_size(wave_id)+_pending_room_emission_count(wave_id)
+	var available := mini(runtime_specs.size(),maxi(0,max_active-owned_now))
+	var spawned := 0
+	var pending_count := 0
+	var emission_digests: Array = []
+	var effect_state_digests: Array = []
+	for index in range(available):
+		var spec := (runtime_specs[index] as Dictionary).duplicate(true)
+		var options := spec.get("options",{}) as Dictionary
+		options.cause=cause_id
+		options.group=wave_id
+		options.parent_group=wave_id
+		options.source_archetype=String((event.get("spawn",{}) as Dictionary).get("defender_archetype","none"))
+		options.effect_scope_id=effect_scope_id
+		spec.options=options
+		var delay := float(spec.get("delay_seconds",0.0))
+		var emission := _freeze_room_emission(spec,event,wave_id,index,_room_elapsed+delay)
+		emission_digests.append(String(emission.emission_digest))
+		effect_state_digests.append(String(emission.effect_state_digest))
+		if delay>0.0:
+			_pending_room_emissions.append(emission)
+			pending_count+=1
+		elif _spawn_room_projectile_spec(emission):
+			spawned+=1
+	_trace_room_runtime("emit_projectiles",{
+		"event_index":int(event.get("index",_room_event_index)),
+		"wave_id":wave_id,
+		"canonical_wave_id":String(event.get("runtime_canonical_wave_id",event.get("owner_wave_id",""))),
+		"live_wave_id":wave_id,
+		"requested_count":runtime_specs.size(),
+		"spawned_count":spawned,
+		"pending_count":pending_count,
+		"travel_model":String(projectile.get("travel_model","linear")),
+		"visual_token":String(projectile.get("visual_token","room_spike")),
+		"execution_context_digest":String(event.get("runtime_execution_context_digest","")),
+		"emission_digests":emission_digests,
+		"effect_state_digests":effect_state_digests,
+	})
+	return {"requested":runtime_specs.size(),"spawned":spawned,"pending":pending_count}
+
+func _pending_room_emission_count(wave_id: String) -> int:
+	var count := 0
+	for pending in _pending_room_emissions:
+		if String((pending as Dictionary).get("wave_id",""))==wave_id:
+			count+=1
+	return count
+
+func _spawn_room_projectile_spec(emission: Dictionary) -> bool:
+	var validation := _validate_room_emission(emission)
+	var owner_wave := String(emission.get("wave_id",""))
+	if not bool(validation.get("valid",false)):
+		_trace_room_runtime("emission_rejected",{
+			"wave_id":owner_wave,
+			"canonical_wave_id":String(emission.get("canonical_wave_id","")),
+			"event_index":int(emission.get("event_index",-1)),
+			"emission_index":int(emission.get("emission_index",-1)),
+			"reason":String(validation.get("reason","invalid_emission")),
+			"expected_digest":String(validation.get("expected_digest","")),
+			"actual_digest":String(validation.get("actual_digest","")),
+		})
+		return false
+	var spec := (emission.get("spec",{}) as Dictionary).duplicate(true)
+	var options := spec.get("options",{}) as Dictionary
+	var effect_scope_id := String(options.get("effect_scope_id",""))
+	var live_event := {
+		"runtime_wave_id":owner_wave,
+		"runtime_canonical_wave_id":String(emission.get("canonical_wave_id","")),
+		"runtime_execution_context_digest":String(emission.get("execution_context_digest","")),
+		"runtime_effect_scope_id":effect_scope_id,
+		"index":int(emission.get("event_index",-1)),
+		"spawn":{"defender_archetype":String(options.get("source_archetype","none"))},
+		"projectile":{"travel_model":String(options.get("travel_model","linear"))},
+	}
+	var live_specs := _room_projectile_specs_after_defender_effects([spec],live_event,effect_scope_id)
+	if live_specs.is_empty():
+		var suppressed_effect_state := _room_effect_scope_snapshot(effect_scope_id)
+		_trace_room_runtime("emission_suppressed",{
+			"wave_id":owner_wave,
+			"canonical_wave_id":String(emission.get("canonical_wave_id","")),
+			"emission_digest":String(emission.get("emission_digest","")),
+			"effect_state_digest":room_runtime_canonical_digest("room-effect-state-v1",suppressed_effect_state),
+		})
+		return false
+	var live_spec := live_specs[0] as Dictionary
+	var final_emission := _freeze_room_emission(
+		live_spec,
+		live_event,
+		owner_wave,
+		int(emission.get("emission_index",-1)),
+		_room_elapsed,
+		String(emission.get("emission_digest","")),
+		"spawn"
+	)
+	var final_validation := _validate_room_emission(final_emission)
+	if not bool(final_validation.get("valid",false)):
+		_trace_room_runtime("emission_rejected",{
+			"wave_id":owner_wave,
+			"canonical_wave_id":String(emission.get("canonical_wave_id","")),
+			"emission_index":int(emission.get("emission_index",-1)),
+			"reason":"adjusted_emission_digest_mismatch",
+			"expected_digest":String(final_validation.get("expected_digest","")),
+			"actual_digest":String(final_validation.get("actual_digest","")),
+		})
+		return false
+	var spawned := _projectiles.spawn_enemy(
+		Vector2(live_spec.get("origin", Vector2.ZERO)),
+		Vector2(live_spec.get("velocity", Vector2.ZERO)),
+		float(live_spec.get("damage", 1.0)),
+		(live_spec.get("options", {}) as Dictionary).duplicate(true)
+	)
+	_trace_room_runtime("projectile_emission_spawned",{
+		"wave_id":owner_wave,
+		"canonical_wave_id":String(emission.get("canonical_wave_id","")),
+		"emission_index":int(emission.get("emission_index",-1)),
+		"queued_emission_digest":String(emission.get("emission_digest","")),
+		"adjusted_emission_digest":String(final_emission.get("emission_digest","")),
+		"effect_state_digest":String(final_emission.get("effect_state_digest","")),
+		"spawned":spawned,
+	})
+	return spawned
+
+func _update_pending_room_emissions(delta: float) -> void:
+	for index in range(_pending_room_emissions.size()-1,-1,-1):
+		var pending := _pending_room_emissions[index] as Dictionary
+		var wave_id := String(pending.get("wave_id", ""))
+		if not _active_room_waves.has(wave_id):
+			_pending_room_emissions.remove_at(index)
+			continue
+		var motif := _active_room_motifs.get(wave_id,{}) as Dictionary
+		if not bool(motif.get("emitter_active",true)) or _room_elapsed+delta>float(motif.get("ends_at",INF))+0.0001:
+			_pending_room_emissions.remove_at(index)
+			continue
+		var validation := _validate_room_emission(pending)
+		if not bool(validation.get("valid",false)):
+			_spawn_room_projectile_spec(pending)
+			_pending_room_emissions.remove_at(index)
+			continue
+		if _room_elapsed+delta+0.0001 >= float(pending.get("spawn_at_room_time",INF)):
+			# The spawn helper verifies the frozen record again immediately before
+			# applying any legitimate live defender-effect revision.
+			_spawn_room_projectile_spec(pending)
+			_pending_room_emissions.remove_at(index)
+
+func _room_safe_velocity(origin: Vector2, velocity: Vector2, safe_position: Vector2, safe_radius: float, active_seconds: float) -> Vector2:
+	var end := origin+velocity*active_seconds
+	if not _segment_near_point(origin,end,safe_position,safe_radius):
+		return velocity
+	var outward := origin-safe_position
+	if outward.length_squared() < 0.001:
+		outward = Vector2.LEFT if origin.x < INTERNAL_COMBAT_BOUNDS.get_center().x else Vector2.RIGHT
+	var tangent := Vector2(-outward.y,outward.x).normalized()
+	if velocity.dot(tangent) < 0.0:
+		tangent = -tangent
+	var adjusted := (outward.normalized()*0.72+tangent*0.69).normalized()*velocity.length()
+	if _segment_near_point(origin,origin+adjusted*active_seconds,safe_position,safe_radius):
+		adjusted = outward.normalized()*velocity.length()
+	return adjusted
+
+static func _segment_near_point(start: Vector2, finish: Vector2, point: Vector2, radius: float) -> bool:
+	var segment := finish-start
+	var length_squared := segment.length_squared()
+	if length_squared <= 0.0001:
+		return start.distance_squared_to(point) <= radius*radius
+	var ratio := clampf((point-start).dot(segment)/length_squared,0.0,1.0)
+	return (start+segment*ratio).distance_squared_to(point) <= radius*radius
+
+func _update_active_room_motifs(delta: float) -> void:
+	if _active_room_motifs.is_empty() or _player == null:
+		_room_previous_player_position = _player.position if _player != null else Vector2.ZERO
+		return
+	var current_player_position := _player.position
+	for raw_wave_id in _active_room_motifs.keys():
+		var wave_id := String(raw_wave_id)
+		var motif := _active_room_motifs[raw_wave_id] as Dictionary
+		var ends_at := float(motif.get("ends_at",_room_elapsed+1.0))
+		if not bool(motif.get("emitter_active",true)) or _room_elapsed+0.0001>=ends_at:
+			continue
+		var starts_at := float(motif.get("starts_at", _room_elapsed))
+		ends_at=maxf(starts_at+0.01,ends_at)
+		var effective_delta := minf(delta,maxf(0.0,ends_at-_room_elapsed))
+		var sample_time := _room_elapsed+effective_delta
+		motif = _advance_room_motif_geometry(motif,effective_delta,starts_at,ends_at)
+		_apply_room_field_force(motif,effective_delta)
+		var active_fraction := clampf(effective_delta/maxf(delta,0.0001),0.0,1.0)
+		var collision_finish := _room_previous_player_position.lerp(_player.position,active_fraction)
+		if _room_motif_hits_segment(motif,_room_previous_player_position,collision_finish):
+			_apply_player_hits([{
+				"damage":float((motif.get("collision",{}) as Dictionary).get("damage",8.0)),
+				"cause":String(motif.get("cause","internal hazard")),
+				"position":_player.position,
+				"group":wave_id,
+			}])
+			if state not in [RunState.INTERNAL_ROOMS,RunState.ORGAN_CHAMBER] or _player.health<=0.0 or not _active_room_waves.has(wave_id):
+				return
+		_active_room_motifs[raw_wave_id] = motif
+	_room_previous_player_position = _player.position if _player != null else current_player_position
+
+func _advance_room_motif_geometry(motif: Dictionary, delta: float, starts_at: float, ends_at: float) -> Dictionary:
+	var prior_time := clampf(float(motif.get("motion_sample_time",starts_at)),starts_at,ends_at)
+	var candidate_time := minf(ends_at,prior_time+maxf(0.0,delta))
+	var safe_positions: Array = (motif.get("positions",motif.get("base_positions",[])) as Array).duplicate()
+	if candidate_time <= prior_time+0.000001:
+		return motif
+	var safe_time := prior_time
+	var substeps := _room_motif_sweep_substeps(motif,prior_time,candidate_time,starts_at,ends_at)
+	if substeps <= 0:
+		# An extreme hitch or malformed direct call must not trade safety for a
+		# coarser sweep. Freeze this visual hazard for the frame within a hard CPU cap.
+		return motif
+	for substep_index in range(1,substeps+1):
+		var sample_time := lerpf(prior_time,candidate_time,float(substep_index)/float(substeps))
+		var sample_progress := clampf((sample_time-starts_at)/maxf(0.01,ends_at-starts_at),0.0,1.0)
+		var sample_positions := _moved_room_positions(motif,sample_progress,sample_time)
+		if _room_motif_signed_safe_clearance(motif,sample_positions) >= ROOM_MOTIF_CLEARANCE_EPSILON:
+			safe_time=sample_time
+			safe_positions=sample_positions
+			continue
+		var low_time := safe_time
+		var high_time := sample_time
+		for _iteration in 12:
+			var midpoint := (low_time+high_time)*0.5
+			var midpoint_progress := clampf((midpoint-starts_at)/maxf(0.01,ends_at-starts_at),0.0,1.0)
+			var midpoint_positions := _moved_room_positions(motif,midpoint_progress,midpoint)
+			if _room_motif_signed_safe_clearance(motif,midpoint_positions) >= ROOM_MOTIF_CLEARANCE_EPSILON:
+				low_time=midpoint
+				safe_positions=midpoint_positions
+			else:
+				high_time=midpoint
+		safe_time=low_time
+		break
+	motif.positions=safe_positions
+	motif.motion_sample_time=safe_time
+	return motif
+
+func _room_motif_sweep_substeps(motif: Dictionary, prior_time: float, candidate_time: float, starts_at: float, ends_at: float) -> int:
+	var duration := maxf(0.01,ends_at-starts_at)
+	var progress_delta := absf(candidate_time-prior_time)/duration
+	var movement := motif.get("movement",{}) as Dictionary
+	var maximum_motion := 0.0
+	match String(movement.get("source_model","lane")):
+		"lane":
+			maximum_motion=42.0*progress_delta
 		"ring":
-			var safe_angle := (safe_position-pattern_origin).angle()
-			var count := maxi(14, int(projectile.get("count", 0)) * 4)
-			for index in count:
-				var angle := index * TAU / count
-				if absf(wrapf(angle-safe_angle,-PI,PI)) < 0.52:
-					continue
-				_projectiles.spawn_enemy(pattern_origin,Vector2.from_angle(angle)*speed,damage,{"radius":radius,"life":lifetime,"cause":cause_id,"group":wave_id})
-		"spawn":
-			var burst := clampi(int(event.get("spawn_count", spawn.get("burst_count", 2))), 1, 5)
-			var max_active := clampi(int(spawn.get("max_active", 1)), 1, 64)
-			var available := maxi(0, max_active - _enemies.size())
-			var event_seed := int(event.get("event_seed", _room_contract.get("runtime_seed", 1)))
-			for index in mini(burst, available):
-				var x := 70.0 + fmod(float(index) * 137.0 + float(event.get("phase",0.0)) * 190.0, 400.0)
-				if absf(x-gap_x) < 76.0:
-					x = 45.0 if gap_x > 270.0 else 495.0
-				_spawn_enemy(Vector2(clampf(x,45.0,495.0),320.0+index%2*70.0), _mix_room_seed(event_seed,index), wave_id, max_active)
-			var projectile_count := clampi(int(projectile.get("count", 0)), 0, 7)
-			if bool(projectile.get("enabled", false)):
-				for index in projectile_count:
-					var origin := Vector2(70.0 + index * (400.0/maxf(1.0,projectile_count-1)),pattern_origin.y)
-					var away := -1.0 if origin.x < gap_x else 1.0
-					var velocity := Vector2(away*0.28,1.0).normalized()*speed
-					_projectiles.spawn_enemy(origin,velocity,damage,{"radius":radius,"life":lifetime,"cause":cause_id,"group":wave_id})
-		_:
-			var spacing := 30 if family=="lane" else 34
-			for x in range(20,521,spacing):
-				if absf(float(x)-gap_x) < 62.0:
-					continue
-				_projectiles.spawn_enemy(Vector2(x,pattern_origin.y),Vector2(0,speed),damage,{"radius":radius,"life":lifetime,"cause":cause_id,"group":wave_id})
+			var center := room_space_position(movement.get("center",[0.5,0.5]) as Array)
+			var maximum_radius := 0.0
+			for raw_position in motif.get("base_positions",[]) as Array:
+				maximum_radius=maxf(maximum_radius,Vector2(raw_position).distance_to(center))
+			maximum_motion=maximum_radius*absf(float(movement.get("angular_rate",0.0)))*(candidate_time-prior_time)
+		"sweep":
+			maximum_motion=84.0*progress_delta
+		"pocket":
+			maximum_motion=12.0*PI*progress_delta
+		"replay":
+			maximum_motion=28.0*progress_delta
+	var required_substeps := maxi(1,ceili(maximum_motion/ROOM_MOTIF_SWEEP_MAX_SPATIAL_STEP))
+	return 0 if required_substeps>ROOM_MOTIF_SWEEP_MAX_SUBSTEPS else required_substeps
+
+func _moved_room_positions(motif: Dictionary, progress: float, sample_time: float = -1.0) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	var base_positions: Array = motif.get("base_positions", [])
+	var movement := motif.get("movement", {}) as Dictionary
+	var model := String(movement.get("source_model", "lane"))
+	var starts_at := float(motif.get("starts_at",_room_elapsed))
+	var runtime_time := _room_elapsed if sample_time<0.0 else sample_time
+	var age := maxf(0.0,runtime_time-starts_at)
+	for raw_position in base_positions:
+		var position := Vector2(raw_position)
+		match model:
+			"lane":
+				position.y += 42.0*progress
+			"ring":
+				var center := room_space_position(movement.get("center",[0.5,0.5]) as Array)
+				position = center+(position-center).rotated(float(movement.get("angular_rate",0.0))*age)
+			"sweep":
+				var axis := String(movement.get("axis","vertical"))
+				var direction := float(movement.get("direction",1))
+				if axis == "horizontal":
+					position.x += direction*84.0*progress
+				else:
+					position.y += direction*84.0*progress
+			"pocket":
+				var pulse := sin(progress*PI)*12.0
+				position += (position-INTERNAL_COMBAT_BOUNDS.get_center()).normalized()*pulse
+			"replay":
+				position += Vector2(0.0,28.0*progress)
+		position.x=clampf(position.x,INTERNAL_COMBAT_BOUNDS.position.x,INTERNAL_COMBAT_BOUNDS.end.x)
+		position.y=clampf(position.y,INTERNAL_COMBAT_BOUNDS.position.y,INTERNAL_COMBAT_BOUNDS.end.y)
+		result.append(position)
+	return result
+
+func _room_motif_signed_safe_clearance(motif: Dictionary, positions: Array) -> float:
+	var collision := motif.get("collision",{}) as Dictionary
+	if not bool(collision.get("enabled",false)) or positions.is_empty():
+		return INF
+	var safe_center := Vector2(motif.get("safe_position",INTERNAL_COMBAT_BOUNDS.get_center()))
+	var safe_radius := float(motif.get("safe_clearance_pixels",34.0))+12.0
+	var unit := minf(INTERNAL_COMBAT_BOUNDS.size.x,INTERNAL_COMBAT_BOUNDS.size.y)
+	var shape := String(collision.get("shape","circle"))
+	var minimum_clearance := INF
+	if shape=="segment_chain" and positions.size()>=2:
+		var thickness := maxf(8.0,float(collision.get("thickness_normalized",0.025))*unit)
+		for index in range(positions.size()-1):
+			minimum_clearance=minf(minimum_clearance,_room_point_segment_distance(safe_center,Vector2(positions[index]),Vector2(positions[index+1]))-thickness-safe_radius)
+		return minimum_clearance
+	var visual_token := String((motif.get("spawn",{}) as Dictionary).get("visual_token",""))
+	for position_index in range(positions.size()):
+		var center := Vector2(positions[position_index])
+		var clearance := INF
+		match shape:
+			"box", "cell":
+				var half_data := collision.get("half_extents_normalized",[0.055,0.055]) as Array
+				var half_extents := Vector2(float(half_data[0])*INTERNAL_COMBAT_BOUNDS.size.x,float(half_data[1])*INTERNAL_COMBAT_BOUNDS.size.y)
+				clearance=_room_point_rect_distance(safe_center,Rect2(center-half_extents,half_extents*2.0))-safe_radius
+			"arc":
+				var arc_radius := maxf(20.0,float(collision.get("radius_normalized",0.24))*unit)
+				var arc_thickness := maxf(8.0,float(collision.get("thickness_normalized",0.035))*unit)
+				var phase_offset := float(abs(visual_token.hash())%17)*0.07+float(position_index)*0.5
+				clearance=_room_point_arc_distance(safe_center,center,arc_radius,-1.05+phase_offset,1.05+phase_offset)-arc_thickness-safe_radius
+			_:
+				var radius := maxf(10.0,float(collision.get("radius_normalized",0.035))*unit)
+				clearance=safe_center.distance_to(center)-radius-safe_radius
+		minimum_clearance=minf(minimum_clearance,clearance)
+	return minimum_clearance
+
+static func _room_point_segment_distance(point: Vector2, start: Vector2, finish: Vector2) -> float:
+	var segment := finish-start
+	if segment.length_squared()<=0.0001:
+		return point.distance_to(start)
+	var ratio := clampf((point-start).dot(segment)/segment.length_squared(),0.0,1.0)
+	return point.distance_to(start+segment*ratio)
+
+static func _room_point_rect_distance(point: Vector2, rect: Rect2) -> float:
+	var delta_x := maxf(maxf(rect.position.x-point.x,0.0),point.x-rect.end.x)
+	var delta_y := maxf(maxf(rect.position.y-point.y,0.0),point.y-rect.end.y)
+	return Vector2(delta_x,delta_y).length()
+
+static func _room_point_arc_distance(point: Vector2, center: Vector2, radius: float, start_angle: float, end_angle: float) -> float:
+	var offset := point-center
+	if offset.length_squared()<=0.0001:
+		return radius
+	var relative_angle := wrapf(offset.angle()-start_angle,0.0,TAU)
+	var span := wrapf(end_angle-start_angle,0.0,TAU)
+	if relative_angle<=span:
+		return absf(offset.length()-radius)
+	return minf(point.distance_to(center+Vector2.from_angle(start_angle)*radius),point.distance_to(center+Vector2.from_angle(end_angle)*radius))
+
+func _apply_room_field_force(motif: Dictionary, delta: float) -> void:
+	var movement := motif.get("movement", {}) as Dictionary
+	var spawn := motif.get("spawn", {}) as Dictionary
+	var source_model := String(movement.get("source_model", ""))
+	var primitive := String(spawn.get("primitive", ""))
+	if source_model != "anchor" and primitive not in ["sweep_field","gravity_field"]:
+		return
+	var safe_position := Vector2(motif.get("safe_position",INTERNAL_COMBAT_BOUNDS.get_center()))
+	if _player.position.distance_to(safe_position) <= float(motif.get("safe_clearance_pixels",34.0)):
+		return
+	var direction := Vector2.ZERO
+	if primitive == "gravity_field":
+		direction = (INTERNAL_COMBAT_BOUNDS.get_center()-_player.position).normalized()
+	else:
+		var authored_direction := movement.get("force_direction",[1.0,0.0]) as Array
+		direction = Vector2(float(authored_direction[0]),float(authored_direction[1])).normalized()
+	_player.position += direction*82.0*delta
+	_player.position.x=clampf(_player.position.x,INTERNAL_COMBAT_BOUNDS.position.x,INTERNAL_COMBAT_BOUNDS.end.x)
+	_player.position.y=clampf(_player.position.y,INTERNAL_COMBAT_BOUNDS.position.y,INTERNAL_COMBAT_BOUNDS.end.y)
+
+func _room_motif_hits_segment(motif: Dictionary, start: Vector2, finish: Vector2) -> bool:
+	var collision := motif.get("collision", {}) as Dictionary
+	if not bool(collision.get("enabled",false)):
+		return false
+	var shape := String(collision.get("shape","circle"))
+	var positions: Array = motif.get("positions", [])
+	var unit := minf(INTERNAL_COMBAT_BOUNDS.size.x,INTERNAL_COMBAT_BOUNDS.size.y)
+	if shape == "segment_chain" and positions.size() >= 2:
+		var thickness := maxf(8.0,float(collision.get("thickness_normalized",0.025))*unit)+12.0
+		for index in range(positions.size()-1):
+			if _segments_near(start,finish,Vector2(positions[index]),Vector2(positions[index+1]),thickness):
+				return true
+		return false
+	var visual_token := String((motif.get("spawn",{}) as Dictionary).get("visual_token",""))
+	for position_index in range(positions.size()):
+		var center := Vector2(positions[position_index])
+		match shape:
+			"box", "cell":
+				var half_data := collision.get("half_extents_normalized",[0.055,0.055]) as Array
+				var half_extents := Vector2(float(half_data[0])*INTERNAL_COMBAT_BOUNDS.size.x,float(half_data[1])*INTERNAL_COMBAT_BOUNDS.size.y)+Vector2(12.0,12.0)
+				if _segment_intersects_box(start,finish,Rect2(center-half_extents,half_extents*2.0)):
+					return true
+			"arc":
+				var arc_radius := maxf(20.0,float(collision.get("radius_normalized",0.24))*unit)
+				var thickness := maxf(8.0,float(collision.get("thickness_normalized",0.035))*unit)+12.0
+				var phase_offset := float(abs(visual_token.hash())%17)*0.07+float(position_index)*0.5
+				if _segment_hits_arc(start,finish,center,arc_radius,thickness,-1.05+phase_offset,1.05+phase_offset):
+					return true
+			_:
+				var radius := maxf(10.0,float(collision.get("radius_normalized",0.035))*unit)+12.0
+				if _segment_near_point(start,finish,center,radius):
+					return true
+	return false
+
+static func _segment_hits_arc(start: Vector2, finish: Vector2, center: Vector2, radius: float, thickness: float, start_angle: float, end_angle: float) -> bool:
+	var samples := clampi(ceili(start.distance_to(finish)/maxf(4.0,thickness*0.5)),2,24)
+	for sample_index in range(samples+1):
+		var point := start.lerp(finish,float(sample_index)/float(samples))
+		var offset := point-center
+		if absf(offset.length()-radius)>thickness:
+			continue
+		var angle := wrapf(offset.angle()-start_angle,0.0,TAU)
+		var span := wrapf(end_angle-start_angle,0.0,TAU)
+		if angle<=span:
+			return true
+	return false
+
+static func _segment_intersects_box(start: Vector2, finish: Vector2, box: Rect2) -> bool:
+	if box.has_point(start) or box.has_point(finish):
+		return true
+	for edge in [[box.position,Vector2(box.end.x,box.position.y)],[Vector2(box.end.x,box.position.y),box.end],[box.end,Vector2(box.position.x,box.end.y)],[Vector2(box.position.x,box.end.y),box.position]]:
+		if Geometry2D.segment_intersects_segment(start,finish,edge[0],edge[1]) != null:
+			return true
+	return false
+
+static func _segments_near(first_start: Vector2, first_end: Vector2, second_start: Vector2, second_end: Vector2, radius: float) -> bool:
+	if Geometry2D.segment_intersects_segment(first_start,first_end,second_start,second_end) != null:
+		return true
+	return _segment_near_point(first_start,first_end,second_start,radius) \
+		or _segment_near_point(first_start,first_end,second_end,radius) \
+		or _segment_near_point(second_start,second_end,first_start,radius) \
+		or _segment_near_point(second_start,second_end,first_end,radius)
+
+func _spawn_contract_pattern(event: Dictionary) -> void:
+	if event.is_empty():
+		return
+	var execution_validation := _validate_room_execution_context(event)
+	if not bool(execution_validation.get("valid",false)):
+		_trace_room_runtime("execution_context_rejected",{
+			"event_index":int(event.get("index",_room_event_index)),
+			"wave_id":String(event.get("runtime_wave_id","")),
+			"canonical_wave_id":String(event.get("runtime_canonical_wave_id",event.get("owner_wave_id",""))),
+			"live_wave_id":String(event.get("runtime_wave_id","")),
+			"reason":String(execution_validation.get("reason","invalid_execution_context")),
+			"expected_digest":String(execution_validation.get("expected_digest",event.get("runtime_execution_context_digest",""))),
+			"actual_digest":String(execution_validation.get("actual_digest","")),
+		})
+		return
+	var spawn := event.get("spawn", {}) as Dictionary
+	var projectile := event.get("projectile", {}) as Dictionary
+	var safe_contract := event.get("safe", {}) as Dictionary
+	var safe_data: Array = safe_contract.get("position", [0.5,0.5])
+	var safe_position := room_space_position(safe_data)
+	var active_seconds := maxf(0.08, float(event.get("runtime_active_seconds", float(event.get("clear_at", 0.0)) - float(event.get("active_at", 0.0)))))
+	var wave_id := String(event.get("runtime_wave_id",_room_live_wave_id(event,_room_cycle_index)))
+	var canonical_wave_id := String(event.get("runtime_canonical_wave_id",event.get("owner_wave_id","")))
+	var category := room_runtime_category(event)
+	var world_positions := _room_event_world_positions(event, safe_position)
+	var cause_id := "room:%s|hazard:%s|category:%s|event:%d|wave:%s" % [
+		String(_room_contract.get("room_id", "fallback")),
+		String(_room_contract.get("hazard", "unknown")),
+		category,
+		int(event.get("index", _room_event_index)),
+		wave_id,
+	]
+	var structural_hazard := _room_event_has_structural_hazard(event)
+	if structural_hazard and world_positions.is_empty():
+		_trace_room_runtime("structural_geometry_rejected",{
+			"event_index":int(event.get("index",_room_event_index)),
+			"wave_id":wave_id,
+			"reason":"no_safe_placement",
+		})
+		return
+	var motif_collision := (spawn.get("collision", {}) as Dictionary).duplicate(true)
+	if not structural_hazard:
+		motif_collision.enabled = false
+	var projectile_seconds := float(event.get("runtime_projectile_seconds",_room_projectile_follow_through_seconds(event,active_seconds)))
+	var actor_seconds := float(event.get("runtime_actor_seconds",_room_defender_combat_seconds(event)))
+	var wave_seconds := active_seconds
+	_active_room_waves[wave_id] = _room_elapsed + wave_seconds
+	_active_room_motifs[wave_id] = {
+		"wave_id":wave_id,
+		"canonical_wave_id":canonical_wave_id,
+		"execution_context_digest":String(event.get("runtime_execution_context_digest","")),
+		"category":category,
+		"event_index":int(event.get("index", _room_event_index)),
+		"visual_signature":String(event.get("visual_signature", "")),
+		"spawn":spawn.duplicate(true),
+		"projectile":projectile.duplicate(true),
+		"movement":(event.get("movement", {}) as Dictionary).duplicate(true),
+		"collision":motif_collision,
+		"structural_hazard":structural_hazard,
+		"emitter_active":true,
+		"base_positions":world_positions.duplicate(),
+		"positions":world_positions.duplicate(),
+		"motion_sample_time":_room_elapsed,
+		"safe_position":safe_position,
+		"safe_clearance_pixels":maxf(34.0, float(safe_contract.get("clearance", 0.1))*minf(INTERNAL_COMBAT_BOUNDS.size.x, INTERNAL_COMBAT_BOUNDS.size.y)),
+		"cause":cause_id,
+		"starts_at":_room_elapsed,
+		"ends_at":_room_elapsed+active_seconds,
+		"hard_ends_at":_room_elapsed+wave_seconds,
+		"resolve_seconds":wave_seconds,
+		"replay_digest":String(event.get("runtime_replay_digest",_room_history_digest())),
+	}
+	var defender_id := String(spawn.get("defender_archetype", "none"))
+	var effect_scope_id := String(event.get("runtime_effect_scope_id",_room_defender_effect_scope_id(defender_id)))
+	var enemy_count := mini(int(spawn.get("enemy_count", 0)), world_positions.size())
+	if _room_defender_spawn_suppressed(defender_id,effect_scope_id):
+		enemy_count=0
+	var max_active := clampi(int(spawn.get("max_active_enemies", 1)), 1, RoomPatternRuntimeScript.MAX_ACTIVE_ENEMIES)
+	var event_seed := int(event.get("event_seed", _room_contract.get("runtime_seed", 1)))
+	var actor_owner_base := String(spawn.get("actor_owner_id", ""))
+	var actor_group := "%s:cycle:%d" % [actor_owner_base,_room_cycle_index] if not actor_owner_base.is_empty() else "room_actor:%s:%d:%d" % [String(_room_contract.get("room_id","fallback")),_room_cycle_index,int(event.get("index",_room_event_index))]
+	var spawned_enemies := 0
+	for index in range(enemy_count):
+		if _spawn_enemy(world_positions[index], _mix_room_seed(event_seed,index), actor_group, max_active, {
+			"archetype":defender_id,
+			"behavior":(spawn.get("defender_behavior", {}) as Dictionary).duplicate(true),
+			"visual_token":String(spawn.get("visual_token", defender_id)),
+			"anchor_position":world_positions[index],
+			"safe_position":safe_position,
+			"cause":cause_id,
+			"fire_enabled":false,
+			"source_wave":wave_id,
+			"actor_owner_id":actor_group,
+			"effect_scope_id":effect_scope_id,
+		}):
+			spawned_enemies+=1
+	if spawned_enemies>0:
+		_active_room_actor_groups[actor_group]=_room_elapsed+actor_seconds
+	var projectile_result := _emit_room_projectile_plan(event,wave_id,world_positions,safe_position,active_seconds,cause_id)
+	_trace_room_runtime("activated", {
+		"event_index":int(event.get("index", _room_event_index)),
+		"wave_id":wave_id,
+		"canonical_wave_id":canonical_wave_id,
+		"live_wave_id":wave_id,
+		"execution_context_digest":String(event.get("runtime_execution_context_digest","")),
+		"category":category,
+		"spawn_primitive":String(spawn.get("primitive", "")),
+		"movement_primitive":String((event.get("movement", {}) as Dictionary).get("primitive", "")),
+		"projectile_primitive":String(projectile.get("primitive", "")),
+		"enemy_count":spawned_enemies,
+		"actor_group":actor_group if spawned_enemies>0 else "",
+		"actor_owner_base":actor_owner_base,
+		"effect_scope_id":effect_scope_id,
+		"projectile_count":int(projectile_result.get("spawned",0))+int(projectile_result.get("pending",0)),
+		"structural":structural_hazard,
+		"emitter_seconds":active_seconds,
+		"projectile_seconds":projectile_seconds,
+		"actor_seconds":actor_seconds,
+		"resolve_seconds":wave_seconds,
+		"replay_digest":String(event.get("runtime_replay_digest",_room_history_digest())),
+	})
 	AudioManager.play_sfx("heartbeat",0.94,0.62)
 
 func _expire_contract_waves() -> void:
 	for raw_group in _active_room_waves.keys():
 		var group_id := String(raw_group)
-		if _room_elapsed + 0.0001 < float(_active_room_waves[raw_group]):
-			continue
-		_projectiles.clear_enemy_group(group_id)
-		_clear_contract_enemies(group_id)
-		_active_room_waves.erase(raw_group)
+		var motif := _active_room_motifs.get(group_id,{}) as Dictionary
+		var emitter_active := bool(motif.get("emitter_active",false))
+		if emitter_active and _room_elapsed+0.0001>=float(motif.get("ends_at",_room_elapsed)):
+			motif.emitter_active=false
+			_active_room_motifs[group_id]=motif
+			_clear_pending_room_emissions(group_id)
+			_trace_room_runtime("emitter_closed",{
+				"wave_id":group_id,
+				"projectiles_remaining":_projectiles.enemy_group_size(group_id),
+				"defenders_remaining":_source_wave_enemy_count(group_id),
+			})
+			emitter_active=false
+		var descendants_resolved := (
+			not emitter_active
+			and _projectiles.enemy_group_size(group_id)==0
+			and _contract_enemy_count(group_id)==0
+			and _pending_room_emission_count(group_id)==0
+		)
+		var deadline_reached := _room_elapsed+0.0001>=float(_active_room_waves[raw_group])
+		if descendants_resolved or deadline_reached:
+			_finalize_room_wave(group_id,"descendants_resolved" if descendants_resolved else "transient_boundary")
+
+func _finalize_room_wave(group_id: String, reason: String) -> void:
+	var cleared_projectiles := _projectiles.clear_enemy_group(group_id)
+	var cleared_enemies := _clear_contract_enemies(group_id)
+	_active_room_motifs.erase(group_id)
+	_clear_pending_room_emissions(group_id)
+	_active_room_waves.erase(group_id)
+	_trace_room_runtime("clear_wave",{
+		"wave_id":group_id,
+		"reason":reason,
+		"cleared_projectiles":cleared_projectiles,
+		"cleared_defenders":cleared_enemies,
+	})
 
 func _clear_contract_waves() -> void:
 	for raw_group in _active_room_waves.keys():
 		var group_id := String(raw_group)
 		_projectiles.clear_enemy_group(group_id)
 		_clear_contract_enemies(group_id)
+		_active_room_motifs.erase(group_id)
+		_clear_pending_room_emissions(group_id)
 	_active_room_waves.clear()
+	_active_room_motifs.clear()
+	_pending_room_emissions.clear()
+	_clear_room_actor_groups("boundary_cleanup")
+	_reset_room_defender_effects()
 
-func _clear_contract_enemies(group_id: String) -> void:
+func _clear_contract_enemies(group_id: String) -> int:
+	var cleared := 0
 	for index in range(_enemies.size()-1,-1,-1):
 		if String(_enemies[index].get("contract_group", "")) == group_id:
 			_enemies.remove_at(index)
+			cleared+=1
+	return cleared
+
+func _contract_enemy_count(group_id: String) -> int:
+	var count := 0
+	for enemy in _enemies:
+		if String((enemy as Dictionary).get("contract_group",""))==group_id:
+			count+=1
+	return count
+
+func _source_wave_enemy_count(wave_id: String) -> int:
+	var count := 0
+	for enemy in _enemies:
+		if String((enemy as Dictionary).get("source_wave",""))==wave_id:
+			count+=1
+	return count
+
+func _expire_room_actor_groups() -> void:
+	for raw_group_id in _active_room_actor_groups.keys():
+		var group_id := String(raw_group_id)
+		var actor_count := _contract_enemy_count(group_id)
+		if actor_count==0:
+			_active_room_actor_groups.erase(raw_group_id)
+			_trace_room_runtime("clear_actor_group",{"actor_group":group_id,"reason":"defeated","cleared_defenders":0})
+		elif _room_elapsed+0.0001>=float(_active_room_actor_groups[raw_group_id]):
+			var cleared := _clear_contract_enemies(group_id)
+			_active_room_actor_groups.erase(raw_group_id)
+			_trace_room_runtime("clear_actor_group",{"actor_group":group_id,"reason":"deadline","cleared_defenders":cleared})
+
+func _clear_room_actor_groups(reason: String) -> void:
+	for raw_group_id in _active_room_actor_groups.keys():
+		var group_id := String(raw_group_id)
+		var cleared := _clear_contract_enemies(group_id)
+		_trace_room_runtime("clear_actor_group",{"actor_group":group_id,"reason":reason,"cleared_defenders":cleared})
+	_active_room_actor_groups.clear()
+
+func _clear_pending_room_emissions(group_id: String) -> void:
+	for index in range(_pending_room_emissions.size()-1,-1,-1):
+		if String(_pending_room_emissions[index].get("wave_id", "")) == group_id:
+			_pending_room_emissions.remove_at(index)
 
 func _mix_room_seed(base_seed: int, index: int) -> int:
 	return ((base_seed & 0x7FFFFFFF) ^ ((index + 1) * 1103515245) ^ 0x51A7E) & 0x7FFFFFFF
 
 func _update_room(delta: float) -> void:
+	if state != RunState.INTERNAL_ROOMS:
+		return
 	room_timer-=delta
 	if room_timer<=0.0:
+		var plan_events := _room_pattern_plan.get("events",[]) as Array
+		var pending_event := _room_event_index<plan_events.size()
+		if pending_event or not _telegraph.is_empty() or not _active_room_waves.is_empty() or not _active_room_actor_groups.is_empty():
+			room_timer=0.0
+			return
 		_start_next_room()
 
 func _begin_internal_route() -> void:
@@ -1202,9 +2647,11 @@ func _begin_internal_route() -> void:
 	room_index=-1
 	_boss_visual.set_interior(current_organ)
 	_boss_visual.set_health(1,1)
-	_player.position=Vector2(270,790)
-	_player.combat_bounds=Rect2(24,360,492,490)
-	_player.reset_physics_interpolation()
+	_player.combat_bounds=INTERNAL_COMBAT_BOUNDS
+	_place_player_at_room_entry()
+	# Organ selection and the dive tunnel deliberately lock input. The internal
+	# route is live combat, so restore movement/dash before the first room starts.
+	_player.set_controls_active(true)
 	projectiles_clear_and_enemies()
 	AudioManager.set_music_state("interior",0.55)
 	_start_next_room()
@@ -1219,6 +2666,41 @@ func _resolve_room_contract(room: Dictionary, room_seed: int) -> Dictionary:
 		push_error("Safe room fallback failed closed: %s" % [fallback.get("errors", [])])
 	return fallback
 
+func _compile_room_pattern_plan(report_error: bool = true) -> bool:
+	var contract_key := _room_contract_key()
+	if not _room_pattern_rejection_key.is_empty() and _room_pattern_rejection_key == contract_key:
+		return false
+	if _room_pattern_rejection_key != contract_key:
+		_room_pattern_rejection_key=""
+	_room_pattern_plan = RoomPatternRuntimeScript.compile_contract(_room_contract)
+	if bool(_room_pattern_plan.get("valid", false)):
+		_room_pattern_rejection_key=""
+		_trace_room_runtime("plan_built", {
+			"room_id":String(_room_pattern_plan.get("room_id", "")),
+			"signature":String(_room_pattern_plan.get("plan_signature", "")),
+			"contract_key":contract_key,
+		})
+		return true
+	_room_pattern_rejection_key=contract_key
+	_trace_room_runtime("plan_rejected",{
+		"contract_key":contract_key,
+		"errors":(_room_pattern_plan.get("errors",[]) as Array).duplicate(true),
+	})
+	if report_error:
+		push_error("Room runtime plan rejected %s: %s" % [String(_room_contract.get("room_id", "?")), _room_pattern_plan.get("errors", [])])
+	return false
+
+func _trace_room_runtime(operation: String, details: Dictionary = {}) -> void:
+	var entry := {
+		"operation":operation,
+		"room_time_ms":roundi(_room_elapsed*1000.0),
+		"room_id":String(_room_contract.get("room_id", "")),
+	}
+	entry.merge(details, true)
+	_room_runtime_trace.append(entry)
+	if _room_runtime_trace.size() > 512:
+		_room_runtime_trace.pop_front()
+
 func _sync_current_room_to_contract() -> void:
 	if _room_contract.is_empty() or String(_room_contract.get("room_id","")) == String(current_room.get("id","")):
 		return
@@ -1231,9 +2713,16 @@ func _start_next_room() -> void:
 	room_index+=1
 	projectiles_clear_and_enemies()
 	_room_contract.clear()
+	_room_pattern_plan.clear()
 	_room_elapsed = 0.0
 	_room_event_index = 0
 	_room_cycle_index = 0
+	_room_player_history.clear()
+	_room_history_next_sample = 0.0
+	_room_history_frame_time = 0.0
+	_room_history_frame_position = Vector2.ZERO
+	_room_history_initialized = false
+	_room_runtime_trace.clear()
 	if room_index>=room_layout.size():
 		_begin_organ_chamber()
 		return
@@ -1245,20 +2734,11 @@ func _start_next_room() -> void:
 	if String(current_room.get("type", "")) == "entrance":
 		attack_timer = room_timer + 1.0
 		return
+	_place_player_at_room_entry()
 	_room_contract = _resolve_room_contract(current_room, int(config.seed) + phase * 991 + room_index * 131)
 	_sync_current_room_to_contract()
+	_compile_room_pattern_plan()
 	attack_timer=0.65
-	var enemy_count:=1
-	match String(current_room.get("type","")):
-		"combat": enemy_count=4
-		"hazard": enemy_count=2
-	var room_seed := int(_room_contract.get("runtime_seed", int(config.seed)))
-	var spawn_limit := clampi(int((_room_contract.get("spawn", {}) as Dictionary).get("max_active", enemy_count)),enemy_count,64)
-	for index in enemy_count:
-		var enemy_seed := _mix_room_seed(room_seed,index)
-		var enemy_rng := RandomNumberGenerator.new()
-		enemy_rng.seed = enemy_seed
-		_spawn_enemy(Vector2(85+index*(370.0/maxf(1.0,enemy_count-1)),enemy_rng.randf_range(320,500)),enemy_seed,"",spawn_limit)
 
 func _begin_organ_chamber() -> void:
 	_transition(RunState.ORGAN_CHAMBER)
@@ -1268,33 +2748,44 @@ func _begin_organ_chamber() -> void:
 	_room_elapsed = 0.0
 	_room_event_index = 0
 	_room_cycle_index = 0
+	_room_player_history.clear()
+	_room_history_next_sample = 0.0
+	_room_history_frame_time = 0.0
+	_room_history_frame_position = Vector2.ZERO
+	_room_history_initialized = false
+	_room_runtime_trace.clear()
+	_place_player_at_room_entry()
+	# Keep the chamber's gameplay-state invariant explicit even when a future
+	# route bypasses traversal rooms and enters the organ directly.
+	_player.set_controls_active(true)
 	_room_contract = _resolve_room_contract(current_room, int(config.seed) + phase * 991 + 0x0A61)
 	_sync_current_room_to_contract()
+	_compile_room_pattern_plan()
 	organ_max=float(current_organ.get("hp",1500))*1.65*_difficulty_hp()
 	organ_health=organ_max
 	_boss_visual.set_interior(current_organ)
 	_boss_visual.set_health(organ_health,organ_max)
 	attack_timer=0.7
-	var chamber_seed := int(_room_contract.get("runtime_seed", int(config.seed)))
-	var chamber_limit := clampi(int((_room_contract.get("spawn", {}) as Dictionary).get("max_active", 2)),2,64)
-	_spawn_enemy(Vector2(130,460),_mix_room_seed(chamber_seed,0),"",chamber_limit)
-	_spawn_enemy(Vector2(410,500),_mix_room_seed(chamber_seed,1),"",chamber_limit)
 	var organ_name := LocalizationService.content_text("organ",String(current_organ.get("id","")),"name",String(current_organ.get("name",LocalizationService.text("the_organ"))))
 	_hud.show_toast(LocalizationService.text("destroy_organ",{"organ":organ_name}),VisualTheme.VULNERABLE)
 
-func _spawn_enemy(at: Vector2, deterministic_seed: int = 0, contract_group: String = "", max_active: int = 64) -> bool:
+func _spawn_enemy(at: Vector2, deterministic_seed: int = 0, contract_group: String = "", max_active: int = 64, options: Dictionary = {}) -> bool:
 	if _enemies.size() >= maxi(1,max_active):
 		return false
 	_enemy_serial+=1
 	var local_rng := RandomNumberGenerator.new()
 	var local_seed := deterministic_seed if deterministic_seed != 0 else _mix_room_seed(int(config.get("seed",1)),_enemy_serial)
 	local_rng.seed = local_seed
+	var behavior := options.get("behavior", {}) as Dictionary
+	var health_class := String(behavior.get("health_class","medium"))
+	var health_multiplier := float({"swarm":0.58,"light":0.78,"medium":1.0,"armored":1.48,"decoy":0.68}.get(health_class,1.0))
+	var radius := float({"swarm":10.0,"light":13.0,"medium":15.0,"armored":19.0,"decoy":14.0}.get(health_class,14.0))
 	_enemies.append({
 		"id":"enemy_%d"%_enemy_serial,
 		"position":at,
 		"velocity":Vector2(local_rng.randf_range(-65,65),local_rng.randf_range(-18,18)),
-		"radius":14.0,
-		"health":90.0*_difficulty_hp(),
+		"radius":radius,
+		"health":90.0*health_multiplier*_difficulty_hp(),
 		"shoot_timer":local_rng.randf_range(1.0,2.2),
 		"phase":local_rng.randf_range(0,TAU),
 		"local_seed":local_seed,
@@ -1302,7 +2793,26 @@ func _spawn_enemy(at: Vector2, deterministic_seed: int = 0, contract_group: Stri
 		"shot_telegraph_timer":0.0,
 		"shot_telegraph_total":0.0,
 		"shot_target":Vector2.ZERO,
-		"contract_group":contract_group
+		"contract_group":contract_group,
+		"actor_owner_id":String(options.get("actor_owner_id",contract_group)),
+		"parent_wave":String(options.get("source_wave",contract_group)),
+		"source_wave":String(options.get("source_wave",contract_group)),
+		"effect_scope_id":String(options.get("effect_scope_id","")),
+		"archetype":String(options.get("archetype","generic")),
+		"motion":String(behavior.get("motion","generic_chase")),
+		"attack":String(behavior.get("attack","aimed_burst")),
+		"health_class":health_class,
+		"collision_role":String(behavior.get("collision_role","skirmisher")),
+		"visual_token":String(options.get("visual_token","generic_defender")),
+		"anchor_position":Vector2(options.get("anchor_position",at)),
+		"safe_position":Vector2(options.get("safe_position",Vector2.ZERO)),
+		"cause":String(options.get("cause","internal_defender")),
+		"fire_enabled":bool(options.get("fire_enabled",true)),
+		"effect_priority_seconds":0.0,
+		"effect_damage_multiplier":1.0,
+		"effect_link_broken_seconds":0.0,
+		"effect_hatch_suppressed_seconds":0.0,
+		"effect_echo_disrupted_seconds":0.0,
 	})
 	queue_redraw()
 	return true
@@ -1310,19 +2820,33 @@ func _spawn_enemy(at: Vector2, deterministic_seed: int = 0, contract_group: Stri
 func _update_enemies(delta: float) -> void:
 	for index in _enemies.size():
 		var enemy:Dictionary=_enemies[index]
+		for timer_key in ["effect_priority_seconds","effect_link_broken_seconds","effect_hatch_suppressed_seconds","effect_echo_disrupted_seconds"]:
+			enemy[timer_key]=maxf(0.0,float(enemy.get(timer_key,0.0))-delta)
+		if float(enemy.get("effect_priority_seconds",0.0))<=0.0:
+			enemy.effect_damage_multiplier=1.0
 		enemy.phase=float(enemy.phase)+delta
-		var to_player:=_player.position-Vector2(enemy.position)
-		enemy.velocity=Vector2(enemy.velocity).lerp(to_player.normalized()*58.0,1.0-exp(-1.2*delta))
-		enemy.position=Vector2(enemy.position)+Vector2(enemy.velocity)*delta+Vector2(0,sin(float(enemy.phase)*3.0)*14.0*delta)
+		enemy = _move_internal_enemy(enemy,delta)
 		enemy.position.x=clampf(Vector2(enemy.position).x,35,505)
-		enemy.position.y=clampf(Vector2(enemy.position).y,300,675)
+		enemy.position.y=clampf(Vector2(enemy.position).y,INTERNAL_COMBAT_BOUNDS.position.y,INTERNAL_COMBAT_BOUNDS.end.y)
+		var safe_position := Vector2(enemy.get("safe_position",Vector2.ZERO))
+		if safe_position != Vector2.ZERO and Vector2(enemy.position).distance_to(safe_position)<52.0:
+			var away := Vector2(enemy.position)-safe_position
+			if away.length_squared()<0.001:
+				away=Vector2.LEFT if int(enemy.local_seed)%2==0 else Vector2.RIGHT
+			enemy.position=safe_position+away.normalized()*52.0
+		# The event plan emits the defender volley. A second autonomous shot
+		# source would violate both the safe corridor and atomic wave cleanup.
+		if not bool(enemy.get("fire_enabled",true)):
+			_enemies[index]=enemy
+			continue
 		if float(enemy.get("shot_telegraph_timer",0.0)) > 0.0:
 			enemy.shot_telegraph_timer = float(enemy.shot_telegraph_timer)-delta
 			if float(enemy.shot_telegraph_timer)<=0.0:
 				var target := Vector2(enemy.get("shot_target",_player.position))
 				var angle := (target-Vector2(enemy.position)).angle()
-				var shot_group := "defender:%s:%d" % [String(enemy.id),int(enemy.shot_sequence)]
-				_projectiles.spawn_enemy(enemy.position,Vector2.from_angle(angle)*215*_difficulty_projectile_speed(),8,{"radius":5.0,"life":3.0,"cause":"internal_defender","group":shot_group})
+				var contract_group := String(enemy.get("contract_group",""))
+				var shot_group := contract_group if not contract_group.is_empty() else "defender:%s:%d" % [String(enemy.id),int(enemy.shot_sequence)]
+				_projectiles.spawn_enemy(enemy.position,Vector2.from_angle(angle)*215*_difficulty_projectile_speed(),8,{"radius":5.0,"life":3.0,"cause":String(enemy.get("cause","internal_defender")),"group":shot_group,"parent_group":contract_group})
 				enemy.shot_sequence = int(enemy.shot_sequence)+1
 				var cooldown_rng := RandomNumberGenerator.new()
 				cooldown_rng.seed = _mix_room_seed(int(enemy.local_seed),int(enemy.shot_sequence)+97)
@@ -1336,10 +2860,339 @@ func _update_enemies(delta: float) -> void:
 				enemy.shot_target = _player.position
 		_enemies[index]=enemy
 
+func _move_internal_enemy(enemy: Dictionary, delta: float) -> Dictionary:
+	var position := Vector2(enemy.position)
+	var velocity := Vector2(enemy.velocity)
+	var anchor := Vector2(enemy.get("anchor_position",position))
+	var to_player := _player.position-position
+	var phase_value := float(enemy.phase)
+	match String(enemy.get("motion","generic_chase")):
+		"orbit_arc", "paired_orbit":
+			var radius := 24.0 if String(enemy.motion)=="orbit_arc" else 34.0
+			var desired := anchor+Vector2.from_angle(phase_value*(1.4 if String(enemy.motion)=="orbit_arc" else -1.15))*radius
+			velocity=velocity.lerp((desired-position)*4.0,1.0-exp(-4.0*delta))
+		"lane_cross":
+			var direction := -1.0 if int(enemy.local_seed)%2==0 else 1.0
+			velocity=velocity.lerp(Vector2(direction*82.0,sin(phase_value*2.2)*18.0),1.0-exp(-3.0*delta))
+		"cover_anchor":
+			velocity=velocity.lerp((anchor-position)*3.2+Vector2(0,sin(phase_value*2.0)*12.0),1.0-exp(-3.5*delta))
+		"soft_pursuit":
+			velocity=velocity.lerp(to_player.normalized()*72.0,1.0-exp(-1.7*delta))
+		"sweep_anchor":
+			var desired := anchor+Vector2(sin(phase_value*1.6)*64.0,0.0)
+			velocity=velocity.lerp((desired-position)*3.0,1.0-exp(-3.0*delta))
+		"lane_rush":
+			velocity=velocity.lerp(Vector2(0.0,118.0),1.0-exp(-4.0*delta))
+		"echo_follow":
+			var mirror_target := Vector2(INTERNAL_COMBAT_BOUNDS.end.x-(_player.position.x-INTERNAL_COMBAT_BOUNDS.position.x),_player.position.y-72.0)
+			velocity=velocity.lerp((mirror_target-position).normalized()*68.0,1.0-exp(-2.0*delta))
+		"pocket_shift":
+			var desired := anchor+Vector2(sin(phase_value*2.4)*28.0,cos(phase_value*1.7)*18.0)
+			velocity=velocity.lerp((desired-position)*3.4,1.0-exp(-3.2*delta))
+		_:
+			velocity=velocity.lerp(to_player.normalized()*58.0,1.0-exp(-1.2*delta))
+	if float(enemy.get("effect_echo_disrupted_seconds",0.0))>0.0:
+		velocity*=0.42
+	elif float(enemy.get("effect_link_broken_seconds",0.0))>0.0:
+		velocity*=0.68
+	position+=velocity*delta+Vector2(0,sin(phase_value*3.0)*10.0*delta)
+	enemy.position=position
+	enemy.velocity=velocity
+	return enemy
+
+func _reset_room_defender_effects() -> void:
+	_room_defender_effect_state={
+		"scopes":{},
+		"kill_effects_applied":0,
+	}
+	_room_defender_effect_events.clear()
+	_room_defender_effect_sources.clear()
+	_room_defender_covers.clear()
+	_room_defender_kill_sequence=0
+
+func _room_defender_effect_scope_id(archetype: String) -> String:
+	return "room-effect:%s:cycle:%d:%s" % [String(_room_contract.get("room_id","fallback")),_room_cycle_index,archetype]
+
+func _room_effect_flag_active(flag_id: String, effect_scope_id: String) -> bool:
+	if _room_defender_effect_state.is_empty() or effect_scope_id.is_empty():
+		return false
+	var scope := (_room_defender_effect_state.get("scopes",{}) as Dictionary).get(effect_scope_id,{}) as Dictionary
+	return float((scope.get("flags",{}) as Dictionary).get(flag_id,0.0))>0.0
+
+func _room_effect_scope_for_owner(owner_wave: String) -> String:
+	for raw_scope_id in (_room_defender_effect_state.get("scopes",{}) as Dictionary).keys():
+		var scope_id := String(raw_scope_id)
+		var scope := (_room_defender_effect_state.scopes as Dictionary)[raw_scope_id] as Dictionary
+		if String(scope.get("owner_wave_id",""))==owner_wave:
+			return scope_id
+	return ""
+
+func _room_effect_flag_active_any(flag_id: String) -> bool:
+	for raw_scope in (_room_defender_effect_state.get("scopes",{}) as Dictionary).values():
+		if float(((raw_scope as Dictionary).get("flags",{}) as Dictionary).get(flag_id,0.0))>0.0:
+			return true
+	return false
+
+func _room_effect_value_max(flag_id: String, value_id: String, fallback: float = 1.0) -> float:
+	var result := fallback
+	for raw_scope in (_room_defender_effect_state.get("scopes",{}) as Dictionary).values():
+		var scope := raw_scope as Dictionary
+		if float((scope.get("flags",{}) as Dictionary).get(flag_id,0.0))<=0.0:
+			continue
+		result=maxf(result,float((scope.get("values",{}) as Dictionary).get(value_id,fallback)))
+	return result
+
+func _merge_room_defender_state_patch(patch: Dictionary, effect_scope_id: String, owner_wave: String, actor_owner: String) -> void:
+	if _room_defender_effect_state.is_empty():
+		_reset_room_defender_effects()
+	if effect_scope_id.is_empty() or owner_wave.is_empty():
+		return
+	var scopes := _room_defender_effect_state.get("scopes",{}) as Dictionary
+	var scope := scopes.get(effect_scope_id,{"flags":{},"timers":{},"tags":{},"values":{}}) as Dictionary
+	scope.effect_scope_id=effect_scope_id
+	scope.owner_wave_id=owner_wave
+	scope.actor_owner_id=actor_owner
+	var state_timers := scope.get("timers",{}) as Dictionary
+	var patch_timers := patch.get("timers",{}) as Dictionary
+	for raw_timer_key in patch_timers.keys():
+		var timer_key := String(raw_timer_key)
+		state_timers[timer_key]=maxf(float(state_timers.get(timer_key,0.0)),float(patch_timers[raw_timer_key]))
+	scope.timers=state_timers
+	var state_flags := scope.get("flags",{}) as Dictionary
+	for raw_flag in (patch.get("wave_flags",{}) as Dictionary).keys():
+		var flag_id := String(raw_flag)
+		if not bool((patch.get("wave_flags",{}) as Dictionary)[raw_flag]):
+			continue
+		var timer_key := String(ROOM_EFFECT_TIMER_BY_FLAG.get(flag_id,""))
+		var duration := float(patch_timers.get(timer_key,0.1))
+		state_flags[flag_id]=maxf(float(state_flags.get(flag_id,0.0)),duration)
+	scope.flags=state_flags
+	var state_tags := scope.get("tags",{}) as Dictionary
+	for raw_tag in patch.get("tags_add",[]) as Array:
+		state_tags[String(raw_tag)]=true
+	scope.tags=state_tags
+	scopes[effect_scope_id]=scope
+	_room_defender_effect_state.scopes=scopes
+	_room_defender_effect_state.kill_effects_applied=int(_room_defender_effect_state.get("kill_effects_applied",0))+int(patch.get("kill_effects_applied_add",0))
+
+func _update_room_defender_effects(delta: float) -> void:
+	if _room_defender_effect_state.is_empty() and _room_defender_covers.is_empty():
+		return
+	var scopes := _room_defender_effect_state.get("scopes",{}) as Dictionary
+	for raw_owner_wave in scopes.keys():
+		var owner_wave := String(raw_owner_wave)
+		var scope := scopes[raw_owner_wave] as Dictionary
+		for collection_key in ["flags","timers"]:
+			var collection := scope.get(collection_key,{}) as Dictionary
+			for raw_key in collection.keys():
+				var key := String(raw_key)
+				var remaining := maxf(0.0,float(collection[raw_key])-delta)
+				if remaining<=0.0:
+					collection.erase(raw_key)
+				else:
+					collection[key]=remaining
+			scope[collection_key]=collection
+		if float((scope.get("flags",{}) as Dictionary).get("true_target_revealed",0.0))<=0.0:
+			(scope.get("values",{}) as Dictionary).erase("true_target_damage_multiplier")
+		scopes[owner_wave]=scope
+	_room_defender_effect_state.scopes=scopes
+	for index in range(_room_defender_covers.size()-1,-1,-1):
+		var cover := _room_defender_covers[index] as Dictionary
+		cover.life=maxf(0.0,float(cover.get("life",0.0))-delta)
+		var absorb_remaining := maxi(0,int(cover.get("absorb_remaining",0)))
+		if absorb_remaining>0 and _projectiles!=null:
+			var consumed := _projectiles.consume_enemy_near_capped(Vector2(cover.get("position",Vector2.ZERO)),float(cover.get("radius",0.0)),absorb_remaining,String(cover.get("owner_wave_id","")),String(cover.get("effect_scope_id","")))
+			cover.absorb_remaining=absorb_remaining-consumed
+			if consumed>0:
+				score+=consumed*10
+				AudioManager.play_sfx("shield_break",1.12,0.24)
+		if float(cover.life)<=0.0 or int(cover.get("absorb_remaining",0))<=0:
+			_room_defender_covers.remove_at(index)
+		else:
+			_room_defender_covers[index]=cover
+	queue_redraw()
+
+func _apply_room_defender_kill_effect(enemy: Dictionary) -> Dictionary:
+	var defender_id := String(enemy.get("id",""))
+	if defender_id.is_empty() or _room_defender_effect_sources.has(defender_id):
+		return {"applied":false,"reason":"duplicate_or_missing_source"}
+	var source_wave := String(enemy.get("source_wave",enemy.get("parent_wave","")))
+	if source_wave.is_empty():
+		return {"applied":false,"reason":"not_room_owned"}
+	_room_defender_kill_sequence+=1
+	var remaining_ids: Array[String] = []
+	for candidate in _enemies:
+		if String((candidate as Dictionary).get("source_wave",""))==source_wave:
+			remaining_ids.append(String((candidate as Dictionary).get("id","")))
+	var effect := RoomDefenderEffectsScript.compile_kill_effect(enemy,{
+		"kill_sequence":_room_defender_kill_sequence,
+		"remaining_defender_ids":remaining_ids,
+		"true_target_id":"organ" if state==RunState.ORGAN_CHAMBER else "",
+		"link_id":String(enemy.get("actor_owner_id",source_wave)),
+	})
+	if not bool(effect.get("valid",false)):
+		return {"applied":false,"reason":"invalid_effect","errors":effect.get("errors",PackedStringArray())}
+	var event_id := String(effect.get("effect_event_id",""))
+	if event_id.is_empty() or _room_defender_effect_events.has(event_id):
+		return {"applied":false,"reason":"duplicate_event"}
+	_room_defender_effect_events[event_id]=true
+	_room_defender_effect_sources[defender_id]=event_id
+	var effect_scope_id := String(enemy.get("effect_scope_id",_room_defender_effect_scope_id(String(enemy.get("archetype","unknown")))))
+	_merge_room_defender_state_patch(effect.get("state_patch",{}) as Dictionary,effect_scope_id,String(effect.get("owner_wave_id","")),String(enemy.get("actor_owner_id","")))
+	var operation_results: Array[Dictionary] = []
+	for raw_operation in effect.get("operations",[]) as Array:
+		operation_results.append(_execute_room_defender_operation(raw_operation as Dictionary))
+	_trace_room_runtime("defender_kill_effect",{
+		"effect_event_id":event_id,
+		"effect_id":String(effect.get("effect_id","")),
+		"source_defender_id":defender_id,
+		"owner_wave_id":String(effect.get("owner_wave_id","")),
+		"effect_scope_id":effect_scope_id,
+		"operation_results":operation_results.duplicate(true),
+	})
+	return {"applied":true,"effect":effect,"operation_results":operation_results}
+
+func _execute_room_defender_operation(operation: Dictionary) -> Dictionary:
+	var op_id := String(operation.get("op",""))
+	var owner_wave := String(operation.get("owner_wave_id",""))
+	var affected := 0
+	match op_id:
+		"spawn_timed_cover":
+			var position_data := operation.get("position",[]) as Array
+			if position_data.size()==2:
+				var duration := maxf(0.05,float(operation.get("duration_seconds",0.05)))
+				var effect_scope_id := _room_effect_scope_for_owner(owner_wave)
+				_room_defender_covers.append({
+					"id":"cover:%s" % String(operation.get("effect_event_id","effect")),
+					"owner_wave_id":owner_wave,
+					"effect_scope_id":effect_scope_id,
+					"position":Vector2(float(position_data[0]),float(position_data[1])),
+					"radius":maxf(8.0,float(operation.get("radius_pixels",8.0))),
+					"life":duration,
+					"duration":duration,
+					"absorb_remaining":maxi(0,int(operation.get("absorb_count",0))),
+					"material":String(operation.get("material","tissue")),
+				})
+				affected=1
+		"cancel_pending_emissions":
+			affected=_cancel_pending_room_emissions_capped(owner_wave,int(operation.get("max_count",0)))
+		"clear_owned_projectiles":
+			affected=_projectiles.clear_enemy_group_filtered(owner_wave,operation.get("travel_models",[]) as Array,int(operation.get("max_count",0)))
+		"mark_priority_target":
+			affected=_mark_room_priority_target(owner_wave,operation)
+		"disable_tracking":
+			var effect_scope_id := _room_effect_scope_for_owner(owner_wave)
+			affected=_clear_owned_homing_projectiles(owner_wave,effect_scope_id)
+			_trace_room_runtime("tracking_projectiles_suppressed",{
+				"owner_wave_id":owner_wave,
+				"effect_scope_id":effect_scope_id,
+				"affected_count":affected,
+			})
+		"break_link":
+			affected=_mark_room_wave_enemies(owner_wave,"effect_link_broken_seconds",float(operation.get("duration_seconds",0.0)),String(operation.get("link_id","")))
+		"suppress_hatch":
+			affected=_mark_room_wave_enemies(owner_wave,"effect_hatch_suppressed_seconds",float(operation.get("duration_seconds",0.0)))
+		"disrupt_echo":
+			affected=_mark_room_wave_enemies(owner_wave,"effect_echo_disrupted_seconds",float(operation.get("duration_seconds",0.0)))
+		"reveal_true_target":
+			var scopes := _room_defender_effect_state.get("scopes",{}) as Dictionary
+			var effect_scope_id := _room_effect_scope_for_owner(owner_wave)
+			var scope := scopes.get(effect_scope_id,{"flags":{},"timers":{},"tags":{},"values":{}}) as Dictionary
+			var values := scope.get("values",{}) as Dictionary
+			values.true_target_id=String(operation.get("true_target_id",""))
+			values.true_target_damage_multiplier=maxf(float(values.get("true_target_damage_multiplier",1.0)),float(operation.get("damage_multiplier",1.0)))
+			scope.values=values
+			scopes[effect_scope_id]=scope
+			_room_defender_effect_state.scopes=scopes
+			affected=1
+		"remove_false_targets":
+			affected=_remove_room_false_targets(owner_wave,int(operation.get("max_count",0)))
+		_:
+			push_error("Unsupported live defender effect operation: %s" % op_id)
+	return {"op":op_id,"affected":affected,"owner_wave_id":owner_wave}
+
+func _clear_owned_homing_projectiles(owner_wave: String, effect_scope_id: String) -> int:
+	if owner_wave.is_empty() or effect_scope_id.is_empty() or _projectiles==null:
+		return 0
+	# A warned homing curve must never be straightened after activation: the
+	# replacement ray could cross space that the signed preview declared safe.
+	# Removing only this canonical wave's homing descendants is monotonic-safe,
+	# keeps foreign waves intact, and uses the pool's public ownership boundary.
+	return _projectiles.clear_enemy_homing_group(owner_wave,ProjectilePool.MAX_ENEMY)
+
+func _cancel_pending_room_emissions_capped(owner_wave: String, max_count: int) -> int:
+	if owner_wave.is_empty() or max_count<=0:
+		return 0
+	var removed := 0
+	for index in range(_pending_room_emissions.size()-1,-1,-1):
+		if String(_pending_room_emissions[index].get("wave_id",""))!=owner_wave:
+			continue
+		_pending_room_emissions.remove_at(index)
+		removed+=1
+		if removed>=max_count:
+			break
+	return removed
+
+func _mark_room_priority_target(owner_wave: String, operation: Dictionary) -> int:
+	var candidate_ids := operation.get("candidate_ids",[]) as Array
+	var selected_index := -1
+	var best_distance := INF
+	for index in _enemies.size():
+		var enemy := _enemies[index] as Dictionary
+		if String(enemy.get("source_wave",""))!=owner_wave:
+			continue
+		var enemy_id := String(enemy.get("id",""))
+		if not candidate_ids.is_empty() and enemy_id not in candidate_ids:
+			continue
+		var distance := _player.position.distance_squared_to(Vector2(enemy.get("position",Vector2.ZERO))) if _player!=null else float(index)
+		if distance<best_distance:
+			best_distance=distance
+			selected_index=index
+	if selected_index<0:
+		return 0
+	_enemies[selected_index].effect_priority_seconds=maxf(float(_enemies[selected_index].get("effect_priority_seconds",0.0)),float(operation.get("duration_seconds",0.0)))
+	_enemies[selected_index].effect_damage_multiplier=maxf(float(_enemies[selected_index].get("effect_damage_multiplier",1.0)),float(operation.get("damage_multiplier",1.0)))
+	_enemies[selected_index].effect_mark_event_id=String(operation.get("effect_event_id",""))
+	return 1
+
+func _mark_room_wave_enemies(owner_wave: String, timer_key: String, duration: float, actor_owner_filter: String = "") -> int:
+	var affected := 0
+	for index in _enemies.size():
+		var enemy := _enemies[index] as Dictionary
+		if String(enemy.get("source_wave",""))!=owner_wave:
+			continue
+		if not actor_owner_filter.is_empty() and String(enemy.get("actor_owner_id",""))!=actor_owner_filter:
+			continue
+		enemy[timer_key]=maxf(float(enemy.get(timer_key,0.0)),duration)
+		_enemies[index]=enemy
+		affected+=1
+	return affected
+
+func _remove_room_false_targets(owner_wave: String, max_count: int) -> int:
+	var removed := 0
+	for index in range(_enemies.size()-1,-1,-1):
+		var enemy := _enemies[index] as Dictionary
+		if String(enemy.get("source_wave",""))!=owner_wave or String(enemy.get("collision_role",""))!="false_target":
+			continue
+		_enemies.remove_at(index)
+		removed+=1
+		if removed>=max_count:
+			break
+	return removed
+
+func _room_defender_spawn_suppressed(archetype: String, effect_scope_id: String) -> bool:
+	return (
+		(archetype=="arc_linker" and _room_effect_flag_active("link_broken",effect_scope_id))
+		or (archetype=="hatchling" and _room_effect_flag_active("hatch_suppressed",effect_scope_id))
+		or (archetype=="echo_clone" and _room_effect_flag_active("echo_disrupted",effect_scope_id))
+		or (archetype=="decoy_core" and _room_effect_flag_active("true_target_revealed",effect_scope_id))
+	)
+
 func _kill_enemy(index: int) -> void:
 	if index<0 or index>=_enemies.size():
 		return
 	var enemy: Dictionary = _enemies.pop_at(index)
+	_apply_room_defender_kill_effect(enemy)
 	_spawn_bio_pickup(Vector2(enemy.position),7)
 	score+=180
 	AudioManager.play_sfx("tissue_hit",_rng.randf_range(0.9,1.1),0.6)
@@ -1454,6 +3307,19 @@ func projectiles_clear_and_enemies() -> void:
 	_projectiles.clear_all()
 	_enemies.clear()
 	_active_room_waves.clear()
+	_active_room_actor_groups.clear()
+	_active_room_motifs.clear()
+	_pending_room_emissions.clear()
+	_pending_echoes.clear()
+	_room_pattern_plan.clear()
+	_room_pattern_rejection_key=""
+	_room_player_history.clear()
+	_room_history_next_sample = 0.0
+	_room_history_frame_time = 0.0
+	_room_history_frame_position = Vector2.ZERO
+	_room_history_initialized = false
+	_room_previous_player_position = Vector2.ZERO
+	_reset_room_defender_effects()
 	_telegraph.clear()
 	_dash_wakes.clear()
 	_dash_wake_hits.clear()
@@ -1492,7 +3358,7 @@ func _close_breach() -> void:
 	attack_timer = 1.0
 
 func _request_dive() -> void:
-	if state!=RunState.BREACH_OPEN:
+	if _paused or state!=RunState.BREACH_OPEN:
 		return
 	breach_timer = 0.0
 	_transition(RunState.ORGAN_SELECT)
@@ -1559,6 +3425,11 @@ func _destroy_current_organ() -> void:
 func _offer_mutations(is_reroll: bool, excluded: Array[String] = []) -> void:
 	var required_rarity := "rare" if int(_permanent_stats.get("rare_protection", 0)) > 0 and _mutation_choice_count > 0 and _mutation_choice_count % 3 == 0 else ""
 	var offers := _mutation_engine.offer(GameData.mutations, 3, excluded, required_rarity)
+	# Near catalog exhaustion, a reroll may exclude every remaining mutation.
+	# Reuse the prior legal pool rather than converting a consumed reroll into an
+	# exhaustion reward while selectable mutations still exist.
+	if offers.is_empty() and not excluded.is_empty():
+		offers = _mutation_engine.offer(GameData.mutations, 3, [], required_rarity)
 	_offered_mutation_ids.clear()
 	for raw_offer in offers:
 		var offer := raw_offer as Dictionary
@@ -1569,7 +3440,22 @@ func _offer_mutations(is_reroll: bool, excluded: Array[String] = []) -> void:
 		"phase": phase,
 		"reroll": is_reroll
 	})
+	if offers.is_empty():
+		_resolve_exhausted_mutation_catalog()
+		return
 	_hud.show_mutation_choices(offers, _remaining_rerolls)
+
+func _resolve_exhausted_mutation_catalog() -> void:
+	if state != RunState.MUTATION_CHOICE:
+		return
+	_remaining_rerolls = 0
+	_grant_bio(MUTATION_CATALOG_COMPLETE_BIO_REWARD)
+	_hud.hide_overlay()
+	_hud.show_toast(LocalizationService.text("mutation_catalog_complete", {"bio":MUTATION_CATALOG_COMPLETE_BIO_REWARD}), VisualTheme.BIO)
+	_tutorial_observe(TutorialFlowScript.EVENT_MUTATION_SELECTED)
+	_transition(RunState.DIVING_OUT)
+	transition_timer = 1.0
+	AudioManager.play_sfx("mutation",1.0,0.82)
 
 func _decorate_synergy_offer(offer: Dictionary) -> void:
 	var weapon_tags: Array = WEAPON_SYNERGY_TAGS.get(String(weapon_definition.get("behavior", "pulse")), [])
@@ -1828,8 +3714,10 @@ func _on_result_action(action: String) -> void:
 			run_finished.emit({"action":"retry","config":retry_config,"result":_result})
 		"nest": run_finished.emit({"action":"nest","result":_result})
 		"resume":
+			if not _paused:
+				return
 			_paused=false
-			_player.set_controls_active(true)
+			_sync_player_controls_for_state()
 			_hud.hide_overlay()
 		"share": _share_result()
 
@@ -1842,9 +3730,35 @@ func _share_result() -> void:
 func _toggle_pause() -> void:
 	if state in [RunState.DEAD,RunState.VICTORY,RunState.ORGAN_SELECT,RunState.MUTATION_CHOICE]:return
 	_paused=not _paused
-	_player.set_controls_active(not _paused)
+	_sync_player_controls_for_state()
 	if _paused:_hud.show_pause()
 	else:_hud.hide_overlay()
+
+func _sync_player_controls_for_state() -> void:
+	if _player == null:
+		return
+	var state_accepts_input := state in [
+		RunState.INTRO,
+		RunState.EXTERIOR,
+		RunState.BREACH_OPEN,
+		RunState.INTERNAL_ROOMS,
+		RunState.ORGAN_CHAMBER,
+		RunState.CORE,
+	]
+	_player.set_controls_active(not _paused and state_accepts_input)
+
+func _pause_for_application_suspend() -> void:
+	# Choice/result states already freeze simulation and own their modal UI. Keep
+	# those overlays intact while still enforcing their control lock. Every live
+	# or transitional combat state gets an explicit, idempotent pause immediately
+	# (not deferred, because mobile execution may stop after the notification).
+	if state in [RunState.ORGAN_SELECT, RunState.MUTATION_CHOICE, RunState.DEAD, RunState.VICTORY]:
+		_sync_player_controls_for_state()
+		return
+	_paused = true
+	_sync_player_controls_for_state()
+	if _hud != null:
+		_hud.show_pause()
 
 func _transition(next_state: RunState) -> void:
 	if state==next_state:
@@ -1876,10 +3790,15 @@ func _difficulty_reward() -> float:
 	return {"diver":0.9,"deep":1.0,"abyss":1.35}.get(String(config.difficulty),0.9)
 
 func _notification(what: int) -> void:
-	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST]:
-		_persist_meta_profile()
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and not _paused and state not in [RunState.DEAD,RunState.VICTORY]:
-		call_deferred("_toggle_pause")
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED]:
+		_pause_for_application_suspend()
+		_persist_meta_profile(true)
+	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_persist_meta_profile(true)
+	elif what in [NOTIFICATION_APPLICATION_FOCUS_IN, NOTIFICATION_APPLICATION_RESUMED]:
+		# OS resume never grants input by itself. Manual resume still routes through
+		# the state-aware policy, and modal/transition states remain locked.
+		_sync_player_controls_for_state()
 
 func _draw() -> void:
 	var interior:=state in [RunState.DIVING_IN,RunState.INTERNAL_ROOMS,RunState.ORGAN_CHAMBER,RunState.MUTATION_CHOICE,RunState.DIVING_OUT]
@@ -1894,16 +3813,12 @@ func _draw() -> void:
 			var x:=270.0+sin(index*1.7+elapsed*0.45)*205.0
 			draw_line(Vector2(0,y),Vector2(x,y+35),Color(VisualTheme.VULNERABLE,0.08),3.0+index%3)
 			draw_line(Vector2(540,y+18),Vector2(540-x,y+55),Color(VisualTheme.SHARD,0.06),2.0)
+	_draw_active_room_motifs()
+	_draw_room_defender_effects()
 	for enemy in _enemies:
-		var p:Vector2=enemy.position
-		var radius:=float(enemy.radius)
-		var points:=PackedVector2Array()
-		for index in 8:
-			var angle:=index*TAU/8.0+float(enemy.phase)
-			points.append(p+Vector2.from_angle(angle)*radius*(1.0 if index%2==0 else 0.58))
-		draw_colored_polygon(points,Color(VisualTheme.BIO,0.28))
-		draw_polyline(PackedVector2Array(points+PackedVector2Array([points[0]])),VisualTheme.BIO,2.0)
+		_draw_internal_enemy(enemy)
 		if float(enemy.get("shot_telegraph_timer",0.0)) > 0.0:
+			var p:Vector2=enemy.position
 			var target := Vector2(enemy.get("shot_target",p))
 			var warning_progress := 1.0-float(enemy.shot_telegraph_timer)/maxf(0.01,float(enemy.get("shot_telegraph_total",0.01)))
 			var warning_color := Color(VisualTheme.TELEGRAPH,0.38+warning_progress*0.58)
@@ -1928,6 +3843,9 @@ func _draw() -> void:
 
 func _draw_telegraph() -> void:
 	if _telegraph.is_empty():return
+	if String(_telegraph.get("source","")) == "room_pattern":
+		_draw_room_pattern_telegraph()
+		return
 	var progress:=1.0-float(_telegraph.timer)/maxf(0.01,float(_telegraph.total))
 	var color:=Color(VisualTheme.TELEGRAPH,0.35+progress*0.6)
 	var origin:=Vector2(_telegraph.get("pattern_origin",_boss_visual.target_position() if _boss_visual else Vector2(270,220)))
@@ -1961,6 +3879,171 @@ func _draw_telegraph() -> void:
 	else:
 		draw_dashed_line(origin,_player.position,color,4.0,13.0)
 		draw_circle(_player.position,18+progress*12,color,false,3.0)
+
+func _draw_room_pattern_telegraph() -> void:
+	var progress:=1.0-float(_telegraph.timer)/maxf(0.01,float(_telegraph.total))
+	var event := _telegraph.get("event",{}) as Dictionary
+	var spawn := event.get("spawn",{}) as Dictionary
+	var collision := spawn.get("collision",{}) as Dictionary
+	var safe_position := Vector2(_telegraph.get("safe_position",INTERNAL_COMBAT_BOUNDS.get_center()))
+	var safe_clearance := maxf(34.0,float((event.get("safe",{}) as Dictionary).get("clearance",0.1))*minf(INTERNAL_COMBAT_BOUNDS.size.x,INTERNAL_COMBAT_BOUNDS.size.y))
+	draw_circle(safe_position,safe_clearance,Color(VisualTheme.FRIENDLY,0.08+progress*0.10))
+	draw_arc(safe_position,safe_clearance,0.0,TAU,36,Color(VisualTheme.FRIENDLY,0.58+progress*0.34),3.0)
+	draw_dashed_line(_player.position,safe_position,Color(VisualTheme.FRIENDLY,0.28+progress*0.18),2.0,10.0)
+	var world_positions := _room_event_world_positions(event,safe_position)
+	_draw_room_geometry(world_positions,collision,room_runtime_category(event),String(spawn.get("visual_token","")),Color(VisualTheme.TELEGRAPH,0.32+progress*0.58),true)
+	var projectile_specs := event.get("runtime_projectile_specs",[]) as Array
+	var projectile_previews := event.get("runtime_projectile_previews",[]) as Array
+	for raw_preview in projectile_previews:
+		var preview := raw_preview as Dictionary
+		var emission_index := int(preview.get("emission_index",-1))
+		if emission_index<0 or emission_index>=projectile_specs.size():
+			continue
+		var spec := projectile_specs[emission_index] as Dictionary
+		var options := spec.get("options",{}) as Dictionary
+		var samples := preview.get("samples",[]) as Array
+		if samples.is_empty():
+			continue
+		var points := PackedVector2Array()
+		for raw_sample in samples:
+			points.append(Vector2((raw_sample as Dictionary).get("position",Vector2.ZERO)))
+		var projectile_color := Color(VisualTheme.TELEGRAPH,0.24+progress*0.48)
+		var origin := points[0]
+		var initial_radius := maxf(4.0,float((samples[0] as Dictionary).get("radius",options.get("radius",7.0))))
+		draw_circle(origin,initial_radius,Color(projectile_color,0.12+progress*0.18))
+		draw_arc(origin,initial_radius+3.0,0.0,TAU,14,projectile_color,2.0)
+		if points.size()>=2:
+			draw_polyline(points,projectile_color,2.0,true)
+		if String(options.get("travel_model","linear"))=="expanding":
+			var radius_stride := maxi(1,ceili(float(samples.size())/8.0))
+			for sample_index in range(radius_stride,samples.size(),radius_stride):
+				var sample := samples[sample_index] as Dictionary
+				draw_arc(Vector2(sample.position),maxf(1.0,float(sample.radius)),0.0,TAU,16,Color(projectile_color,0.16+progress*0.20),1.5)
+			var final_sample := samples[samples.size()-1] as Dictionary
+			draw_arc(Vector2(final_sample.position),maxf(1.0,float(final_sample.radius)),0.0,TAU,18,Color(projectile_color,0.30+progress*0.32),2.0)
+		var delay_seconds := float(preview.get("delay_seconds",0.0))
+		if delay_seconds>0.0:
+			var delay_ratio := clampf(delay_seconds/ROOM_PROJECTILE_TELEGRAPH_HORIZON,0.0,1.0)
+			var delay_radius := initial_radius+6.0+delay_ratio*12.0
+			draw_arc(origin,delay_radius,-PI*0.5,-PI*0.5+TAU*maxf(0.12,delay_ratio),12,Color(projectile_color,0.48+progress*0.30),2.5)
+
+func _draw_active_room_motifs() -> void:
+	for raw_wave_id in _active_room_motifs.keys():
+		var motif := _active_room_motifs[raw_wave_id] as Dictionary
+		if not bool(motif.get("emitter_active",true)):
+			continue
+		var category := String(motif.get("category","gate"))
+		var spawn := motif.get("spawn",{}) as Dictionary
+		var accent := _room_category_color(category,String(spawn.get("visual_token","")))
+		_draw_room_geometry(motif.get("positions",[]) as Array,motif.get("collision",{}) as Dictionary,category,String(spawn.get("visual_token","")),Color(accent,0.64),false)
+
+func _draw_room_defender_effects() -> void:
+	for cover in _room_defender_covers:
+		var center := Vector2((cover as Dictionary).get("position",Vector2.ZERO))
+		var radius := float((cover as Dictionary).get("radius",34.0))
+		var material := String((cover as Dictionary).get("material","tissue"))
+		var color: Color = Color("#E7C994") if material=="bone" else (Color("#8EEBFF") if material=="prism" else VisualTheme.BIO)
+		var life_ratio := clampf(float((cover as Dictionary).get("life",0.0))/maxf(0.01,float((cover as Dictionary).get("duration",1.0))),0.0,1.0)
+		draw_circle(center,radius,Color(color,0.06+life_ratio*0.10))
+		draw_arc(center,radius,elapsed*1.8,elapsed*1.8+TAU*0.82,30,Color(color,0.42+life_ratio*0.42),3.0)
+		var pips := mini(8,maxi(0,int((cover as Dictionary).get("absorb_remaining",0))))
+		for pip in pips:
+			var angle := -PI*0.75+float(pip)*PI*1.5/maxf(1.0,float(pips-1))
+			draw_circle(center+Vector2.from_angle(angle)*(radius-5.0),2.5,color)
+
+func _draw_room_geometry(positions: Array, collision: Dictionary, category: String, visual_token: String, color: Color, telegraph_only: bool) -> void:
+	var shape := String(collision.get("shape","circle"))
+	var unit := minf(INTERNAL_COMBAT_BOUNDS.size.x,INTERNAL_COMBAT_BOUNDS.size.y)
+	if shape == "segment_chain" and positions.size()>=2:
+		var rendered_width := room_collision_render_width(collision,unit)
+		for index in range(positions.size()-1):
+			var first := Vector2(positions[index])
+			var second := Vector2(positions[index+1])
+			if telegraph_only:
+				draw_dashed_line(first,second,color,rendered_width,10.0)
+			else:
+				draw_line(first,second,color,rendered_width)
+	for index in range(positions.size()):
+		var center := Vector2(positions[index])
+		var phase_offset := float(abs(visual_token.hash())%17)*0.07+float(index)*0.5
+		match shape:
+			"box", "cell":
+				var half_data := collision.get("half_extents_normalized",[0.055,0.055]) as Array
+				var half_extents := Vector2(float(half_data[0])*INTERNAL_COMBAT_BOUNDS.size.x,float(half_data[1])*INTERNAL_COMBAT_BOUNDS.size.y)
+				var rect := Rect2(center-half_extents,half_extents*2.0)
+				draw_rect(rect,Color(color,0.12 if telegraph_only else 0.22),true)
+				draw_rect(rect,color,false,3.0)
+			"arc":
+				var radius := maxf(20.0,float(collision.get("radius_normalized",0.24))*unit)
+				draw_arc(center,radius,-1.05+phase_offset,1.05+phase_offset,22,color,room_collision_render_width(collision,unit))
+			"force_field":
+				var radius := maxf(18.0,float(collision.get("radius_normalized",0.11))*unit)
+				draw_circle(center,radius,Color(color,0.08 if telegraph_only else 0.14))
+				for ring in range(1,4):
+					draw_arc(center,radius*float(ring)/3.0,phase_offset,phase_offset+PI*1.55,24,color,2.0)
+			_:
+				var radius := maxf(10.0,float(collision.get("radius_normalized",0.035))*unit)
+				draw_circle(center,radius,Color(color,0.12 if telegraph_only else 0.28))
+				draw_arc(center,radius,phase_offset,phase_offset+PI*1.65,16,color,3.0)
+		if category == "rain":
+			draw_line(center-Vector2(0,22),center+Vector2(0,22),color,3.0)
+		elif category == "echo":
+			draw_arc(center,12.0+sin(elapsed*8.0+phase_offset)*2.0,0.0,TAU,16,Color(VisualTheme.SHARD,color.a),2.0)
+
+static func room_collision_render_width(collision: Dictionary, unit: float) -> float:
+	return maxf(8.0,float(collision.get("thickness_normalized",0.025))*unit)*2.0
+
+func _room_category_color(category: String, visual_token: String) -> Color:
+	var base: Color = {
+		"gate":VisualTheme.VULNERABLE,
+		"rain":VisualTheme.ENEMY,
+		"radial":VisualTheme.SHARD,
+		"sweep":VisualTheme.TELEGRAPH,
+		"field":VisualTheme.BIO,
+		"node":Color("#84D8FF"),
+		"spawn":Color("#FF7A9D"),
+		"echo":Color("#B69CFF"),
+	}.get(category,VisualTheme.ENEMY)
+	var variant := float(abs(visual_token.hash())%9)/100.0
+	return base.lightened(variant)
+
+func _draw_internal_enemy(enemy: Dictionary) -> void:
+	var p := Vector2(enemy.position)
+	var radius := float(enemy.radius)
+	var archetype := String(enemy.get("archetype","generic"))
+	var color := _room_category_color("spawn",String(enemy.get("visual_token",archetype)))
+	if float(enemy.get("effect_priority_seconds",0.0))>0.0:
+		draw_arc(p,radius+8.0,-PI*0.35,PI*1.35,20,VisualTheme.VULNERABLE,3.5)
+		draw_circle(p-Vector2(0,radius+13.0),3.0,VisualTheme.VULNERABLE)
+	match archetype:
+		"orbit_sentinel", "prism_guard":
+			draw_arc(p,radius,0.0,TAU,22,color,4.0)
+			draw_arc(p,radius*0.55,float(enemy.phase),float(enemy.phase)+PI*1.45,14,VisualTheme.SHARD,3.0)
+		"pincer_hunter", "arc_linker":
+			var points := PackedVector2Array([p+Vector2(0,-radius),p+Vector2(radius,radius*0.7),p,p+Vector2(-radius,radius*0.7)])
+			draw_colored_polygon(points,Color(color,0.3))
+			draw_polyline(PackedVector2Array(points+PackedVector2Array([points[0]])),color,2.5)
+		"armor_drone":
+			draw_rect(Rect2(p-Vector2(radius,radius*0.7),Vector2(radius*2.0,radius*1.4)),Color(color,0.28),true)
+			draw_rect(Rect2(p-Vector2(radius,radius*0.7),Vector2(radius*2.0,radius*1.4)),color,false,3.0)
+		"tracker_mite", "hatchling":
+			var direction := Vector2(enemy.velocity).normalized()
+			if direction.length_squared()<0.01:direction=Vector2.DOWN
+			var normal := Vector2(-direction.y,direction.x)
+			var points := PackedVector2Array([p+direction*radius,p-direction*radius*0.7+normal*radius*0.65,p-direction*radius*0.7-normal*radius*0.65])
+			draw_colored_polygon(points,Color(color,0.38))
+			draw_polyline(PackedVector2Array(points+PackedVector2Array([points[0]])),color,2.5)
+		"echo_clone", "decoy_core":
+			draw_circle(p,radius,Color(color,0.14))
+			draw_arc(p,radius,0.0,TAU,8,color,3.0)
+			draw_line(p-Vector2(radius,0),p+Vector2(radius,0),color,2.0)
+		_:
+			var points:=PackedVector2Array()
+			for index in 8:
+				var angle:=index*TAU/8.0+float(enemy.phase)
+				points.append(p+Vector2.from_angle(angle)*radius*(1.0 if index%2==0 else 0.58))
+			draw_colored_polygon(points,Color(VisualTheme.BIO,0.28))
+			draw_polyline(PackedVector2Array(points+PackedVector2Array([points[0]])),VisualTheme.BIO,2.0)
 
 func _draw_orbitals() -> void:
 	if weapon_definition.is_empty() or _player==null:return

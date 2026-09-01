@@ -63,6 +63,7 @@ func _run_all() -> void:
 	await _test_projectile_pool()
 	await _test_player_movement()
 	await _test_player_damage_and_dash()
+	await _test_pause_resume_control_policy()
 	await _test_telegraph_avoidance_and_combat_sfx()
 	await _test_mutation_weapon_runtime()
 	await _test_meta_save_handoff()
@@ -581,6 +582,24 @@ func _test_player_movement() -> void:
 	await get_tree().process_frame
 
 func _test_player_damage_and_dash() -> void:
+	var dash_30 := PlayerControllerClass.new()
+	var dash_60 := PlayerControllerClass.new()
+	for candidate in [dash_30,dash_60]:
+		candidate.position = Vector2(100,700)
+		candidate.combat_bounds = Rect2(0,350,540,560)
+		add_child(candidate)
+		_assert(candidate.request_dash(Vector2.RIGHT), "Frame-rate dash probe must start with a ready charge")
+	for frame in 5:
+		dash_30._physics_process(1.0/30.0)
+	dash_30._physics_process(1.0/75.0)
+	for frame in 10:
+		dash_60._physics_process(1.0/60.0)
+	dash_60._physics_process(1.0/75.0)
+	_assert(dash_30.position.distance_to(dash_60.position) < 0.01, "Dash travel must be identical at 30 and 60 physics steps")
+	_assert(absf(dash_30.position.x - 326.8) < 0.02, "Dash travel must consume exactly its configured 0.18-second window")
+	dash_30.queue_free()
+	dash_60.queue_free()
+
 	var player := PlayerControllerClass.new()
 	player.position = Vector2(270,700)
 	add_child(player)
@@ -603,6 +622,81 @@ func _test_player_damage_and_dash() -> void:
 	_assert(player.dash_charges == 1 and is_equal_approx(player.dash_ratio(),1.0), "Dash must recover exactly one charge after its cooldown")
 	player.queue_free()
 	await get_tree().process_frame
+
+func _test_pause_resume_control_policy() -> void:
+	var original_profile := SaveManager.profile.duplicate(true)
+	var run := RunSceneClass.new()
+	run.initialize({"boss":"gravemaw","weapon":"pulse_needle","difficulty":"diver","seed":58117,"mode":"story","competitive":true})
+	add_child(run)
+	await get_tree().process_frame
+
+	run.state = RunSceneClass.RunState.EXTERIOR
+	run._player.set_controls_active(true)
+	run._toggle_pause()
+	_assert(run._paused and not run._player.controls_active, "Pausing active exterior combat must lock player controls")
+	run._on_result_action("resume")
+	_assert(not run._paused and run._player.controls_active, "Resuming active exterior combat must restore player controls")
+	await get_tree().process_frame
+
+	SaveManager.profile["suspend_regression_marker"] = "mobile-pause-58117"
+	run._meta_dirty = false
+	run._notification(NOTIFICATION_APPLICATION_PAUSED)
+	_assert(run._paused and not run._player.controls_active, "Application-paused notification must synchronously pause combat and lock controls")
+	var suspended_save := SaveManager._read_envelope(SaveManager.SAVE_PATH)
+	_assert(String(suspended_save.get("suspend_regression_marker", "")) == "mobile-pause-58117", "Application-paused notification must persist the current profile even without pending meta progress")
+	run._notification(NOTIFICATION_APPLICATION_RESUMED)
+	_assert(run._paused and not run._player.controls_active, "Application-resumed notification must not implicitly unpause active combat")
+	run._on_result_action("resume")
+	_assert(not run._paused and run._player.controls_active, "Manual resume after application suspension must restore active combat controls")
+
+	run.state = RunSceneClass.RunState.BREACH_OPEN
+	run._hud.set_dive_ready(true)
+	run._toggle_pause()
+	_assert(run._paused and run._hud.overlay.visible and not run._player.controls_active, "Pausing an open breach must show the pause overlay and lock combat controls")
+	var paused_overlay_root := run._hud.overlay.get_child(0)
+	run._request_dive()
+	_assert(run.state == RunSceneClass.RunState.BREACH_OPEN and run._paused and run._hud.overlay.get_child(0) == paused_overlay_root, "A dive request while paused must preserve both the breach state and pause overlay")
+	run._on_result_action("resume")
+	_assert(not run._paused and run._player.controls_active and not run._hud.overlay.visible, "Manual resume from a paused breach must restore the live breach without a stale overlay")
+	run._request_dive()
+	_assert(run.state == RunSceneClass.RunState.ORGAN_SELECT and not run._player.controls_active and run._hud.overlay.visible, "A dive request after manual resume must still open the legal organ choice")
+
+	var locked_states := {
+		RunSceneClass.RunState.DIVING_IN: "DIVING_IN",
+		RunSceneClass.RunState.DIVING_OUT: "DIVING_OUT",
+		RunSceneClass.RunState.MUTATION_CHOICE: "MUTATION_CHOICE",
+	}
+	for locked_state_value in locked_states:
+		var locked_state: RunSceneClass.RunState = locked_state_value
+		var state_name := String(locked_states[locked_state_value])
+		run.state = locked_state
+		run._paused = false
+		run._player.set_controls_active(false)
+		run._player.dash_charges = run._player.max_dash_charges
+		run._player.dash_time = 0.0
+		run._player.invulnerability = 0.0
+		if locked_state == RunSceneClass.RunState.MUTATION_CHOICE:
+			run._toggle_pause()
+			_assert(not run._paused and not run._player.controls_active, "Mutation choice must reject pause toggles without unlocking controls")
+			run._paused = true
+			run._hud.show_pause()
+		else:
+			run._toggle_pause()
+			_assert(run._paused and not run._player.controls_active, "%s pause must keep transition controls locked" % state_name)
+		var charges_before := run._player.dash_charges
+		var dash_count_before := run._dash_count
+		run._on_result_action("resume")
+		_assert(not run._paused and not run._player.controls_active, "%s resume must preserve the state's control lock" % state_name)
+		run._request_dash()
+		run._request_directional_dash(Vector2.RIGHT)
+		_assert(run._player.dash_charges == charges_before and is_zero_approx(run._player.dash_time), "%s resume must not allow a dash to start" % state_name)
+		_assert(is_zero_approx(run._player.invulnerability) and run._dash_count == dash_count_before, "%s resume must not manufacture dash invulnerability" % state_name)
+		await get_tree().process_frame
+
+	run.queue_free()
+	await get_tree().process_frame
+	SaveManager.profile = original_profile
+	SaveManager.save_profile()
 
 func _test_telegraph_avoidance_and_combat_sfx() -> void:
 	var original_profile := SaveManager.profile.duplicate(true)
@@ -817,6 +911,59 @@ func _test_mutation_weapon_runtime() -> void:
 	run._return_outside()
 	_assert(run._player.shield_hits==1, "Emergency Sheath must grant one shield after leaving an organ")
 	_assert(is_equal_approx(run.wound_memory_timer,4.0), "Wound Memory must start its four-second window on return to the exterior")
+
+	run._mutation_engine.initialize(88117,{"damage_mul":1.0,"projectile_count_add":0,"pierce_add":0,"projectile_speed_mul":1.0})
+	run._selected_mutations.clear()
+	for raw_mutation in GameData.mutations:
+		var mutation := raw_mutation as Dictionary
+		_assert(run._mutation_engine.apply(mutation), "Mutation exhaustion setup must select %s exactly once" % String(mutation.id))
+		run._selected_mutations.append(String(mutation.id))
+	_assert(run._mutation_engine.selected_ids.size()==GameData.mutations.size(), "Mutation exhaustion setup must consume the complete launch catalog")
+	run.state=RunSceneClass.RunState.MUTATION_CHOICE
+	run.phase=2
+	run._remaining_rerolls=1
+	run._player.set_controls_active(false)
+	var exhaustion_bio_before:=run.run_bio
+	run._offer_mutations(false)
+	_assert(run._offered_mutation_ids.is_empty(), "An exhausted mutation catalog must not fabricate a duplicate offer")
+	_assert(run.state==RunSceneClass.RunState.DIVING_OUT, "An exhausted mutation catalog must continue instead of soft-locking MUTATION_CHOICE")
+	_assert(run.run_bio==exhaustion_bio_before+RunSceneClass.MUTATION_CATALOG_COMPLETE_BIO_REWARD, "Catalog exhaustion must grant the deterministic continuation reward exactly once")
+	var exhaustion_message:=LocalizationService.text("mutation_catalog_complete", {"bio":RunSceneClass.MUTATION_CATALOG_COMPLETE_BIO_REWARD})
+	_assert(run._remaining_rerolls==0 and not run._hud.overlay.visible and run._hud.toast_label.text==exhaustion_message, "Catalog exhaustion must close the empty choice UI, explain the reward, and retire unusable rerolls")
+	var exhaustion_bio_after:=run.run_bio
+	run._offer_mutations(false)
+	_assert(run.run_bio==exhaustion_bio_after and run.state==RunSceneClass.RunState.DIVING_OUT, "Repeated empty-offer resolution outside MUTATION_CHOICE must not duplicate the reward")
+	run.transition_timer=0.0
+	run.hit_stop_timer=0.0
+	run._physics_process(0.016)
+	_assert(run.state==RunSceneClass.RunState.CORE and run._player.controls_active, "Catalog exhaustion continuation must reach the next playable combat state")
+
+	run._mutation_engine.initialize(88119,{"damage_mul":1.0,"projectile_count_add":0,"pierce_add":0,"projectile_speed_mul":1.0})
+	run._selected_mutations.clear()
+	for mutation_index in GameData.mutations.size()-2:
+		var near_exhaustion_mutation := GameData.mutations[mutation_index] as Dictionary
+		_assert(run._mutation_engine.apply(near_exhaustion_mutation), "Near-exhaustion setup must select %s exactly once" % String(near_exhaustion_mutation.id))
+		run._selected_mutations.append(String(near_exhaustion_mutation.id))
+	run.state=RunSceneClass.RunState.MUTATION_CHOICE
+	run.phase=1
+	run._remaining_rerolls=1
+	run._player.set_controls_active(false)
+	run._offer_mutations(false)
+	var near_exhaustion_offer := run._offered_mutation_ids.duplicate()
+	_assert(near_exhaustion_offer.size()==2, "Near-exhaustion setup must expose the two legal remaining mutations")
+	var near_exhaustion_bio_before:=run.run_bio
+	run._reroll_mutations()
+	_assert(run.state==RunSceneClass.RunState.MUTATION_CHOICE and run._offered_mutation_ids.size()==2, "Near-exhaustion reroll fallback must keep a selectable mutation choice open")
+	var sorted_near_exhaustion_offer:=near_exhaustion_offer.duplicate()
+	var sorted_fallback_offer:=run._offered_mutation_ids.duplicate()
+	sorted_near_exhaustion_offer.sort()
+	sorted_fallback_offer.sort()
+	_assert(sorted_fallback_offer==sorted_near_exhaustion_offer, "Near-exhaustion reroll fallback must reuse only the prior legal pool when exclusions empty the catalog")
+	_assert(run.run_bio==near_exhaustion_bio_before, "Near-exhaustion reroll fallback must not grant the catalog-exhaustion reward")
+	_assert(run._remaining_rerolls==0, "Near-exhaustion reroll must consume its one charge exactly once")
+	var fallback_offer_after_first_reroll:=run._offered_mutation_ids.duplicate()
+	run._reroll_mutations()
+	_assert(run._remaining_rerolls==0 and run._offered_mutation_ids==fallback_offer_after_first_reroll, "A reroll request with no charges must not consume again or replace the fallback offer")
 
 	run.queue_free()
 	await get_tree().process_frame
@@ -1198,6 +1345,13 @@ func _test_first_core_hook() -> void:
 	_assert(run.run_bio == breach_reward, "A breach cannot be opened or rewarded twice")
 	run._request_dive()
 	_assert(run.state == RunScene.RunState.ORGAN_SELECT, "Dive request must open organ order choice")
+	_assert(not run._player.controls_active, "Organ selection must lock combat controls")
+	var blocked_touch := InputEventScreenTouch.new()
+	blocked_touch.index = 78
+	blocked_touch.position = run._player.position + Vector2(90.0,82.0)
+	blocked_touch.pressed = true
+	run._player._unhandled_input(blocked_touch)
+	_assert(run._player._touch_id == -1 and not run._player._dragging, "Disabled controls must reject hidden touch state")
 	run._request_dive()
 	_assert(run.state == RunScene.RunState.ORGAN_SELECT, "A second dive request must not start a duplicate transition")
 	run._select_organ("__invalid_organ__")
@@ -1208,11 +1362,26 @@ func _test_first_core_hook() -> void:
 	run.transition_timer = 0.0
 	run.hit_stop_timer = 0.0
 	run._physics_process(0.016)
+	_assert(run.state == RunScene.RunState.INTERNAL_ROOMS and run._player.controls_active, "Internal combat must restore movement and dash controls")
+	var internal_start := run._player.position
+	var internal_touch := InputEventScreenTouch.new()
+	internal_touch.index = 79
+	internal_touch.position = internal_start + Vector2(90.0,82.0)
+	internal_touch.pressed = true
+	run._player._unhandled_input(internal_touch)
+	run._player.invulnerability = 0.52
+	run._player._physics_process(0.1)
+	_assert(run._player.position.distance_to(internal_start) > 0.1, "A live internal touch must move the player")
+	_assert(run._player.invulnerability < 0.52, "Internal combat must advance the damage invulnerability timer")
+	internal_touch.pressed = false
+	run._player._unhandled_input(internal_touch)
 	while run.state == RunScene.RunState.INTERNAL_ROOMS:
 		run._start_next_room()
 	_assert(run.state == RunScene.RunState.ORGAN_CHAMBER, "Internal route must reach an organ chamber")
+	_assert(run._player.controls_active, "Organ chamber combat must keep controls active")
 	run._damage_target({"id":"organ","damage":run.organ_max+1.0,"behavior":"pulse"})
 	_assert(run.state == RunScene.RunState.MUTATION_CHOICE, "Organ destruction must offer a mutation")
+	_assert(not run._player.controls_active, "Mutation choice must lock combat controls")
 	_assert(not run._organ_map.is_ability_enabled(ability), "Destroyed organ must disable the linked exterior ability")
 	run._select_mutation("__invalid_mutation__")
 	_assert(run.state == RunScene.RunState.MUTATION_CHOICE, "An invalid mutation selection must not skip the choice")
@@ -1230,6 +1399,7 @@ func _test_first_core_hook() -> void:
 	run.hit_stop_timer = 0.0
 	run._physics_process(0.016)
 	_assert(run.state == RunScene.RunState.EXTERIOR, "Mutation choice must return to changed exterior battle")
+	_assert(run._player.controls_active, "Returning outside must restore combat controls")
 	_assert(run._organ_map.destroyed_organs().has(organ_id), "Destroyed organ state must survive the return")
 	run.queue_free()
 	await get_tree().process_frame

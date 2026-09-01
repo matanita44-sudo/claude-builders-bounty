@@ -43,32 +43,73 @@ jobs:
           mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" godot
           chmod +x godot
           ./godot --version | grep -F "${GODOT_VERSION}.${GODOT_STATUS}"
+      - name: Validate test scene inventory
+        shell: bash
+        run: python3 .github/scripts/validate_test_inventory.py .
+      - name: Validate CI evidence guards
+        shell: bash
+        run: python3 .github/scripts/validate_soak_report.py --self-test
       - name: Parse and import project
-        run: ./godot --headless --path infinidive-game --import
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite editor -- ./godot --headless --path infinidive-game --import
       - name: Run headless tests
-        run: |
-          mkdir -p "$RUNNER_TEMP/infinidive-main-tests"
-          INFINIDIVE_TEST_ISOLATED=1 XDG_DATA_HOME="$RUNNER_TEMP/infinidive-main-tests" ./godot --headless --path infinidive-game --scene res://tests/TestRunner.tscn
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite main -- ./godot --headless --path infinidive-game --scene res://tests/TestRunner.tscn
       - name: Run offline service tests
-        run: ./godot --headless --path infinidive-game --scene res://tests/backend/BackendOfflineTest.tscn
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite backend -- ./godot --headless --path infinidive-game --scene res://tests/backend/BackendOfflineTest.tscn
       - name: Run permanent upgrade contract tests
-        run: ./godot --headless --path infinidive-game --scene res://tests/upgrades/PermanentUpgradeEngineTest.tscn
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite upgrades -- ./godot --headless --path infinidive-game --scene res://tests/upgrades/PermanentUpgradeEngineTest.tscn
       - name: Run tutorial flow tests
-        run: ./godot --headless --path infinidive-game --scene res://tests/tutorial/TutorialFlowTest.tscn
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite tutorial -- ./godot --headless --path infinidive-game --scene res://tests/tutorial/TutorialFlowTest.tscn
       - name: Run authored room mechanics tests
-        run: ./godot --headless --path infinidive-game --scene res://tests/rooms/RoomMechanicsTest.tscn
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite mechanics -- ./godot --headless --path infinidive-game --scene res://tests/rooms/RoomMechanicsTest.tscn
+      - name: Run room pattern runtime tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite compiler -- ./godot --headless --path infinidive-game --scene res://tests/rooms/runtime_patterns/RoomPatternRuntimeTest.tscn
+      - name: Run room defender effect tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite defender -- ./godot --headless --path infinidive-game --scene res://tests/rooms/defender_effects/RoomDefenderEffectsTest.tscn
+      - name: Run live room defender effect tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite defender_live -- ./godot --headless --path infinidive-game --scene res://tests/rooms/defender_effects_live/RoomDefenderEffectsLiveTest.tscn
+      - name: Run projectile travel model tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite travel -- ./godot --headless --path infinidive-game --scene res://tests/projectiles/travel_models/ProjectileTravelModelsTest.tscn
+      - name: Run live room runtime integration tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite integration -- ./godot --headless --path infinidive-game --scene res://tests/rooms/runtime_integration/RoomRuntimeIntegrationTest.tscn
       - name: Run organ transformation contract tests
-        run: ./godot --headless --path infinidive-game --scene res://tests/organs/OrganTransformationTest.tscn
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite organs -- ./godot --headless --path infinidive-game --scene res://tests/organs/OrganTransformationTest.tscn
       - name: Run achievement and contract tests
-        run: ./godot --headless --path infinidive-game --scene res://tests/meta/MetaGoalServiceTest.tscn
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite meta -- ./godot --headless --path infinidive-game --scene res://tests/meta/MetaGoalServiceTest.tscn
       - name: Run procedural audio contract tests
-        run: ./godot --headless --path infinidive-game --scene res://tests/audio/ProceduralAudioTest.tscn
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite audio -- ./godot --headless --path infinidive-game --scene res://tests/audio/ProceduralAudioTest.tscn
+      - name: Run bounded structural soak smoke
+        shell: bash
+        run: |
+          bash .github/scripts/run_godot_checked.sh --suite soak -- \
+            ./godot --headless --path infinidive-game --scene res://tests/soak/SoakTest.tscn -- \
+            --duration-seconds=8 --report-stem=soak-ci-8s
+          python3 .github/scripts/validate_soak_report.py \
+            infinidive-game/artifacts/soak-ci-8s.json --minimum-duration=8
+      - name: Verify transactional soak evidence recovery
+        shell: bash
+        run: bash .github/scripts/test_soak_report_transaction.sh ./godot "${RUNNER_TEMP}"
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: infinidive-test-evidence
-          path: infinidive-game/artifacts
+          path: |
+            infinidive-game/artifacts
+            ${{ runner.temp }}/infinidive-test-logs
           if-no-files-found: warn
           retention-days: 14
 
@@ -229,7 +270,7 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
-          enablement: true
+          token: ${{ github.token }}
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

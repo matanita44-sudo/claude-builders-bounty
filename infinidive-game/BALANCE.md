@@ -2,7 +2,9 @@
 
 > Snapshot: project version 0.1.0 on 2026-09-01. Values below describe current code and JSON data. They are not playtest conclusions, retention claims or final launch tuning.
 
-The latest current-working-tree automated logic evidence is 6,462 assertions with zero failures across the 2,538-assertion main suite and seven focused suites. That coverage verifies configured formulas and effect contracts—including telegraph-avoidance qualification, rate-limited combat cues, and seven degraded/five disabled organ-loss behaviors—but it does not substitute for human balance, comprehension, audio-mix, or device-performance testing.
+The final frozen local matrix is 28,410 assertions with zero failures across 13 suites: main 2,631; backend/offline 82; permanent upgrades 120; tutorial 198; room mechanics 3,541; pure compiler 15,515; pure defender effects 354; live defender effects 212; projectile travel 685; live integration 4,131; organ transformations 325; meta goals 111; and adaptive audio 505. Editor import and every suite passed the strict wrapper with zero error lines. Production and tests/CI inventories are fingerprinted as `8e9810de2615332713f86f47bf2f28f38728fb75e51ea5bfaf2d16760927d863` and `db398ae7804cf75e6741e13380993f9425d42b3e44de8da62631f159595f1597`. That coverage verifies configured formulas and effect contracts—including telegraph-avoidance qualification, rate-limited combat cues, and seven degraded/five disabled organ-loss behaviors—but it does not substitute for human balance, comprehension, audio-mix, or device-performance testing.
+
+The six room-runtime suites contribute 24,438/0. Their mechanics coverage includes a twelve-profile defender minimum-TTK audit with zero failures. The compiler/travel/live coverage also verifies lane-topology bounds, full frozen preview contracts, actual-homing suppression without trajectory straightening, 30/60/120 Hz player-homing parity, swept collision before retirement in first-contact order, nonlinear/homing subsegments when safe-zone metadata is absent, terminal first-arena-exit behavior under the exact `16/3s` node-link hitch, compiler-signed owner/cycle isolation, and exact cleanup. These checks prove the named formulas and bounded execution paths, not final human tuning.
 
 ## Runtime conventions
 
@@ -42,6 +44,11 @@ The PlayerController class has a 0.34s property default for dash invulnerability
 |---|---:|
 | Player projectiles | 190 |
 | Enemy projectiles | 350 |
+| Compiled room hazards per event | 12 |
+| Compiled room projectiles per event | 32 |
+| Compiled active room projectiles | 48 |
+| Compiled defenders per event | 8 |
+| Compiled active room defenders | 12 |
 
 Projectiles use segment-to-circle collision, lifetime expiry and dictionary reuse through free pools. A player projectile loses 10% damage after each successful pierce.
 
@@ -124,31 +131,33 @@ One attack is telegraphed at a time, although existing projectiles can overlap l
 | Halo Barrier / False Weakpoints | 10 | Rotating 16-slot ring at 225px/s with omitted slots |
 | Basic Rupture | 9 | 14-shot radial ring at 205px/s with a gap |
 
-The boss organ map removes an ability completely after its organ is destroyed. Catalog prose that says an ability merely slows, widens or loses one beam does not match current runtime behavior.
+Destroying an organ always removes its intact exterior ability. Seven loss contracts replace it with a safer authored `aimed_fan`, `ring`, or `lane` variant, while five seal the system completely; the replacement values and human organ-order balance still require playtesting.
 
 ## Internal combat
 
-| Parameter | Current value |
-|---|---:|
-| Defender HP | 90 × difficulty HP multiplier |
-| Defender projectile damage | 8 × difficulty damage multiplier |
-| Defender projectile speed | 215 × difficulty projectile-speed multiplier |
-| Defender fire delay | Random 1.5–2.5s after each shot |
-| Grid/wall/lane hazard damage | 10 × difficulty damage multiplier |
-| Suction/vortex/pulse hazard damage | 10 × difficulty damage multiplier |
-| Other internal pattern damage | 9 × difficulty damage multiplier |
+`RoomMechanics` derives effective cadence as the greater of the density-adjusted authored cadence and `telegraph + active + 0.08s`. The previous safe pocket is held through `clear_at`; movement to the next pocket occurs during its telegraph; and the next telegraph cannot overlap the prior damaging window. The broad schedule proof covered 42 rooms × 265 deterministic seeds with zero failures: the smallest observed `next.telegraph_at - prior.clear_at` was 0.080s, and the smallest `exit.opens_at - last.clear_at` margin was 0.0166s. Timing is seed-invariant because RNG changes geometry and event identity after the timing values are derived.
 
-Room population:
+Compiled room projectiles use the event's active duration as their effective lifetime, including any bounded delayed emission. Base authored speed ranges from 150 to 250px/s before density, difficulty, and travel-model parameters. `ProjectilePool` advances seven accepted travel IDs: `linear`, `delayed_linear`, `soft_homing`, `expanding`, `node_link`, `lunge`, and `recorded_path`; the latter four have distinct radius, transverse, staged-speed, or authored-path behavior rather than scalar speed substitutions. The compiler freezes telegraphed player snapshots and deliberately excludes the protected pocket from targeting; `falling_cells` and `falling_acid` remain lane-targeted gravity-drop profiles. Before a warning becomes live, `RunScene` builds and validates every projectile preview from that frozen snapshot and signs the complete preview set into the execution digest. A missing, changed, non-finite, or incomplete preview rejects the whole event before it can emit damage or visual state.
 
-| Room type | Defenders spawned |
-|---|---:|
-| Entrance | 1 |
-| Traversal | 1 |
-| Combat | 4 |
-| Hazard | 2 |
-| Organ chamber | 2 |
+The frozen 685-assertion travel suite directly exercises all seven accepted travel IDs at 30/60 Hz and player homing at 30/60/120 Hz. It verifies delayed-linear parity, moving-target soft-homing position/velocity parity, distinct expanding/node-link/lunge/recorded-path behavior, authored downward vectors, full-live-radius safe-disk clearance, swept collision before lifetime/bounds retirement, physical first-contact ordering, ownership, cleanup, four 350-projectile pool-reuse cycles, and bounded malformed fallback. Nonlinear and homing motion records swept subsegments even without safe-zone metadata, so collision follows the simulated curve rather than a fabricated chord. The first arena exit is terminal for recorded paths and the exact `16/3s` node-link hitch, while a true hit before that exit remains valid. It is model-contract evidence, not a human balance result.
 
-Non-chamber rooms advance when their authored duration expires; killing defenders is not required. Organ chambers end only when organ HP reaches zero.
+Room hazards/projectiles carry base damage 10 before the selected difficulty damage multiplier. Force-field motifs push at 82px/s only outside the published safe pocket. Structural shapes and projectiles expire or clear at the transient event boundary; delayed emissions are cancelled there.
+
+Ten defender archetypes appear across twelve defender-producing spawn profiles. They use separate actor ownership from the transient damaging wave: normal actors receive 3.20s to resolve and armored actors 4.00s, without extending the emitter into the next corridor.
+
+| Health class | Deep HP | Collision radius | Actor window |
+|---|---:|---:|---:|
+| Swarm | 52.2 | 10px | 3.20s |
+| Light | 70.2 | 13px | 3.20s |
+| Medium | 90.0 | 15px | 3.20s |
+| Armored | 133.2 | 19px | 4.00s |
+| Decoy | 61.2 | 14px | 3.20s |
+
+The minimum-TTK audit is deliberately optimistic—stationary target, perfect aim, first shot ready, and projectile travel included—so it is a feasibility guard rather than a difficulty result. The worst event-level best-weapon value was 0.719s for `cover_drone` against its 4.00s window; Pulse Needle's worst audited value was 0.943s against the same window. No defender profile exceeded its actor window.
+
+Killing a defender can create bounded tactical effects tied to its archetype: interrupt/cancel an owned volley, mark its paired target, create temporary projectile cover, disable tracking, silence an emitter, break a link, suppress a hatch, disrupt an echo, or reveal/remove false targets. Immediate operations remain compiler-signed source-wave scoped; effects intended to influence a successor pulse remain confined to the same room/cycle/archetype lineage. Tracking suppression clears already-live owned projectiles whose actual homing value is positive and suppresses matching pending/future homing emissions. It deliberately does not straighten them, because replacing a previewed curve with a new line could create a different untelegraphed hazard; non-homing projectiles and foreign-owned homing projectiles survive.
+
+Non-chamber rooms still advance when their authored duration expires; killing defenders is not required. Organ chambers end only when organ HP reaches zero. Automated corridor/TTK checks do not establish human readability, comfortable target switching, or final room pacing.
 
 ## Economy
 
@@ -258,10 +267,9 @@ Offer behavior is uniform random selection from unselected IDs. Archetype and ta
 - Rift Dividend now has a live victory-payout consumer in Daily/Friend while all combat-affecting permanent stats remain normalized; its economy impact is not human-balanced.
 - Mutation and upgrade effect tests do not establish balanced values, comfortable control feel, or safe interactions across all build combinations.
 - Void Orbitals combines regular projectile DPS, contact DPS and bullet removal.
-- Rail Spine resolves at most one collision per projectile per physics step, so a fast shot can skip additional collinear targets crossed in that step.
 - Bio-Matter pickups are bounded lightweight dictionaries rather than a formal reusable object pool.
 - Boss attack identity is partly shared through common pattern families.
-- Forty-two room contracts execute warning, safe-gap, active-window, maximum-active and cleanup bounds, but collapse to three broad presentation geometries with one generic defender. Named pattern/movement identities and human reachability are not proven.
+- Forty-two room contracts now execute named structural/projectile/movement profiles, ten defender archetypes, and scoped kill effects under bounded warning, safe-gap, active-window, ownership, cap, and cleanup rules. Human readability, target selection, perceived variety, reachability, and final pacing are still unproven on browsers or devices.
 - All difficulty levels are selectable immediately.
 - No playtest telemetry, weapon win rates, organ-order win rates or completion-rate data exists yet.
 - Friend Rift score/time targets are encoded, evaluated against the final result, and shown as met/missed. Modifier arrays are encoded but do not currently alter scoring or rules.

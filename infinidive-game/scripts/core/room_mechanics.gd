@@ -38,14 +38,18 @@ static func build_contract(room: Dictionary, challenge_seed: int) -> Dictionary:
 
 	var duration := float(room.get("duration", 0.0))
 	var density := int(room.get("density", 0))
-	var cadence := maxf(float(profile.cadence) * (1.0 - 0.055 * float(density - 1)), 0.58)
-	var telegraph := minf(float(profile.telegraph), cadence * 0.72)
-	var active_seconds := minf(float(profile.active_seconds), cadence - 0.08)
+	var density_cadence := maxf(float(profile.cadence) * (1.0 - 0.055 * float(density - 1)), 0.58)
+	var telegraph := minf(float(profile.telegraph), density_cadence * 0.72)
+	var active_seconds := maxf(0.18, float(profile.active_seconds))
+	# A published safe pocket remains authoritative until its damaging window
+	# closes. The next telegraph starts only after that boundary, leaving a
+	# visible reaction window before the next pocket becomes mandatory.
+	var cadence := maxf(density_cadence, telegraph + active_seconds + 0.08)
 	var exit_transition := clampf(maxf(cadence, 0.72), 0.72, minf(1.35, duration * 0.18))
 	var runtime_seed := _combined_seed(challenge_seed, "%s|%s" % [String(room.id), hazard])
 	var rng := RandomNumberGenerator.new()
 	rng.seed = runtime_seed
-	var schedule_result := _build_schedule(profile, duration, density, cadence, telegraph, exit_transition, rng)
+	var schedule_result := _build_schedule(profile, duration, density, cadence, telegraph, active_seconds, exit_transition, rng)
 	var contract := {
 		"valid": true,
 		"version": 1,
@@ -211,17 +215,27 @@ static func validate_contract(contract: Dictionary) -> PackedStringArray:
 	var events := contract.get("events", []) as Array
 	if events.is_empty():
 		errors.append("Hazard schedule must contain at least one event")
+	var prior_clear_at := -1.0
 	for raw_event in events:
 		var event := raw_event as Dictionary
-		if float(event.get("telegraph_at", -1.0)) < 0.0 or float(event.get("active_at", -1.0)) <= float(event.get("telegraph_at", -1.0)):
+		var telegraph_at := float(event.get("telegraph_at", -1.0))
+		var active_at := float(event.get("active_at", -1.0))
+		var clear_at := float(event.get("clear_at", -1.0))
+		if telegraph_at < 0.0 or active_at <= telegraph_at or clear_at <= active_at or clear_at > duration + 0.001:
 			errors.append("Hazard event has no usable telegraph window")
+			break
+		if prior_clear_at >= 0.0 and telegraph_at < prior_clear_at + 0.039:
+			errors.append("Hazard telegraphs overlap the prior damaging window")
 			break
 		if (event.get("safe_position", []) as Array).size() != 2:
 			errors.append("Hazard event has no safe position")
 			break
+		prior_clear_at = clear_at
 	var exit := contract.get("exit", {}) as Dictionary
 	if String(exit.get("kind", "")) != "forward" or float(exit.get("width_normalized", 0.0)) < MIN_EXIT_WIDTH:
 		errors.append("Room exit is missing or can form a dead end")
+	if prior_clear_at > float(exit.get("opens_at", -1.0)) + 0.001:
+		errors.append("Room exit opens before the final damaging window clears")
 	var exit_position := exit.get("normalized_position", []) as Array
 	if exit_position.size() != 2 or not _inside_arena(exit_position):
 		errors.append("Room exit position is invalid")
@@ -304,7 +318,7 @@ static func _validate_room_metadata(room: Dictionary, profile: Dictionary) -> Pa
 	return errors
 
 
-static func _build_schedule(profile: Dictionary, duration: float, density: int, cadence: float, telegraph: float, exit_transition: float, rng: RandomNumberGenerator) -> Dictionary:
+static func _build_schedule(profile: Dictionary, duration: float, density: int, cadence: float, telegraph: float, active_seconds: float, exit_transition: float, rng: RandomNumberGenerator) -> Dictionary:
 	var events: Array[Dictionary] = []
 	var safe_path: Array[Dictionary] = [{"time": 0.0, "position": ENTRY_POINT.duplicate(), "clearance": float(profile.safe_clearance)}]
 	var lane_count := int(profile.lane_count)
@@ -313,9 +327,10 @@ static func _build_schedule(profile: Dictionary, duration: float, density: int, 
 	# A half-second preparation window keeps even side pockets and rings within
 	# the published normalized movement-speed ceiling.
 	var event_time := maxf(float(profile.initial_delay), telegraph + 0.50)
-	var active_end := maxf(event_time + 0.01, duration - exit_transition)
+	var last_activation_at := maxf(event_time, duration - exit_transition - active_seconds)
 	var event_index := 0
-	while event_time < active_end - 0.001:
+	var held_safe_position: Array = ENTRY_POINT.duplicate()
+	while event_time <= last_activation_at + 0.001:
 		safe_lane = _next_safe_lane(safe_lane, lane_count, rng, event_index)
 		var safe_position := _safe_position(profile, safe_lane, event_index, event_time, duration, rng)
 		var hazard_lanes: Array[int] = []
@@ -327,7 +342,7 @@ static func _build_schedule(profile: Dictionary, duration: float, density: int, 
 			"index": event_index,
 			"telegraph_at": telegraph_at,
 			"active_at": event_time,
-			"clear_at": minf(duration, event_time + float(profile.active_seconds)),
+			"clear_at": event_time + active_seconds,
 			"safe_lane": safe_lane,
 			"safe_position": safe_position,
 			"hazard_lanes": hazard_lanes,
@@ -336,13 +351,20 @@ static func _build_schedule(profile: Dictionary, duration: float, density: int, 
 			"event_seed": int(rng.randi()) & 0x7FFFFFFF,
 		}
 		events.append(event)
-		_append_waypoint(safe_path, maxf(0.05, telegraph_at), safe_position, float(profile.safe_clearance))
+		# Hold the previously published pocket until the next warning appears,
+		# traverse during that warning, then remain in the new pocket until the
+		# exact damage boundary. This is both player-readable and bot-reachable.
+		_append_waypoint(safe_path, maxf(0.05, telegraph_at), held_safe_position, float(profile.safe_clearance))
+		_append_waypoint(safe_path, event_time, safe_position, float(profile.safe_clearance))
+		_append_waypoint(safe_path, event_time + active_seconds, safe_position, float(profile.safe_clearance))
+		held_safe_position = safe_position.duplicate()
 		event_time += cadence
 		event_index += 1
 	var exit_opens := maxf(0.0, duration - exit_transition)
 	var last_position: Array = (safe_path[-1] as Dictionary).position
 	var staging_position := [clampf(float(last_position[0]), 0.35, 0.65), 0.18]
-	_append_waypoint(safe_path, maxf(float((safe_path[-1] as Dictionary).time) + 0.05, exit_opens), staging_position, float(profile.safe_clearance))
+	_append_waypoint(safe_path, maxf(float((safe_path[-1] as Dictionary).time) + 0.05, exit_opens), last_position, float(profile.safe_clearance))
+	_append_waypoint(safe_path, maxf(float((safe_path[-1] as Dictionary).time) + 0.05, duration - 0.24), staging_position, float(profile.safe_clearance))
 	_append_waypoint(safe_path, duration, EXIT_POINT.duplicate(), float(profile.safe_clearance))
 	return {"events": events, "safe_path": safe_path}
 

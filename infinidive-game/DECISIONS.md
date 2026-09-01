@@ -77,7 +77,7 @@ Bosses, weapons, mutations, permanent upgrades and internal rooms live in separa
 **Consequences**
 
 - The service loader validates inventory/references; dedicated mutation and permanent-upgrade engines separately enforce complete effect-key contracts.
-- Room profiles have a rich metadata contract whose safety/timing fields are consumed and tested; live visuals still reduce named identities to three broad geometries and one generic defender.
+- Room profiles retain their JSON/mechanics metadata boundary, while a pure runtime compiler maps every declared spawn, projectile, movement, and defender ID to a supported bounded implementation. `RunScene` consumes compiled operations and visual tokens instead of switching on room IDs or reducing them to a generic geometry/defender path.
 - Catalog presence remains distinct from human balance, presentation fidelity, and device validation; BALANCE.md tracks those boundaries.
 
 ## D-006 — Seeded local challenge systems
@@ -217,7 +217,8 @@ Every dive selects one traversal, one combat room, one hazard room and the chose
 **Consequences**
 
 - The catalog meets the 30-module and 12-chamber inventory counts.
-- Forty-two hazard IDs have explicit deterministic contracts. Gameplay consumes full warnings, safe gaps, active durations, projectile lifetimes, spawn counts, maximum-active bounds and wave cleanup, including hitch-safe playback, while presentation still collapses four declared families to three broad geometries. Named pattern/movement identities remain generic.
+- Forty-two hazard IDs have explicit deterministic contracts. A pure versioned compiler expands them into eight runtime categories, six movement models, 42 named spawn profiles, 25 projectile profiles including the structural-only profile, and ten defender archetypes. Gameplay consumes their geometry, collisions, visual tokens, travel behavior, compiler-signed owner/cycle identity, full warnings, safe pockets, active durations, caps, and atomic cleanup. Projectile events also bind a complete frozen travel-preview set into the execution digest before any side effect.
+- The catalog count is no longer represented by a generic shared executor. The remaining validation boundary is human/device readability, reachability, and perceived variety; code-drawn differentiation is not a claim of 42 bespoke art scenes.
 - Room completion is time-based except for the organ chamber.
 
 ## D-015 — No monetization or backend dependency in 0.1.0
@@ -235,7 +236,7 @@ The project contains no ad SDK, billing SDK, login, cloud save, networked leader
 
 **Status:** Implemented for the current headless suite
 
-The repository includes data, organ-order/loss-transformation, challenge-code, mutation, permanent-upgrade, tutorial, localization/settings, analytics-contract, local-backend, room-contract, meta-goal, project-configuration, safe-area, projectile, movement, dash/damage, save-recovery/migration/banking/reset, combined UI progression/relaunch, live combat-audio, and first-core-hook tests. The latest current-working-tree eight-invocation evidence is 6,462 assertions with zero failures: main 2,538; backend/offline 82; upgrades 120; tutorial 198; rooms 2,583; meta goals 111; audio 505; organ transformations 325. The main suite is fail-closed unless it receives `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`.
+The repository includes data, organ-order/loss-transformation, challenge-code, mutation, permanent-upgrade, tutorial, localization/settings, analytics-contract, local-backend, room-contract/compiler/live-integration/defender-effect, projectile-travel, meta-goal, project-configuration, safe-area, projectile, movement, dash/damage, save-recovery/migration/banking/reset, combined UI progression/relaunch, live combat-audio, and first-core-hook tests. The final frozen local matrix is 28,410 assertions with zero failures across 13 invocations: main 2,631; backend/offline 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta goals 111; and audio 505. The six room-runtime invocations contribute 24,438/0. Editor import and every suite passed the strict wrapper with zero error lines; production/tests-CI fingerprints are `8e9810de2615332713f86f47bf2f28f38728fb75e51ea5bfaf2d16760927d863` and `db398ae7804cf75e6741e13380993f9425d42b3e44de8da62631f159595f1597`. The main suite is fail-closed unless it receives `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`.
 
 **Consequences**
 
@@ -251,4 +252,47 @@ The project version remains 0.1.0 because the current source is a playable devel
 **Consequences**
 
 - Catalog counts may meet planned inventory numbers without implying every item is production-complete.
-- Public deployment, production-signed native artifacts, final store-media approval, and submission require separate evidence; current reconciled-tree outputs are structural development evidence only.
+- Public deployment, production-signed native artifacts, final store-media approval, and submission require separate evidence; final Web/Android outputs are structural development evidence only, while iOS has a current-source PCK inside a retained unsigned scaffold rather than a regenerated native project.
+
+## D-018 — Pure room-plan compilation with split runtime ownership
+
+**Status:** Implemented in the current pre-alpha working tree
+
+`RoomMechanics` remains the source of schedule and safe-path contracts. The side-effect-free `RoomPatternRuntime` compiler validates and converts those contracts into deterministic normalized plans; `RunScene` executes only validated plan data. Transient motifs, projectiles, and pending emissions use a short source-wave owner, while defenders use a separate bounded actor owner and intentional cross-pulse effects use a deterministic room/cycle/archetype lineage.
+
+**Why**
+
+- Authored room IDs need real mechanical identities without adding another large room-ID conditional block to `RunScene`.
+- A published safe pocket must remain authoritative for the complete damaging interval, including delayed emission and hitch stepping.
+- Defenders need enough time to be meaningfully targetable without keeping an old projectile corridor alive into the next telegraph.
+- Kill effects such as cover, link break, hatch suppression, and echo disruption sometimes need to affect a successor pulse, but must never leak into another room, cycle, or archetype.
+
+**Consequences**
+
+- The schedule holds the previous pocket through `clear_at`, allows movement during the next telegraph, and validates that the final damage window clears before the forward exit opens.
+- Compiler caps bound events, geometry, per-event projectiles, active projectiles, per-event defenders, and active defenders; unsupported or malformed inputs fail closed.
+- Runtime telegraph data freezes the player snapshot and bounded recent input history used by tracking/replay profiles. The complete bounded projectile preview is validated and signed into the execution payload before any visual or damaging side effect; delayed specs are digest-checked and filtered again at actual spawn.
+- Structural drawing and swept collision derive from the same compiled collision record. Room projectiles preserve source-wave and effect-lineage metadata through the shared pool.
+- Nonlinear and homing projectile collision follows ordered simulated subsegments with per-segment radii even when no safe-zone metadata is present, avoiding both missed curve hits and fabricated straight-chord hits under hitch deltas.
+- The first arena exit is terminal for a projectile step. Later authored curve points cannot re-enter and collide during the same hitch; collision before that first boundary crossing remains valid.
+- Immediate cleanup remains compiler-signed source-wave/cycle scoped; same-lineage successor state is idempotent and time-bounded; room/cycle transitions clear all remaining owned state. Tracking suppression removes actual-homing owned threats and matching pending/future specs instead of changing a previewed curve into an untelegraphed straight path.
+- Automated compiler/runtime/travel/effect evidence does not replace physical-device or human playability testing.
+
+## D-019 — Exact, inventory-driven CI test execution
+
+**Status:** Implemented in the current workflow
+
+Every Godot test scene is discovered and reconciled with a version-controlled manifest. The manifest classifies 13 standalone suites, the process-relaunch scene as a nested probe, and the structural soak separately. Each runnable scene uses an isolated data root and an exact expected sentinel/assertion count.
+
+**Why**
+
+- Godot can emit a script or parse error while a surrounding test process still exits zero or prints a stale-looking pass summary.
+- A newly added test scene must not remain silently outside CI.
+- A soak command is not evidence unless its report exists and proves the requested projectile models actually executed.
+
+**Consequences**
+
+- Process failure, any engine `ERROR`, `SCRIPT ERROR`, parse error, missing/duplicated sentinel, assertion-count drift, stale/missing inventory, or invalid/missing soak report pair fails the workflow. The frozen editor-plus-suite pass contained zero error lines; no suite has an error allowlist.
+- Soak evidence is a JSON/Markdown transaction. Both outputs stage before commit, validate the complete schema, bind the exact Markdown SHA-256 into JSON, and restore the prior complete pair symmetrically if either side fails. Positive fractional durations are valid; source drift persists as a validated diagnostic `FAIL`. Failure injection covers JSON and Markdown open/write, staged verification, first/second commit, truncated/mixed pairs, fractional duration, and persisted source-change diagnostics.
+- The CI validator self-tests `PASS`, diagnostic, malformed, and missing report pairs; requires exact result/transaction/bound-hash parity; requires all seven travel-model requested counts to equal executed counts; and rejects incomplete evidence.
+- This hardening improves automated evidence integrity; it does not turn headless results into browser, device, or human-play evidence.

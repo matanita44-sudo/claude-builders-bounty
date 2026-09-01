@@ -14,6 +14,8 @@ const MAX_FAILURE_RECORDS := 200
 var requested_duration_seconds := DEFAULT_DURATION_SECONDS
 var deterministic_seed := 0x1F1D1E
 var report_stem := "soak-30m"
+var report_self_test := ""
+var cleanup_failure_injected := false
 var started_ms := 0
 var started_at_utc := ""
 var finished_at_utc := ""
@@ -25,6 +27,8 @@ var dive_transitions := 0
 var projectile_cycles := 0
 var player_projectiles_spawned := 0
 var enemy_projectiles_spawned := 0
+var projectile_models_requested: Dictionary = {}
+var projectile_models_executed: Dictionary = {}
 var save_writes := 0
 var save_reloads := 0
 var offline_events_queued := 0
@@ -94,10 +98,13 @@ func _run() -> void:
 	var elapsed := _elapsed_seconds()
 	finished_at_utc = Time.get_datetime_string_from_system(true)
 	source_fingerprint_end = _source_fingerprint()
+	if report_self_test=="source_change":
+		source_fingerprint_end=("injected-source-change|%s" % source_fingerprint_start).sha256_text()
 	if source_fingerprint_end != source_fingerprint_start:
 		_record_failure("source_changed_during_run", "Production source fingerprint changed while the soak process was active")
 	_capture_metrics(elapsed)
 	_validate_offline_queue_final()
+	_validate_projectile_model_coverage()
 	var memory_analysis := _analyze_memory(elapsed)
 	if elapsed >= 600.0 and float(memory_analysis.slope_bytes_per_minute) > MEMORY_SLOPE_LIMIT_BYTES_PER_MINUTE and float(memory_analysis.stable_delta_bytes) > MEMORY_DELTA_LIMIT_BYTES:
 		_record_failure(
@@ -131,6 +138,8 @@ func _parse_arguments() -> void:
 			report_stem = argument.trim_prefix("--report-stem=").validate_filename()
 	if report_stem.is_empty():
 		report_stem = "soak-report"
+	if OS.get_environment("INFINIDIVE_SOAK_SELF_TEST")=="1":
+		report_self_test=OS.get_environment("INFINIDIVE_SOAK_REPORT_SELF_TEST")
 	rng.seed = deterministic_seed
 
 func _prepare_isolated_state() -> void:
@@ -138,7 +147,10 @@ func _prepare_isolated_state() -> void:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	SaveManager.profile = SaveManager.default_profile()
-	SaveManager.save_profile()
+	if SaveManager.save_profile():
+		save_writes += 1
+	else:
+		_record_failure("save_initial_write", "Initial isolated save could not be written")
 	SettingsManager.values = SaveManager.profile.settings.duplicate(true)
 	SettingsManager.values.analytics_opt_in = true
 	SaveManager.profile.settings = SettingsManager.values.duplicate(true)
@@ -170,7 +182,22 @@ func _stress_projectile_pool(iteration: int) -> void:
 	for projectile_index in enemy_count:
 		var x := 30.0 + float((projectile_index * 29 + iteration * 7) % 480)
 		var speed := 150.0 + float(projectile_index % 7) * 25.0
-		enemy_spawn_ok = projectile_pool.spawn_enemy(Vector2(x,180),Vector2(0,speed),8.0,{"life":3.0}) and enemy_spawn_ok
+		var origin := Vector2(x,180)
+		var travel_model := String(ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS[(projectile_index+iteration)%ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS.size()])
+		var options := _soak_enemy_projectile_options(travel_model,origin)
+		projectile_models_requested[travel_model]=int(projectile_models_requested.get(travel_model,0))+1
+		var spawned := projectile_pool.spawn_enemy(origin,Vector2(0,speed),8.0,options)
+		enemy_spawn_ok = spawned and enemy_spawn_ok
+		if spawned:
+			var spawned_bullet: Dictionary = projectile_pool.enemy_active[-1]
+			var executed_model := String(spawned_bullet.get("travel_model",""))
+			projectile_models_executed[executed_model]=int(projectile_models_executed.get(executed_model,0))+1
+			if executed_model!=travel_model:
+				_record_failure(
+					"projectile_model_fallback",
+					"Requested travel model %s but spawned canonical model %s at iteration %d projectile %d"
+					% [travel_model,executed_model,iteration,projectile_index]
+				)
 	if not player_spawn_ok or not enemy_spawn_ok:
 		_record_failure("projectile_capacity", "Expected projectile allocation failed at iteration %d" % iteration)
 	player_projectiles_spawned += player_count
@@ -181,17 +208,56 @@ func _stress_projectile_pool(iteration: int) -> void:
 	if use_full_capacity:
 		if projectile_pool.spawn_player(Vector2.ZERO,Vector2.ZERO,1.0) or projectile_pool.spawn_enemy(Vector2.ZERO,Vector2.ZERO,1.0):
 			_record_failure("projectile_overflow", "Projectile hard cap accepted an overflow allocation")
-	projectile_pool.step(
-		1.0/60.0,
-		[{"id":"soak_target","position":Vector2(270,220),"radius":42.0}],
-		Vector2(270,790),12.0
-	)
+	for update_index in 4:
+		projectile_pool.step(
+			1.0/60.0,
+			[{"id":"soak_target","position":Vector2(270,220),"radius":42.0}],
+			Vector2(270+sin(float(iteration*4+update_index)*0.11)*72.0,790),12.0
+		)
 	projectile_pool.clear_all()
 	projectile_cycles += 1
 	if not projectile_pool.player_active.is_empty() or not projectile_pool.enemy_active.is_empty():
 		_record_failure("projectile_clear", "Active projectile survived clear_all at iteration %d" % iteration)
 	if use_full_capacity and (projectile_pool._player_free.size() != ProjectilePoolClass.MAX_PLAYER or projectile_pool._enemy_free.size() != ProjectilePoolClass.MAX_ENEMY):
 		_record_failure("projectile_reuse", "Full projectile capacity was not returned to reusable pools")
+
+
+func _soak_enemy_projectile_options(travel_model: String, origin: Vector2) -> Dictionary:
+	var options := {"life":3.0,"travel_model":travel_model}
+	match travel_model:
+		ProjectilePoolClass.TRAVEL_SOFT_HOMING:
+			# This production-faithful pairing exercises homing and protected-disk
+			# avoidance together instead of treating them as separate code paths.
+			options.homing=1.55
+			options.safe_position=Vector2(270,210)
+			options.safe_radius=54.0
+		ProjectilePoolClass.TRAVEL_EXPANDING:
+			options.travel_parameters={"expansion_rate":24.0,"expansion_max_scale":3.0}
+		ProjectilePoolClass.TRAVEL_NODE_LINK:
+			options.travel_parameters={"link_amplitude":12.0,"link_frequency_hz":2.1}
+		ProjectilePoolClass.TRAVEL_LUNGE:
+			options.travel_parameters={"windup_seconds":0.12,"burst_seconds":0.24,"burst_multiplier":2.5}
+		ProjectilePoolClass.TRAVEL_RECORDED_PATH:
+			options.travel_parameters={
+				"path_duration":0.7,
+				"path_points":[origin,origin+Vector2(-18,30),origin+Vector2(22,68),origin+Vector2(0,112)],
+				"path_exit_velocity":Vector2(0,190),
+			}
+	return options
+
+
+func _validate_projectile_model_coverage() -> void:
+	for travel_model in ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS:
+		var canonical_model := String(travel_model)
+		if int(projectile_models_executed.get(canonical_model,0))<=0:
+			_record_failure("projectile_model_coverage", "Travel model %s was not exercised" % String(travel_model))
+		if int(projectile_models_requested.get(canonical_model,0))!=int(projectile_models_executed.get(canonical_model,0)):
+			_record_failure(
+				"projectile_model_count_mismatch",
+				"Travel model %s requested %d spawns but executed %d"
+				% [canonical_model,int(projectile_models_requested.get(canonical_model,0)),int(projectile_models_executed.get(canonical_model,0))]
+			)
+
 
 func _stress_boss_restart_and_dive(iteration: int) -> void:
 	var boss_index := boss_restarts % GameData.bosses.size()
@@ -376,11 +442,101 @@ func _analyze_memory(elapsed: float) -> Dictionary:
 	}
 
 func _write_reports(elapsed: float, memory_analysis: Dictionary) -> void:
-	var artifacts := DirAccess.open("res://")
-	if artifacts and not artifacts.dir_exists("artifacts"):
-		artifacts.make_dir("artifacts")
-	var report := {
+	var artifacts_path := ProjectSettings.globalize_path("res://artifacts")
+	if not DirAccess.dir_exists_absolute(artifacts_path):
+		var directory_error := DirAccess.make_dir_absolute(artifacts_path)
+		if directory_error!=OK:
+			_record_failure("report_directory", "Could not create report directory: error %d" % directory_error)
+			return
+	var json_path := "res://artifacts/%s.json" % report_stem
+	var markdown_path := "res://artifacts/%s.md" % report_stem
+	var json_temporary_path := "%s.next" % json_path
+	var markdown_temporary_path := "%s.next" % markdown_path
+	var json_backup_path := "%s.previous" % json_path
+	var markdown_backup_path := "%s.previous" % markdown_path
+	_recover_interrupted_report_pair(json_path,markdown_path,json_backup_path,markdown_backup_path)
+	_remove_report_file(json_temporary_path)
+	_remove_report_file(markdown_temporary_path)
+	var transaction_id := (
+		"%s|%d|%d|%s" % [started_at_utc,deterministic_seed,Time.get_ticks_usec(),report_stem]
+	).sha256_text().left(24)
+
+	# Open both destinations before writing either report so an unavailable peer
+	# cannot disturb an already-valid final pair.
+	var json_file: FileAccess = null
+	if report_self_test=="json_open":
+		_record_failure("report_json_open", "Self-test simulated unavailable JSON report")
+	else:
+		json_file=FileAccess.open(json_temporary_path,FileAccess.WRITE)
+	if json_file==null and report_self_test!="json_open":
+		_record_failure("report_json_open", "Could not open JSON report: error %d" % FileAccess.get_open_error())
+	var markdown_file: FileAccess = null
+	if report_self_test=="markdown_open":
+		_record_failure("report_markdown_open", "Self-test simulated unavailable Markdown report")
+	else:
+		markdown_file=FileAccess.open(markdown_temporary_path,FileAccess.WRITE)
+	if markdown_file==null and report_self_test!="markdown_open":
+		_record_failure("report_markdown_open", "Could not open Markdown report: error %d" % FileAccess.get_open_error())
+
+	if json_file==null or markdown_file==null:
+		if json_file!=null:
+			json_file.close()
+		if markdown_file!=null:
+			markdown_file.close()
+		_remove_report_file(json_temporary_path)
+		_remove_report_file(markdown_temporary_path)
+		return
+	if report_self_test in ["json_write","markdown_write"]:
+		_record_failure("report_%s" % report_self_test, "Self-test simulated report write/flush failure")
+		json_file.close()
+		markdown_file.close()
+		_remove_report_file(json_temporary_path)
+		_remove_report_file(markdown_temporary_path)
+		return
+
+	var markdown_body := _build_markdown_report(elapsed,memory_analysis,transaction_id)
+	var markdown_sha256 := markdown_body.sha256_text()
+	var report := _build_json_report(elapsed,memory_analysis,transaction_id,markdown_sha256,false)
+	json_file.store_string(JSON.stringify(report,"\t"))
+	json_file.flush()
+	var json_error := json_file.get_error()
+	var json_length := json_file.get_length()
+	json_file.close()
+	markdown_file.store_string(markdown_body)
+	markdown_file.flush()
+	var markdown_error := markdown_file.get_error()
+	var markdown_length := markdown_file.get_length()
+	markdown_file.close()
+	if json_error!=OK or json_length<=0:
+		_record_failure("report_json_write", "JSON report write/flush failed: error %d bytes %d" % [json_error,json_length])
+		_remove_report_file(json_temporary_path)
+		_remove_report_file(markdown_temporary_path)
+		return
+	if markdown_error!=OK or markdown_length<=0:
+		_record_failure("report_markdown_write", "Markdown report write/flush failed: error %d bytes %d" % [markdown_error,markdown_length])
+		_remove_report_file(json_temporary_path)
+		_remove_report_file(markdown_temporary_path)
+		return
+	if report_self_test=="pair_verify" or not _report_pair_is_valid(
+		json_temporary_path,markdown_temporary_path,transaction_id,failures.is_empty(),false
+	):
+		_record_failure("report_pair_verify", "Self-test or validation rejected the staged report pair")
+		_remove_report_file(json_temporary_path)
+		_remove_report_file(markdown_temporary_path)
+		return
+	_commit_report_pair(
+		json_temporary_path,markdown_temporary_path,
+		json_path,markdown_path,json_backup_path,markdown_backup_path,
+		transaction_id,elapsed,memory_analysis
+	)
+
+
+func _build_json_report(elapsed: float, memory_analysis: Dictionary, transaction_id: String, markdown_sha256: String, transaction_complete: bool) -> Dictionary:
+	return {
 		"schema":1,
+		"report_transaction_id":transaction_id,
+		"report_markdown_sha256":markdown_sha256,
+		"report_transaction_complete":transaction_complete,
 		"passed":failures.is_empty(),
 		"requested_duration_seconds":requested_duration_seconds,
 		"elapsed_wall_seconds":elapsed,
@@ -398,6 +554,9 @@ func _write_reports(elapsed: float, memory_analysis: Dictionary) -> void:
 			"boss_restarts":boss_restarts,
 			"dive_transitions":dive_transitions,
 			"projectile_cycles":projectile_cycles,
+			"projectile_model_steps":projectile_models_executed.duplicate(true),
+			"projectile_models_requested":projectile_models_requested.duplicate(true),
+			"projectile_models_executed":projectile_models_executed.duplicate(true),
 			"player_projectiles_spawned":player_projectiles_spawned,
 			"enemy_projectiles_spawned":enemy_projectiles_spawned,
 			"save_writes":save_writes,
@@ -424,43 +583,535 @@ func _write_reports(elapsed: float, memory_analysis: Dictionary) -> void:
 		"failures":failures,
 		"memory_samples":memory_samples
 	}
-	var json_file := FileAccess.open("res://artifacts/%s.json" % report_stem,FileAccess.WRITE)
-	if json_file:
-		json_file.store_string(JSON.stringify(report,"\t"))
-	var markdown_file := FileAccess.open("res://artifacts/%s.md" % report_stem,FileAccess.WRITE)
-	if markdown_file:
-		var memory_slope_mb := float(memory_analysis.get("slope_bytes_per_minute",0.0))/1048576.0
-		var memory_delta_mb := float(memory_analysis.get("stable_delta_bytes",0.0))/1048576.0
-		var memory_peak_mb := float(memory_analysis.get("peak_bytes",0.0))/1048576.0
-		var body := "# INFINIDIVE Headless Soak Report\n\n"
-		body += "- Result: **%s**\n" % ("PASS" if failures.is_empty() else "FAIL")
-		body += "- Requested wall time: `%.2f seconds`\n" % requested_duration_seconds
-		body += "- Actual wall time: `%.2f seconds`\n" % elapsed
-		body += "- Seed: `%d`\n" % deterministic_seed
-		body += "- Source fingerprint: `%s`\n" % source_fingerprint_start
-		body += "- Source changed during run: `%s`\n" % str(source_fingerprint_start != source_fingerprint_end)
-		body += "- Environment: Godot `%s`, display server `%s`\n" % [String(Engine.get_version_info().string),DisplayServer.get_name()]
-		body += "- Scope: Linux Godot headless structural stability only; this is not physical-device performance evidence.\n\n"
-		body += "| Metric | Value |\n|---|---:|\n"
-		body += "| Iterations | %d |\n" % iterations
-		body += "| Boss restarts | %d |\n" % boss_restarts
-		body += "| Dive transitions | %d |\n" % dive_transitions
-		body += "| Projectile pressure cycles | %d |\n" % projectile_cycles
-		body += "| Player projectiles spawned | %d |\n" % player_projectiles_spawned
-		body += "| Enemy projectiles spawned | %d |\n" % enemy_projectiles_spawned
-		body += "| Peak simultaneous projectiles | %d |\n" % peak_total_projectiles
-		body += "| Save writes / reloads | %d / %d |\n" % [save_writes,save_reloads]
-		body += "| Offline events / reloads | %d / %d |\n" % [offline_events_queued,offline_queue_reloads]
-		body += "| Peak objects / nodes / orphan nodes | %d / %d / %d |\n" % [peak_object_count,peak_node_count,peak_orphan_node_count]
-		body += "| Peak static memory | %.2f MB |\n" % memory_peak_mb
-		body += "| Post-warm-up memory delta | %.2f MB |\n" % memory_delta_mb
-		body += "| Post-warm-up memory slope | %.3f MB/min |\n" % memory_slope_mb
-		body += "| Failures | %d |\n" % failures.size()
-		if not failures.is_empty():
-			body += "\n## Failures\n\n"
-			for failure in failures:
-				body += "- `%s`: %s\n" % [String(failure.code),String(failure.detail)]
-		markdown_file.store_string(body)
+
+
+func _build_markdown_report(elapsed: float, memory_analysis: Dictionary, transaction_id: String) -> String:
+	var memory_slope_mb := float(memory_analysis.get("slope_bytes_per_minute",0.0))/1048576.0
+	var memory_delta_mb := float(memory_analysis.get("stable_delta_bytes",0.0))/1048576.0
+	var memory_peak_mb := float(memory_analysis.get("peak_bytes",0.0))/1048576.0
+	var body := "# INFINIDIVE Headless Soak Report\n\n"
+	body += "- Result: **%s**\n" % ("PASS" if failures.is_empty() else "FAIL")
+	body += "- Report transaction: `%s`\n" % transaction_id
+	body += "- Requested wall time: `%.2f seconds`\n" % requested_duration_seconds
+	body += "- Actual wall time: `%.2f seconds`\n" % elapsed
+	body += "- Seed: `%d`\n" % deterministic_seed
+	body += "- Source fingerprint: `%s`\n" % source_fingerprint_start
+	body += "- Source changed during run: `%s`\n" % str(source_fingerprint_start != source_fingerprint_end)
+	body += "- Environment: Godot `%s`, display server `%s`\n" % [String(Engine.get_version_info().string),DisplayServer.get_name()]
+	body += "- Scope: Linux Godot headless structural stability only; this is not physical-device performance evidence.\n\n"
+	body += "| Metric | Value |\n|---|---:|\n"
+	body += "| Iterations | %d |\n" % iterations
+	body += "| Boss restarts | %d |\n" % boss_restarts
+	body += "| Dive transitions | %d |\n" % dive_transitions
+	body += "| Projectile pressure cycles | %d |\n" % projectile_cycles
+	body += "| Projectile travel models exercised | %d / %d |\n" % [_executed_projectile_model_coverage(),ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS.size()]
+	body += "| Player projectiles spawned | %d |\n" % player_projectiles_spawned
+	body += "| Enemy projectiles spawned | %d |\n" % enemy_projectiles_spawned
+	body += "| Peak simultaneous projectiles | %d |\n" % peak_total_projectiles
+	body += "| Save writes / reloads | %d / %d |\n" % [save_writes,save_reloads]
+	body += "| Offline events / reloads | %d / %d |\n" % [offline_events_queued,offline_queue_reloads]
+	body += "| Peak objects / nodes / orphan nodes | %d / %d / %d |\n" % [peak_object_count,peak_node_count,peak_orphan_node_count]
+	body += "| Peak static memory | %.2f MB |\n" % memory_peak_mb
+	body += "| Post-warm-up memory delta | %.2f MB |\n" % memory_delta_mb
+	body += "| Post-warm-up memory slope | %.3f MB/min |\n" % memory_slope_mb
+	body += "| Failures | %d |\n" % failures.size()
+	if not failures.is_empty():
+		body += "\n## Failures\n\n"
+		for failure in failures:
+			body += "- `%s`: %s\n" % [String(failure.code),String(failure.detail)]
+	return body
+
+
+func _executed_projectile_model_coverage() -> int:
+	var coverage := 0
+	for travel_model in ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS:
+		if int(projectile_models_executed.get(String(travel_model),0))>0:
+			coverage += 1
+	return coverage
+
+
+func _remove_report_file(path: String) -> bool:
+	if not FileAccess.file_exists(path):
+		return true
+	if report_self_test=="cleanup_failure" and not cleanup_failure_injected and path.ends_with(".md.previous"):
+		cleanup_failure_injected=true
+		_record_failure("report_cleanup_failure", "Self-test simulated failure removing %s" % path)
+		return false
+	var removal_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	if removal_error!=OK:
+		_record_failure("report_cleanup_failure", "Could not remove report transaction file %s: error %d" % [path,removal_error])
+		return false
+	return true
+
+
+func _report_pair_is_valid(
+	json_path: String, markdown_path: String,
+	expected_transaction_id: String = "", expected_passed: Variant = null,
+	expected_transaction_complete: bool = true
+) -> bool:
+	if not FileAccess.file_exists(json_path) or not FileAccess.file_exists(markdown_path):
+		return false
+	if FileAccess.get_file_as_bytes(json_path).is_empty() or FileAccess.get_file_as_bytes(markdown_path).is_empty():
+		return false
+	var json_text := FileAccess.get_file_as_string(json_path)
+	var parsed_report: Variant = JSON.parse_string(json_text)
+	if not parsed_report is Dictionary:
+		return false
+	var report := parsed_report as Dictionary
+	if not _dictionary_has_exact_keys(report,[
+		"schema","report_transaction_id","report_markdown_sha256","report_transaction_complete","passed",
+		"requested_duration_seconds","elapsed_wall_seconds","seed","started_at_utc","finished_at_utc",
+		"source_fingerprint_start","source_fingerprint_end","source_changed_during_run",
+		"engine","display_server","scope","counts","peaks","object_counts","memory","failures","memory_samples",
+	]):
+		return false
+	if not _is_whole_number(report.get("schema",null)) or int(report.schema)!=1:
+		return false
+	if not report.has("passed") or typeof(report.passed)!=TYPE_BOOL:
+		return false
+	if not report.has("report_transaction_complete") or typeof(report.report_transaction_complete)!=TYPE_BOOL:
+		return false
+	if bool(report.report_transaction_complete)!=expected_transaction_complete:
+		return false
+	if not report.get("failures",null) is Array:
+		return false
+	var report_failures := report.failures as Array
+	if bool(report.passed)!=report_failures.is_empty():
+		return false
+	var report_passed := bool(report.passed)
+	if not _json_integer_tokens_are_canonical(json_text,not report_failures.is_empty()):
+		return false
+	var transaction_id := String(report.get("report_transaction_id",""))
+	if not _is_lower_hex(transaction_id,24):
+		return false
+	var markdown_sha256 := String(report.get("report_markdown_sha256",""))
+	if not _is_lower_hex(markdown_sha256,64) or FileAccess.get_sha256(markdown_path)!=markdown_sha256:
+		return false
+	if not expected_transaction_id.is_empty() and transaction_id!=expected_transaction_id:
+		return false
+	if expected_passed!=null and bool(report.get("passed",false))!=bool(expected_passed):
+		return false
+	var source_fingerprint_start := String(report.get("source_fingerprint_start",""))
+	var source_fingerprint_end := String(report.get("source_fingerprint_end",""))
+	if not _is_lower_hex(source_fingerprint_start,64) or not _is_lower_hex(source_fingerprint_end,64):
+		return false
+	if not report.has("source_changed_during_run") or typeof(report.source_changed_during_run)!=TYPE_BOOL:
+		return false
+	var source_changed := bool(report.source_changed_during_run)
+	if source_changed!=(source_fingerprint_start!=source_fingerprint_end):
+		return false
+	if report_passed and source_changed:
+		return false
+	if not _is_positive_number(report.get("requested_duration_seconds",null)) or not _is_positive_number(report.get("elapsed_wall_seconds",null)):
+		return false
+	if report_passed and float(report.elapsed_wall_seconds)<float(report.requested_duration_seconds):
+		return false
+	for string_key in ["started_at_utc","finished_at_utc","display_server","scope"]:
+		if not report.get(String(string_key),null) is String or String(report[String(string_key)]).strip_edges().is_empty():
+			return false
+	if not _is_whole_number(report.get("seed",null)):
+		return false
+	if not report.get("engine",null) is Dictionary or (report.engine as Dictionary).is_empty():
+		return false
+	if not report.get("counts",null) is Dictionary:
+		return false
+	var counts := report.counts as Dictionary
+	var count_fields := [
+		"iterations","boss_restarts","dive_transitions","projectile_cycles",
+		"projectile_model_steps","projectile_models_requested","projectile_models_executed",
+		"player_projectiles_spawned","enemy_projectiles_spawned","save_writes","save_reloads",
+		"offline_events_queued","offline_queue_reloads","offline_queue_final_size",
+	]
+	if not _dictionary_has_exact_keys(counts,count_fields):
+		return false
+	for count_key in count_fields:
+		if String(count_key).begins_with("projectile_model"):
+			continue
+		if not _is_nonnegative_whole_number(counts.get(String(count_key),null)):
+			return false
+	for map_key in ["projectile_model_steps","projectile_models_requested","projectile_models_executed"]:
+		if not counts.get(String(map_key),null) is Dictionary:
+			return false
+		var model_counts := counts[String(map_key)] as Dictionary
+		if model_counts.size()!=ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS.size():
+			return false
+		for travel_model in ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS:
+			var model_count: Variant = model_counts.get(String(travel_model),null)
+			if report_passed and not _is_positive_whole_number(model_count):
+				return false
+			if not report_passed and not _is_nonnegative_whole_number(model_count):
+				return false
+	var requested_models := counts.projectile_models_requested as Dictionary
+	var executed_models := counts.projectile_models_executed as Dictionary
+	var legacy_models := counts.projectile_model_steps as Dictionary
+	var requested_total := 0
+	for requested_count in requested_models.values():
+		requested_total += int(requested_count)
+	if report_passed:
+		if int(counts.iterations)<=0 or int(counts.projectile_cycles)!=int(counts.iterations):
+			return false
+		if int(counts.boss_restarts)<=0 or int(counts.dive_transitions)!=int(counts.boss_restarts):
+			return false
+		if int(counts.player_projectiles_spawned)<=0 or int(counts.enemy_projectiles_spawned)<=0:
+			return false
+		if int(counts.save_writes)<=0 or int(counts.offline_events_queued)<=0 or int(counts.offline_queue_reloads)<=0:
+			return false
+		for travel_model in ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS:
+			var model := String(travel_model)
+			if int(requested_models[model])!=int(executed_models[model]) or int(legacy_models[model])!=int(executed_models[model]):
+				return false
+		if requested_total!=int(counts.enemy_projectiles_spawned):
+			return false
+	if not _validate_nonnegative_integer_object(report.get("peaks",null),[
+		"player_projectiles","enemy_projectiles","total_projectiles","object_count","node_count","orphan_node_count",
+	]):
+		return false
+	if not _validate_nonnegative_integer_object(report.get("object_counts",null),[
+		"baseline_objects","baseline_nodes","final_objects","final_nodes",
+	]):
+		return false
+	if not report.get("memory",null) is Dictionary:
+		return false
+	var memory := report.memory as Dictionary
+	if not _dictionary_has_exact_keys(memory,[
+		"sample_count","stable_sample_count","warmup_seconds","start_bytes","stable_start_bytes",
+		"end_bytes","peak_bytes","stable_delta_bytes","slope_bytes_per_minute",
+	]):
+		return false
+	for memory_integer_key in ["sample_count","stable_sample_count","start_bytes","stable_start_bytes","end_bytes","peak_bytes"]:
+		if not _is_nonnegative_whole_number(memory.get(String(memory_integer_key),null)):
+			return false
+	for memory_number_key in ["warmup_seconds","stable_delta_bytes","slope_bytes_per_minute"]:
+		if not _is_finite_number(memory.get(String(memory_number_key),null)):
+			return false
+	if not report.get("memory_samples",null) is Array:
+		return false
+	var samples := report.memory_samples as Array
+	if samples.is_empty() or samples.size()!=int(memory.sample_count):
+		return false
+	for raw_sample in samples:
+		if not raw_sample is Dictionary:
+			return false
+		var sample := raw_sample as Dictionary
+		if not _dictionary_has_exact_keys(sample,["elapsed_seconds","memory_bytes","object_count","node_count","orphan_node_count"]):
+			return false
+		if not _is_finite_number(sample.get("elapsed_seconds",null)):
+			return false
+		for sample_integer_key in ["memory_bytes","object_count","node_count","orphan_node_count"]:
+			if not _is_nonnegative_whole_number(sample.get(String(sample_integer_key),null)):
+				return false
+	var source_change_failure_found := false
+	for raw_failure in report_failures:
+		if not raw_failure is Dictionary:
+			return false
+		var failure := raw_failure as Dictionary
+		if not _dictionary_has_exact_keys(failure,["elapsed_seconds","iteration","code","detail"]):
+			return false
+		if not _is_finite_number(failure.get("elapsed_seconds",null)) or not _is_nonnegative_whole_number(failure.get("iteration",null)):
+			return false
+		var failure_code := String(failure.get("code",""))
+		var failure_detail := String(failure.get("detail",""))
+		if failure_code.is_empty() or failure_detail.is_empty():
+			return false
+		if failure_code=="source_changed_during_run":
+			source_change_failure_found=true
+	if source_changed and not source_change_failure_found:
+		return false
+	var markdown := FileAccess.get_file_as_string(markdown_path)
+	if not markdown.begins_with("# INFINIDIVE Headless Soak Report\n\n"):
+		return false
+	if not markdown.contains("- Report transaction: `%s`" % transaction_id):
+		return false
+	var expected_result := "PASS" if report_passed else "FAIL"
+	if not markdown.contains("- Result: **%s**" % expected_result):
+		return false
+	if not markdown.contains("- Requested wall time: `%.2f seconds`" % float(report.requested_duration_seconds)):
+		return false
+	if not markdown.contains("- Actual wall time: `%.2f seconds`" % float(report.elapsed_wall_seconds)):
+		return false
+	if not markdown.contains("- Source fingerprint: `%s`" % source_fingerprint_start):
+		return false
+	if not markdown.contains("- Source changed during run: `%s`" % str(source_changed)):
+		return false
+	var executed_coverage := 0
+	for travel_model in ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS:
+		if int(executed_models[String(travel_model)])>0:
+			executed_coverage += 1
+	if not markdown.contains(
+		"| Projectile travel models exercised | %d / %d |"
+		% [executed_coverage,ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS.size()]
+	):
+		return false
+	if not markdown.contains("| Failures | %d |" % report_failures.size()):
+		return false
+	for raw_failure in report_failures:
+		var failure := raw_failure as Dictionary
+		var failure_code := String(failure.get("code",""))
+		var failure_detail := String(failure.get("detail",""))
+		if not markdown.contains("- `%s`: %s" % [failure_code,failure_detail]):
+			return false
+	return true
+
+
+func _dictionary_has_exact_keys(value: Dictionary, expected_keys: Array) -> bool:
+	if value.size()!=expected_keys.size():
+		return false
+	for key in expected_keys:
+		if not value.has(String(key)):
+			return false
+	return true
+
+
+func _validate_nonnegative_integer_object(value: Variant, expected_keys: Array) -> bool:
+	if not value is Dictionary:
+		return false
+	var dictionary := value as Dictionary
+	if not _dictionary_has_exact_keys(dictionary,expected_keys):
+		return false
+	for key in expected_keys:
+		if not _is_nonnegative_whole_number(dictionary.get(String(key),null)):
+			return false
+	return true
+
+
+func _is_finite_number(value: Variant) -> bool:
+	if typeof(value) not in [TYPE_INT,TYPE_FLOAT]:
+		return false
+	return is_finite(float(value))
+
+
+func _is_positive_number(value: Variant) -> bool:
+	return _is_finite_number(value) and float(value)>0.0
+
+
+func _is_whole_number(value: Variant) -> bool:
+	if not _is_finite_number(value):
+		return false
+	var numeric_value := float(value)
+	return is_equal_approx(numeric_value,floorf(numeric_value))
+
+
+func _is_nonnegative_whole_number(value: Variant) -> bool:
+	return _is_whole_number(value) and float(value)>=0.0
+
+
+func _is_positive_whole_number(value: Variant) -> bool:
+	return _is_whole_number(value) and float(value)>0.0
+
+
+func _json_integer_tokens_are_canonical(json_text: String, require_failure_iteration: bool) -> bool:
+	var integer_keys := [
+		"schema","seed","iterations","boss_restarts","dive_transitions","projectile_cycles",
+		"linear","delayed_linear","soft_homing","expanding","node_link","lunge","recorded_path",
+		"player_projectiles_spawned","enemy_projectiles_spawned","save_writes","save_reloads",
+		"offline_events_queued","offline_queue_reloads","offline_queue_final_size",
+		"player_projectiles","enemy_projectiles","total_projectiles","object_count","node_count","orphan_node_count",
+		"baseline_objects","baseline_nodes","final_objects","final_nodes","sample_count","stable_sample_count",
+		"start_bytes","stable_start_bytes","end_bytes","peak_bytes","memory_bytes",
+	]
+	if require_failure_iteration:
+		integer_keys.append("iteration")
+	var integer_pattern := RegEx.new()
+	if integer_pattern.compile("^-?(0|[1-9][0-9]*)$")!=OK:
+		return false
+	for key in integer_keys:
+		var field_pattern := RegEx.new()
+		if field_pattern.compile('"%s"[[:space:]]*:[[:space:]]*([^,}\\]\\r\\n]+)' % String(key))!=OK:
+			return false
+		var matches := field_pattern.search_all(json_text)
+		if matches.is_empty():
+			return false
+		for raw_match in matches:
+			var report_match := raw_match as RegExMatch
+			if integer_pattern.search(report_match.get_string(1).strip_edges())==null:
+				return false
+	return true
+
+
+func _is_lower_hex(value: String, expected_length: int) -> bool:
+	if value.length()!=expected_length:
+		return false
+	for character in value:
+		if character not in "0123456789abcdef":
+			return false
+	return true
+
+
+func _recover_interrupted_report_pair(json_path: String, markdown_path: String, json_backup_path: String, markdown_backup_path: String) -> void:
+	if _report_pair_is_valid(json_path,markdown_path):
+		_remove_report_file(json_backup_path)
+		_remove_report_file(markdown_backup_path)
+		return
+	if _report_pair_is_valid(json_backup_path,markdown_backup_path):
+		_remove_report_file(json_path)
+		_remove_report_file(markdown_path)
+		var json_restore_error := _rename_report_file(json_backup_path,json_path)
+		var markdown_restore_error := _rename_report_file(markdown_backup_path,markdown_path)
+		if json_restore_error!=OK or markdown_restore_error!=OK or not _report_pair_is_valid(json_path,markdown_path):
+			_record_failure("report_recovery", "Could not restore the previous complete report pair")
+		return
+	if _report_pair_is_valid(json_backup_path,markdown_path):
+		_remove_report_file(json_path)
+		if _rename_report_file(json_backup_path,json_path)!=OK or not _report_pair_is_valid(json_path,markdown_path):
+			_record_failure("report_recovery", "Could not restore the interrupted JSON backup")
+			return
+		_remove_report_file(markdown_backup_path)
+		return
+	if _report_pair_is_valid(json_path,markdown_backup_path):
+		_remove_report_file(markdown_path)
+		if _rename_report_file(markdown_backup_path,markdown_path)!=OK or not _report_pair_is_valid(json_path,markdown_path):
+			_record_failure("report_recovery", "Could not restore the interrupted Markdown backup")
+			return
+		_remove_report_file(json_backup_path)
+		return
+	_remove_report_file(json_backup_path)
+	_remove_report_file(markdown_backup_path)
+
+
+func _commit_report_pair(
+	json_temporary_path: String, markdown_temporary_path: String,
+	json_path: String, markdown_path: String,
+	json_backup_path: String, markdown_backup_path: String,
+	transaction_id: String, elapsed: float, memory_analysis: Dictionary
+) -> void:
+	var had_previous_pair := _report_pair_is_valid(json_path,markdown_path)
+	var previous_json_hash := FileAccess.get_sha256(json_path) if had_previous_pair else ""
+	var previous_markdown_hash := FileAccess.get_sha256(markdown_path) if had_previous_pair else ""
+	var stale_json_cleanup_ok := _remove_report_file(json_backup_path)
+	var stale_markdown_cleanup_ok := _remove_report_file(markdown_backup_path)
+	if not stale_json_cleanup_ok or not stale_markdown_cleanup_ok:
+		_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+		return
+	if had_previous_pair:
+		if _rename_report_file(json_path,json_backup_path)!=OK:
+			_record_failure("report_backup", "Could not protect the previous JSON report")
+			_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+			return
+		if _rename_report_file(markdown_path,markdown_backup_path)!=OK:
+			_rename_report_file(json_backup_path,json_path)
+			_record_failure("report_backup", "Could not protect the previous Markdown report")
+			_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+			return
+		if not _report_pair_is_valid(json_backup_path,markdown_backup_path):
+			_record_failure("report_backup_verify", "Protected report pair did not validate")
+			_rollback_report_pair(json_path,markdown_path,json_backup_path,markdown_backup_path,had_previous_pair)
+			_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+			return
+	else:
+		var invalid_json_cleanup_ok := _remove_report_file(json_path)
+		var invalid_markdown_cleanup_ok := _remove_report_file(markdown_path)
+		if not invalid_json_cleanup_ok or not invalid_markdown_cleanup_ok:
+			_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+			return
+	if report_self_test=="first_commit":
+		_record_failure("report_first_commit", "Self-test simulated first report commit failure")
+		_rollback_report_pair(json_path,markdown_path,json_backup_path,markdown_backup_path,had_previous_pair)
+		_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+		_assert_previous_report_hashes(json_path,markdown_path,had_previous_pair,previous_json_hash,previous_markdown_hash)
+		return
+	if _rename_report_file(json_temporary_path,json_path)!=OK:
+		_record_failure("report_first_commit", "Could not commit staged JSON report")
+		_rollback_report_pair(json_path,markdown_path,json_backup_path,markdown_backup_path,had_previous_pair)
+		_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+		_assert_previous_report_hashes(json_path,markdown_path,had_previous_pair,previous_json_hash,previous_markdown_hash)
+		return
+	if report_self_test=="second_commit":
+		_record_failure("report_second_commit", "Self-test simulated second report commit failure")
+		_rollback_report_pair(json_path,markdown_path,json_backup_path,markdown_backup_path,had_previous_pair)
+		_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+		_assert_previous_report_hashes(json_path,markdown_path,had_previous_pair,previous_json_hash,previous_markdown_hash)
+		return
+	if _rename_report_file(markdown_temporary_path,markdown_path)!=OK:
+		_record_failure("report_second_commit", "Could not commit staged Markdown report")
+		_rollback_report_pair(json_path,markdown_path,json_backup_path,markdown_backup_path,had_previous_pair)
+		_cleanup_staged_report_pair(json_temporary_path,markdown_temporary_path)
+		_assert_previous_report_hashes(json_path,markdown_path,had_previous_pair,previous_json_hash,previous_markdown_hash)
+		return
+	if not _report_pair_is_valid(json_path,markdown_path,transaction_id,failures.is_empty(),false):
+		_record_failure("report_final_verify", "Committed report pair did not cross-validate")
+		_rollback_report_pair(json_path,markdown_path,json_backup_path,markdown_backup_path,had_previous_pair)
+		_assert_previous_report_hashes(json_path,markdown_path,had_previous_pair,previous_json_hash,previous_markdown_hash)
+		return
+	var json_cleanup_ok := _remove_report_file(json_backup_path)
+	var markdown_cleanup_ok := _remove_report_file(markdown_backup_path)
+	if not json_cleanup_ok or not markdown_cleanup_ok:
+		return
+	_finalize_report_transaction(json_path,markdown_path,transaction_id,failures.is_empty(),elapsed,memory_analysis)
+
+
+func _finalize_report_transaction(
+	json_path: String, markdown_path: String, transaction_id: String,
+	expected_passed: bool, elapsed: float, memory_analysis: Dictionary
+) -> void:
+	if not _report_pair_is_valid(json_path,markdown_path,transaction_id,expected_passed,false):
+		_record_failure("report_finalize_read", "Pending report pair no longer cross-validates")
+		return
+	# Rebuild from typed runtime values rather than parsing and re-stringifying
+	# JSON, because Godot parses JSON integer tokens as floats.
+	var report := _build_json_report(
+		elapsed,memory_analysis,transaction_id,FileAccess.get_sha256(markdown_path),true
+	)
+	var finalize_path := "%s.finalize.next" % json_path
+	if not _remove_report_file(finalize_path):
+		return
+	var finalize_file := FileAccess.open(finalize_path,FileAccess.WRITE)
+	if finalize_file==null:
+		_record_failure("report_finalize_open", "Could not open the finalized JSON report: error %d" % FileAccess.get_open_error())
+		return
+	finalize_file.store_string(JSON.stringify(report,"\t"))
+	finalize_file.flush()
+	var finalize_error := finalize_file.get_error()
+	var finalize_length := finalize_file.get_length()
+	finalize_file.close()
+	if finalize_error!=OK or finalize_length<=0:
+		_record_failure("report_finalize_write", "Finalized JSON report write/flush failed: error %d bytes %d" % [finalize_error,finalize_length])
+		_remove_report_file(finalize_path)
+		return
+	if not _report_pair_is_valid(finalize_path,markdown_path,transaction_id,expected_passed,true):
+		_record_failure("report_finalize_verify", "Finalized JSON report did not cross-validate")
+		_remove_report_file(finalize_path)
+		return
+	if not _remove_report_file(json_path):
+		_remove_report_file(finalize_path)
+		return
+	if _rename_report_file(finalize_path,json_path)!=OK:
+		_record_failure("report_finalize_commit", "Could not commit the finalized JSON report")
+		return
+	if not _report_pair_is_valid(json_path,markdown_path,transaction_id,expected_passed,true):
+		_record_failure("report_finalize_verify", "Committed finalized report pair did not cross-validate")
+
+
+func _rollback_report_pair(json_path: String, markdown_path: String, json_backup_path: String, markdown_backup_path: String, had_previous_pair: bool) -> void:
+	_remove_report_file(json_path)
+	_remove_report_file(markdown_path)
+	if had_previous_pair:
+		var json_restore_error := _rename_report_file(json_backup_path,json_path)
+		var markdown_restore_error := _rename_report_file(markdown_backup_path,markdown_path)
+		if json_restore_error!=OK or markdown_restore_error!=OK or not _report_pair_is_valid(json_path,markdown_path):
+			_record_failure("report_rollback", "Could not restore the previous complete report pair")
+	else:
+		_remove_report_file(json_backup_path)
+		_remove_report_file(markdown_backup_path)
+
+
+func _assert_previous_report_hashes(json_path: String, markdown_path: String, had_previous_pair: bool, expected_json_hash: String, expected_markdown_hash: String) -> void:
+	if had_previous_pair:
+		if FileAccess.get_sha256(json_path)!=expected_json_hash or FileAccess.get_sha256(markdown_path)!=expected_markdown_hash:
+			_record_failure("report_rollback_hash", "Rollback did not preserve the previous report pair byte-for-byte")
+	elif FileAccess.file_exists(json_path) or FileAccess.file_exists(markdown_path):
+		_record_failure("report_rollback_residue", "Failed transaction left a partial report pair without a previous pair")
+
+
+func _cleanup_staged_report_pair(json_temporary_path: String, markdown_temporary_path: String) -> void:
+	_remove_report_file(json_temporary_path)
+	_remove_report_file(markdown_temporary_path)
+
+
+func _rename_report_file(source_path: String, destination_path: String) -> Error:
+	return DirAccess.rename_absolute(
+		ProjectSettings.globalize_path(source_path),
+		ProjectSettings.globalize_path(destination_path)
+	)
 
 func _record_failure(code: String, detail: String) -> void:
 	if failures.size() >= MAX_FAILURE_RECORDS:
