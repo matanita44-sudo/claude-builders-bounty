@@ -14,31 +14,14 @@ printf '%s\n' "${signature_report}"
 grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "${signature_report}"
 grep -Fq 'Signer #1 certificate DN: CN=Android Debug' <<< "${signature_report}"
 
-allowed_godot_warning="warn: resource com.godot.game:mipmap/themed_icon for config 'anydpi-v26' is a file reference to 'res/mipmap-anydpi-v26/themed_icon.xml' but no such path exists."
-
-validate_aapt_diagnostics() {
-  local report="$1"
-  local unexpected
-  unexpected="$(grep -E '^(warn|error):' <<< "${report}" | grep -Fvx "${allowed_godot_warning}" || true)"
-  if [[ -n "${unexpected}" ]]; then
-    printf '%s\n' "Unexpected aapt2 diagnostic:" "${unexpected}" >&2
-    exit 1
-  fi
-}
-
-# Build-tools 36 reports Godot 4.7.2's unreferenced themed_icon table entry as
-# a non-zero warning. The installed icon is @mipmap/icon; validate every
-# required field from the report and reject every diagnostic except that exact
-# upstream-template warning instead of treating the warning as proof of failure.
-badging="$(aapt2 dump badging "${apk_path}" 2>&1 || true)"
-validate_aapt_diagnostics "${badging}"
+command -v aapt > /dev/null
+badging="$(aapt dump badging "${apk_path}")"
 grep -Fq "package: name='com.matan.infinidive' versionCode='1' versionName='0.1.0'" <<< "${badging}"
 grep -Fq "application-label:'INFINIDIVE'" <<< "${badging}"
 grep -Fq "sdkVersion:'24'" <<< "${badging}"
 grep -Fq "targetSdkVersion:'36'" <<< "${badging}"
 
-adaptive_icon_report="$(aapt2 dump xmltree --file res/mipmap-anydpi-v26/icon.xml "${apk_path}" 2>&1 || true)"
-validate_aapt_diagnostics "${adaptive_icon_report}"
+adaptive_icon_report="$(aapt dump xmltree "${apk_path}" res/mipmap-anydpi-v26/icon.xml)"
 grep -Fq 'E: adaptive-icon' <<< "${adaptive_icon_report}"
 grep -Fq 'E: background' <<< "${adaptive_icon_report}"
 grep -Fq 'E: foreground' <<< "${adaptive_icon_report}"
@@ -50,8 +33,7 @@ if [[ "${native_abis[*]}" != "arm64-v8a" ]]; then
   exit 1
 fi
 
-permissions_report="$(aapt2 dump permissions "${apk_path}" 2>&1 || true)"
-validate_aapt_diagnostics "${permissions_report}"
+permissions_report="$(aapt dump permissions "${apk_path}")"
 mapfile -t requested_permissions < <(
   sed -n "s/^uses-permission: name='\([^']*\)'.*/\1/p" <<< "${permissions_report}" | sort -u
 )

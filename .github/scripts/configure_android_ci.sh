@@ -59,6 +59,7 @@ EOF
 
 build_tools_path="${ANDROID_HOME}/build-tools/${android_build_tools}"
 test -x "${build_tools_path}/aapt2"
+test -x "${build_tools_path}/aapt"
 test -x "${build_tools_path}/apksigner"
 test -x "${build_tools_path}/zipalign"
 printf '%s\n' "${build_tools_path}" >> "${GITHUB_PATH}"
