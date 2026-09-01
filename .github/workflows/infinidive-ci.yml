@@ -118,36 +118,25 @@ jobs:
           done
           test "${server_ready}" = true
 
-          "${chrome_bin}" \
-            --headless=new \
-            --no-sandbox \
-            --disable-dev-shm-usage \
-            --use-angle=swiftshader \
-            --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --virtual-time-budget=90000 \
-            --dump-dom \
-            http://127.0.0.1:4173/infinidive/ \
-            > "${RUNNER_TEMP}/infinidive-dom.html" \
-            2> "${RUNNER_TEMP}/infinidive-chrome.log"
-
-          if ! grep -Eq 'id="status"[^>]*class="hidden"|class="hidden"[^>]*id="status"' "${RUNNER_TEMP}/infinidive-dom.html"; then
-            echo "Godot Web boot did not reach the running state" >&2
-            cat "${RUNNER_TEMP}/infinidive-chrome.log" >&2
-            exit 1
-          fi
-          if grep -Eqi 'Uncaught|RuntimeError|WebAssembly.*(failed|error)|Failed to fetch|ERR_' "${RUNNER_TEMP}/infinidive-chrome.log"; then
-            echo "Chrome reported a Web boot failure" >&2
-            cat "${RUNNER_TEMP}/infinidive-chrome.log" >&2
-            exit 1
-          fi
+          command -v npm > /dev/null
+          playwright_root="${RUNNER_TEMP}/infinidive-playwright"
+          evidence_dir="${RUNNER_TEMP}/infinidive-web-smoke"
+          npm install --prefix "${playwright_root}" --no-package-lock --no-save --ignore-scripts playwright-core@1.55.0
+          INFINIDIVE_CHROME_BIN="${chrome_bin}" \
+          INFINIDIVE_PLAYWRIGHT_ROOT="${playwright_root}" \
+            node .github/scripts/smoke_web.cjs \
+              http://127.0.0.1:4173/infinidive/ \
+              "${evidence_dir}" \
+              2> "${RUNNER_TEMP}/infinidive-chrome.log"
       - name: Upload Web smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: infinidive-web-smoke-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/infinidive-dom.html
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-dom.html
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.json
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.png
             ${{ runner.temp }}/infinidive-chrome.log
             ${{ runner.temp }}/infinidive-http.log
           if-no-files-found: warn
