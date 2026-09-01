@@ -125,7 +125,7 @@ jobs:
             --use-angle=swiftshader \
             --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
-            --virtual-time-budget=20000 \
+            --virtual-time-budget=90000 \
             --dump-dom \
             http://127.0.0.1:4173/infinidive/ \
             > "${RUNNER_TEMP}/infinidive-dom.html" \

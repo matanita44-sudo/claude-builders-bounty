@@ -4,11 +4,29 @@ set -euo pipefail
 : "${ANDROID_HOME:?ANDROID_HOME is required on the runner}"
 : "${JAVA_HOME:?JAVA_HOME is required on the runner}"
 : "${GITHUB_PATH:?GITHUB_PATH is required on the runner}"
-command -v sdkmanager >/dev/null
 command -v keytool >/dev/null
 
+sdkmanager_bin="$(command -v sdkmanager || true)"
+if [[ -z "${sdkmanager_bin}" ]]; then
+	for candidate in \
+		"${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+		"${ANDROID_HOME}/cmdline-tools/bin/sdkmanager"; do
+		if [[ -x "${candidate}" ]]; then
+			sdkmanager_bin="${candidate}"
+			break
+		fi
+	done
+fi
+if [[ -z "${sdkmanager_bin}" ]]; then
+	sdkmanager_bin="$(find "${ANDROID_HOME}/cmdline-tools" -type f -path '*/bin/sdkmanager' -perm -u+x -print 2>/dev/null | sort -V | tail -n 1)"
+fi
+if [[ -z "${sdkmanager_bin}" || ! -x "${sdkmanager_bin}" ]]; then
+	printf '%s\n' "Android sdkmanager was not found below ANDROID_HOME=${ANDROID_HOME}" >&2
+	exit 1
+fi
+
 android_build_tools="36.0.0"
-sdkmanager --install \
+"${sdkmanager_bin}" --install \
   "build-tools;${android_build_tools}" \
   "platforms;android-36" \
   "platform-tools"
