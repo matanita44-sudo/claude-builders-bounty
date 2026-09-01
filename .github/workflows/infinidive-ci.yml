@@ -55,6 +55,16 @@ jobs:
       - name: Validate CI evidence guards
         shell: bash
         run: python3 .github/scripts/validate_soak_report.py --self-test
+      - name: Validate retained 30-minute evidence
+        if: >-
+          !(github.ref == 'refs/heads/infinidive-production' &&
+          ((github.event_name == 'push' && contains(github.event.head_commit.message, '[long-soak]')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.run_long_soak)))
+        shell: bash
+        run: >-
+          python3 .github/scripts/validate_soak_report.py
+          infinidive-game/artifacts/soak-30m.json
+          --minimum-duration=1800
       - name: Parse and import project
         shell: bash
         run: bash .github/scripts/run_godot_checked.sh --suite editor -- ./godot --headless --path infinidive-game --import
@@ -186,6 +196,7 @@ jobs:
           name: infinidive-web-smoke-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-dom.html
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-before-input.png
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.json
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.png
             ${{ runner.temp }}/infinidive-chrome.log
@@ -224,8 +235,8 @@ jobs:
 
           marker = {
               "commit": os.environ["GITHUB_SHA"],
-              "run_id": os.environ["GITHUB_RUN_ID"],
-              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
           }
           path = pathlib.Path("build/pages/infinidive/deployment.json")
           path.write_text(json.dumps(marker, sort_keys=True) + "\n", encoding="utf-8")
@@ -307,6 +318,9 @@ jobs:
         run: |
           checked_runner=.github/scripts/run_godot_checked.sh
           long_manifest="${RUNNER_TEMP}/infinidive-long-soak-suites.tsv"
+          rm -f -- \
+            infinidive-game/artifacts/soak-30m.json \
+            infinidive-game/artifacts/soak-30m.md
           python3 - .github/scripts/test_suites.tsv "${long_manifest}" <<'PY'
           import pathlib
           import sys
@@ -339,8 +353,13 @@ jobs:
           retention-days: 30
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
-    needs: [web-export, android-debug]
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/infinidive-production' &&
+      needs.web-export.result == 'success' &&
+      needs.android-debug.result == 'success' &&
+      (needs.long-soak.result == 'success' || needs.long-soak.result == 'skipped')
+    needs: [web-export, android-debug, long-soak]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
@@ -378,14 +397,15 @@ jobs:
           public_root="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/infinidive"
           marker_path="${RUNNER_TEMP}/infinidive-deployment.json"
           deployment_ready=false
-          for _ in {1..90}; do
+          for probe in {1..90}; do
             if curl --location --silent --show-error --fail \
+              --header 'Cache-Control: no-cache' \
               --max-time 20 \
               --output "${marker_path}" \
-              "${public_root}/deployment.json"; then
+              "${public_root}/deployment.json?run=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}&probe=${probe}"; then
               if python3 -c \
-                'import json, pathlib, sys; marker = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); raise SystemExit(0 if marker.get("commit") == sys.argv[2] else 1)' \
-                "${marker_path}" "${GITHUB_SHA}"; then
+                'import json, pathlib, sys; marker = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); attempt = marker.get("run_attempt"); valid_attempt = type(attempt) in (int, str) and str(attempt).isdigit() and 1 <= int(attempt) <= int(sys.argv[4]); valid = marker.get("commit") == sys.argv[2] and str(marker.get("run_id")) == sys.argv[3] and valid_attempt; raise SystemExit(0 if valid else 1)' \
+                "${marker_path}" "${GITHUB_SHA}" "${GITHUB_RUN_ID}" "${GITHUB_RUN_ATTEMPT}"; then
                 deployment_ready=true
                 break
               fi
@@ -425,6 +445,7 @@ jobs:
           name: infinidive-public-web-smoke-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-dom.html
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-before-input.png
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.json
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.png
             ${{ runner.temp }}/infinidive-public-chrome.log

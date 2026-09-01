@@ -1128,6 +1128,8 @@ func _source_fingerprint() -> String:
 	return "\n".join(records).sha256_text()
 
 func _collect_source_records(path: String, records: Array[String]) -> void:
+	if path == "res://assets/store/gameplay/raw" or path.begins_with("res://assets/store/gameplay/raw/"):
+		return
 	var directory := DirAccess.open(path)
 	if directory != null:
 		directory.list_dir_begin()

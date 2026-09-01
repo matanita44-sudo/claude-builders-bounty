@@ -5,11 +5,11 @@
 **Requirements reviewed:** 2026-09-01\
 **Support contact:** `matanita44@gmail.com`
 
-This file contains candidate English and Hebrew listing copy plus current official asset requirements. It does not mean that INFINIDIVE is store-ready, approved, uploaded, signed, or publicly available.
+This file contains candidate English and Hebrew listing copy plus current official asset requirements. It does not mean that INFINIDIVE is store-ready, approved, uploaded, or signed. A browser pre-release is publicly deployed and boot-verified; semantic touch gameplay remains unverified, and it is not a store release.
 
 ## Submission blockers and truth constraints
 
-- Privacy and support pages exist only as repository files at `web_pages/privacy.html` and `web_pages/support.html`; no public HTTPS URLs are verified.
+- Privacy and support pages are available as public pre-release pages at the HTTPS URLs listed below. Final legal review is still required before store submission.
 - Original brand sources and verified raster exports exist for the icon, wordmark, Google feature graphic, and social card. Five 1080×1920 real-runtime stills, a 17.2-second 1080×1920 H.264/AAC social-development trailer, and a 17.2-second 886×1920 H.264/AAC Apple-format technical candidate also exist. They remain development evidence: the still set has only five scenes, Apple needs accepted 6.9-inch still dimensions, and its preview requires recapture from a supported iPhone. The Play icon and feature raster dimensions/channels are verified below.
 - Android presets target `com.matan.infinidive`, include a separate Gradle/AAB preset, and request only normal `android.permission.VIBRATE` for optional haptics. The verified template-install path creates `android/build`, but no compiled/signed AAB or internal-test upload is evidenced.
 - The iOS preset uses `com.matan.infinidive`, targets iPhone, and wires exact-size RGB/no-alpha icons. Full export failed because Team ID is blank. The final evidence directory combines the retained same-Godot unsigned scaffold with a fresh current-source PCK that passes Linux main-pack boot; it is not a regenerated current-source Xcode project. No Xcode compile/archive, signed install, or TestFlight upload is evidenced.
@@ -66,7 +66,7 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 | Subtitle | `Destroy giants from within` |
 | Primary category | Games |
 | Subcategories | Action; Arcade |
-| Privacy Policy URL | `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/privacy.html` — isolated branch fallback, not deployed/verified |
+| Privacy Policy URL | `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/privacy.html` — public pre-release page; final legal review still required before store submission |
 
 ### Version information
 
@@ -110,9 +110,9 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 | Field | Status |
 |---|---|
-| Support URL | Isolated branch fallback: `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/support.html`; not deployed/verified |
-| Privacy Policy URL | Isolated branch fallback: `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/privacy.html`; not deployed/verified |
-| Marketing URL | Optional; leave blank until a real public page exists |
+| Support URL | `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/support.html` — public pre-release page |
+| Privacy Policy URL | `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/privacy.html` — public pre-release page; final legal review still required before store submission |
+| Marketing URL | Optional; leave blank until a dedicated, final-approved marketing page exists |
 
 ## Apple App Store — Hebrew (Israel)
 
@@ -124,7 +124,7 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 | כותרת משנה | `השמידו ענקים מבפנים` |
 | קטגוריה ראשית | משחקים |
 | תתי־קטגוריות | פעולה; ארקייד |
-| כתובת מדיניות פרטיות | `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/privacy.html` — יעד fallback מבודד לענף, טרם נפרס או אומת |
+| כתובת מדיניות פרטיות | `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/privacy.html` — עמוד טרום־השקה ציבורי; נדרשת בדיקה משפטית סופית לפני הגשה לחנות |
 
 ### פרטי הגרסה
 
@@ -168,9 +168,9 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 | שדה | מצב |
 |---|---|
-| כתובת תמיכה | יעד fallback מבודד לענף: `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/support.html`; טרם נפרס או אומת |
-| כתובת מדיניות פרטיות | יעד fallback מבודד לענף: `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/privacy.html`; טרם נפרס או אומת |
-| כתובת שיווקית | אופציונלית; להשאיר ריק עד שקיים עמוד ציבורי אמיתי |
+| כתובת תמיכה | `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/support.html` — עמוד טרום־השקה ציבורי |
+| כתובת מדיניות פרטיות | `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/privacy.html` — עמוד טרום־השקה ציבורי; נדרשת בדיקה משפטית סופית לפני הגשה לחנות |
+| כתובת שיווקית | אופציונלית; להשאיר ריק עד שקיים עמוד שיווק ייעודי שאושר סופית |
 
 ## Google Play — English (U.S.)
 
@@ -281,7 +281,7 @@ Do not submit these answers until the final signed artifacts are inspected.
 - Data deletion URL for an account: not applicable because no account can be created.
 - Re-audit the generated AAB manifest and libraries. Google requires the form to represent the union of practices in all versions active under the package name.
 
-See `PRIVACY_DATA_MAP.md` for the field-level evidence and the separate treatment of voluntary support email and future web-host request logs.
+See `PRIVACY_DATA_MAP.md` for the field-level evidence and the separate treatment of voluntary support email and public web-host request logs.
 
 ## Content-rating preparation
 
@@ -312,8 +312,8 @@ The following was checked against primary platform documentation on 2026-09-01. 
 | Promotional text | Maximum 170 characters | Both drafts fit; optional and localizable |
 | Description | Maximum 4,000 characters, plain text; HTML is not supported | Keep the localized field plain text |
 | Keywords | Maximum 100 bytes; each keyword more than two characters; do not use other app/company names | English and Hebrew drafts are provisional; re-count UTF-8 bytes in App Store Connect |
-| Support URL | Required and must lead to real contact information | Publish the support page over HTTPS before submission |
-| Privacy Policy URL | Required for iOS | Publish the privacy page over HTTPS before submission |
+| Support URL | Required and must lead to real contact information | Finalize, legally review, and verify the published HTTPS support page before submission |
+| Privacy Policy URL | Required for iOS | Finalize, legally review, and verify the published HTTPS privacy page before submission |
 | App icon source | iOS/iPadOS layout size 1024×1024 px; included through the Xcode asset catalog or Icon Composer | Original 1024 source plus exact-size RGB/no-alpha icon set is wired in the preset and inspected in the retained unsigned scaffold; complete a regenerated current-source Xcode export, validate small sizes, and inspect the final signed archive |
 | iPhone screenshots | 1–10; `.jpeg`, `.jpg`, or `.png`; no alpha/transparency | Capture eight real portrait scenes after RC freeze |
 | 6.9-inch iPhone portrait sizes | 1260×2736, 1290×2796, or 1320×2868 px | Existing 1080×1920 development stills do not qualify; recapture an accepted 6.9-inch set |

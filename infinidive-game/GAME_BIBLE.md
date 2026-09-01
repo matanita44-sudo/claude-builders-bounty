@@ -304,9 +304,8 @@ Not established by this snapshot:
 - Browser/simulator/device validation of Hebrew/RTL text fit and visual ordering
 - Backend leaderboards, cloud saves or score validation
 - Monetization, purchases, ads or restore flow
-- Public deployment success
 - Android or iOS signed builds
-- A completed current remote browser workflow, final-Web touch-gameplay automation, release-candidate performance/device QA, or a full 30-minute code-frozen soak rerun (the hardened 8.014-second and 90.118-second transactional pairs pass)
+- Semantic final-Web touch-gameplay validation, release-candidate device/performance QA, or physical-device control-feel testing. The remote workflow, public-host canvas boot, and current-source 30-minute structural soak pass; the synthetic canvas-touch gate is implemented but still awaits final CI evidence, and none of these substitutes for device/human testing.
 - Final Apple 6.9-inch screenshots, a supported-iPhone App Preview capture, store approval, or submission (five 1080×1920 development stills, an audio-complete 1080×1920 social trailer, and an 886×1920 Apple-format technical candidate exist; all are virtual-display evidence)
 
 ## Source precedence

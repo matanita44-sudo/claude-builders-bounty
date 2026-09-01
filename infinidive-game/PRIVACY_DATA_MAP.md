@@ -5,7 +5,7 @@
 **Review date:** 2026-09-01\
 **Owner/contact:** Matan — `matanita44@gmail.com`
 
-This document maps what the current INFINIDIVE code does. It is not evidence that a public website, App Store build, Google Play build, backend, or analytics service is live. Re-check the final signed binaries and every bundled SDK before completing store privacy forms.
+This document maps what the current INFINIDIVE code and public browser pre-release do. The GitHub Pages preview is live, but this document is not evidence of an App Store build, Google Play build, backend, analytics transport, or signed native release. Re-check the final signed binaries and every bundled SDK before completing store privacy forms.
 
 ## Current privacy posture
 
@@ -15,7 +15,7 @@ This document maps what the current INFINIDIVE code does. It is not evidence tha
 - A local-only leaderboard service and bundled fail-closed configuration service are autoloaded. Every completed run is validated locally, but only accepted Daily/Friend challenges write an unverified summary to the outbox under a canonical challenge ID. Story/Abyss results do not enter the outbox. Neither service contains a network client or endpoint.
 - The analytics abstraction has **no network transport**. Consent defaults to off. If the internal setting is enabled, events are written only to a local queue.
 - Friend Rift codes are generated and parsed locally. A code is written to the system clipboard only after the player explicitly selects a copy/share action.
-- Settings includes user-initiated Support and Privacy buttons. On native platforms they open `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` plus the selected page in the system browser; no gameplay data or identifier is appended to the URL. That target is not yet verified as deployed.
+- Settings includes user-initiated Support and Privacy buttons. On native platforms they open `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` plus the selected page in the system browser; no gameplay data or identifier is appended to the URL. The game, privacy, and support pages at that origin are deployed and return HTTP 200.
 - The game code does not request contacts, precise or approximate location, camera, microphone, photo library, advertising identifiers, or payment data. Android presets request only the normal `android.permission.VIBRATE` permission for optional haptics; it has no runtime permission prompt and does not collect or transmit data.
 - Local save checksums detect damage or tampering; they are not encryption.
 
@@ -34,7 +34,7 @@ This document maps what the current INFINIDIVE code does. It is not evidence tha
 | Device interaction | Touch/mouse input, viewport dimensions, safe-area insets, focus/background notifications, optional vibration request | Controls the game, lays out UI around notches, pauses on focus loss, and provides haptic feedback. Android declares the normal `android.permission.VIBRATE` permission; it triggers no runtime consent dialog. | Processed ephemerally in memory | No; vibration does not collect or transmit information | Disable haptics in settings; platform controls govern input and vibration |
 | Support/privacy page opening | Only the fixed page path; no run, profile, session, or challenge data is appended | Player explicitly taps Support or Privacy in Settings; native builds ask the system browser to open `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` plus the page name, while Web uses a relative page | No game-side record | The browser makes the ordinary web request, so the host can receive request metadata | Do not open the page; browser and host controls apply after opening |
 | Support correspondence | Email address, message content, and any attachment a person voluntarily sends | The static support page opens the person's mail client to request help | Stored by the sender's and recipient's email providers according to their settings and policies; retained only as reasonably needed to answer and document the request | Yes, but outside the game binary and only when the person chooses to send email | Do not include unnecessary personal data; request deletion at `matanita44@gmail.com` |
-| Public web hosting logs | The code is configured to open a GitHub Pages origin. If deployed, GitHub may process ordinary request data such as IP address, timestamp, requested URL, and browser user-agent | Serving the game, privacy page, or support page | GitHub-dependent; deployment and retention were not verified in this repository | Potentially, at the hosting layer | Verify deployment and current GitHub terms before publication; browser controls may clear local site data but not host logs |
+| Public web hosting logs | The browser pre-release is deployed to GitHub Pages. GitHub may process ordinary request data such as IP address, timestamp, requested URL, and browser user-agent | Serving the game, privacy page, or support page | GitHub-dependent; deployment is verified, but host-log retention was not independently verified in this repository | Potentially, at the hosting layer | Review current GitHub terms before store release; browser controls may clear local site data but not host logs |
 
 ## Optional local analytics details
 
@@ -112,7 +112,7 @@ Review this map and both public pages before merging or enabling any of the foll
 4. Push notifications or deep-link tracking
 5. Any third-party SDK, embedded web view, or externally loaded script
 6. Account, nickname, feedback form, replay upload, result-card upload, or video export to a service
-7. A public host or support platform with known request-log or ticket-retention practices
+7. A change of public host or support platform, or a material change to request-log or ticket-retention practices
 8. New permissions, including camera, microphone, photos, contacts, or location
 
 The release gate owner must compare this document with the exact signed binary, not only the source tree.

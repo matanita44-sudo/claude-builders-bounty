@@ -5,7 +5,7 @@
 **Draft date:** 2026-09-01\
 **Operator/contact:** Matan — `matanita44@gmail.com`
 
-This draft must be reviewed for the operator's jurisdiction, store agreements, consumer law, age-rating result, and final product behavior before publication. It does not claim that the game, these terms, or any linked page is publicly available.
+This Terms draft is not publicly deployed and requires review for the operator's jurisdiction, store agreements, consumer law, age-rating result, and final product behavior before publication. The browser pre-release and its privacy/support pages are public; these Terms are not.
 
 ## English
 

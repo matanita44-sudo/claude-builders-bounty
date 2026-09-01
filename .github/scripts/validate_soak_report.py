@@ -32,6 +32,9 @@ PRODUCTION_FINGERPRINT_ROOTS = (
     "assets",
     "web",
 )
+PRODUCTION_FINGERPRINT_EXCLUDED_PREFIXES = (
+    "assets/store/gameplay/raw/",
+)
 TOP_LEVEL_FIELDS = {
     "schema",
     "report_transaction_id",
@@ -111,6 +114,8 @@ def production_source_fingerprint(project_root: pathlib.Path) -> str:
             for source_path in source_root.rglob("*"):
                 if source_path.is_file() and not source_path.name.endswith(".uid"):
                     relative_path = source_path.relative_to(project_root).as_posix()
+                    if relative_path.startswith(PRODUCTION_FINGERPRINT_EXCLUDED_PREFIXES):
+                        continue
                     records.append(
                         f"res://{relative_path}:{hashlib.sha256(source_path.read_bytes()).hexdigest()}"
                     )

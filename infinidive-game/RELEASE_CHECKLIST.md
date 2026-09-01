@@ -7,8 +7,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Godot project exists under `infinidive-game/`.
 - [x] Project version is declared as `0.1.0`.
 - [x] Source-of-truth README, architecture, status, issues, and release checklist exist.
-- [x] Historical remote source is committed on `infinidive-production`; Actions run 33514397476 tested commit `8e4be78267a043072827963d6492c7964239ae94` under the prior workflow.
-- [ ] The final frozen local tree, fingerprinted as production `8e9810de2615332713f86f47bf2f28f38728fb75e51ea5bfaf2d16760927d863` and tests/CI `db398ae7804cf75e6741e13380993f9425d42b3e44de8da62631f159595f1597`, is committed and pushed.
+- [x] The exact production tree is committed and pushed on `infinidive-production` as `67e2c54`.
+- [x] The canonical production inventory is fingerprinted as `e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382`; the tracked tests/CI inventory, including the commit-bound public-host and synthetic-touch smoke workflow, is `4aadf79562b34b616e445ab30408ad91a627cb0926d3b0185735ce89ac44219a`. The production calculation deliberately excludes only `assets/store/gameplay/raw/`: its continuous provenance capture is local-only, untracked, and non-exported, so it cannot affect the shipped game.
 - [ ] Default/production branch is remotely playable and protected appropriately.
 - [ ] Risky migration work has a recoverable branch/tag/checkpoint.
 - [ ] Release version, changelog, and tag agree.
@@ -138,7 +138,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] `OPEN_SOURCE_NOTICES.md` records the Godot MIT runtime notice and the no-third-party-creative-asset boundary; final-binary notice audit remains required.
 - [x] A bilingual pre-release Terms draft exists in `TERMS.md`; it is not legally approved or public.
 - [x] A bounded, checksummed offline leaderboard outbox validates canonical Daily/Friend summaries, separates challenge IDs, rejects duplicates, fails closed with no transport, and is called after every completed run; Story/Abyss calls do not consume it.
-- [ ] Privacy policy, support page, terms/open-source notices, and asset-license ledger are public.
+- [x] Bilingual pre-release privacy and support pages are public over HTTPS.
+- [ ] Final legally reviewed Terms/open-source notices and asset-license ledger are public where required.
 - [ ] If backend is enabled: anonymous identity, RLS, rate limiting, validation, moderation, and offline queue pass security review.
 - [ ] No service-role key or private credential exists in the client.
 - [ ] Score submissions cannot be trivially forged for competitive boards.
@@ -151,10 +152,13 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.
 - [x] Paused `BREACH_OPEN` rejects Dive without replacing the pause overlay; manual resume restores the legal Dive path in regression coverage.
-- [x] The current working-tree CI workflow imports, tests, exports Web/Android, browser-smoke-tests Web, and attempts Pages deployment.
-- [ ] The complete current workflow passes on GitHub. Historical run 33514397476 passed its prior validate/Web/Android jobs, but deploy job 99878161111 failed at Get Pages `Not Found` / Create Pages `Resource not accessible by integration`.
-- [x] Historical validate job 99877648950 passed the then-configured eight invocations for commit `8e4be782`; it is not the frozen 13-suite matrix.
-- [x] Historical Web job 99877839855 passed and its CI-served Chromium smoke returned HTTP 200, Godot 4.7.2, WebGL2, canvas 540×960, hidden loading status, and no page errors; the frozen local Web export has not received a real-browser smoke.
+- [x] The current CI workflow imports, tests, exports Web/Android, browser-smoke-tests the Web export, deploys Pages, and includes a post-deploy public-host smoke job.
+- [x] Actions run `33557365042`, attempt 2, passes overall for exact-tree commit `67e2c54`; deploy job `100024023277` also passes.
+- [x] Actions run `33559947112` completes fully `PASS`; its source-bound 30-minute job is `100030992601`, and artifact `9822001845` retains the validated JSON/Markdown pair.
+- [x] The current remote validate job passes the frozen 13-suite matrix at `28,410/0`.
+- [x] The current Web export boots successfully in CI-served headless Chrome; this does not cover touch gameplay, Safari, the public-host canvas, or a physical device.
+- [x] The current Android debug export and structural validation pass in Actions run `33557365042`, attempt 2; this is not an install, lifecycle, release-signing, or Play internal-test result.
+- [x] The commit-bound public-host canvas automation passes in Actions run `33559947112`: HTTP 200, Godot 4.7.2/WebGL2, 540×960 canvas, hidden loading status, and zero page/console errors; artifact `9821030353` retains the evidence.
 - [x] Local complete-boss victory smoke tests pass for four bosses × six organ orders.
 - [x] Combined failure, 55-Bio banking, Forge upgrade, 110-HP new run, second failure, instant retry, and separate-process relaunch smoke passes.
 - [ ] A previously shipped-build update fixture, background/force-close reward timing, and repeated Abyss-depth smoke pass.
@@ -170,38 +174,38 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 - [x] Projectile pools have explicit caps and segment collision.
 - [ ] Cold start is measured against the target on representative devices.
-- [x] A 30-minute Linux headless structural soak completed for its loaded snapshot with zero failures and a bounded static-memory trend; repeat after code freeze for RC evidence.
-- [x] Final 8.014-second pair passes: 87 cycles, 9 restarts/Dives, 6 saves, 529 queued events / 2 reloads / final 500, peak 540, 7/7, transaction `b5a5db690e1513095a2cf63f`, JSON `dbcbf0bdb4fc9e6fb763a5c344f274872cb13875696764fe118a4bf8c3901bdb`, Markdown `15cd17499c54496ad909536039a3706f46c2fc197c856aa4b9fd89feaf2f5167`.
-- [x] Final 90.118-second pair passes: 1,141 cycles, 115 restarts/Dives, 58 saves, 634 queued events / 3 reloads / final 500, peak 540, 7/7, stable delta 87,560 bytes, slope 216,364.835675299 B/min, transaction `22c5717c57c6018e8189b84f`, JSON `119157a6aaf32943c30062dd2b51fe0ee1182b525b50acd0017c8f8c2150c5cf`, Markdown `30c3b34a24347a5d6267929dc1a1f37bbd3b4a2f7374d64a6b446b6e66679bea`.
-- [x] Headless soak completed 3,239 repeated restarts without retained run/projectile nodes.
-- [x] Headless soak completed 3,239 outside-inside-outside transitions without recorded duplicate/retained state.
+- [x] Current-source 30-minute Linux headless structural soak passes in Actions run `33559947112`, job `100030992601`, artifact `9822001845`: `1800.043s`, 26,676 cycles, 7/7 travel models, zero failures, transaction `5c047f1a630e8e1de5c5ffff`, JSON `2f8171e8317572f31fd479884edcaa441452082640a9be4f3fe9339da02710b4`, Markdown/bound hash `a508864e78c75981e8221df2c53f0ed97c82501295e999328fa86b78970f1856`.
+- [x] Current 8.031-second pair passes: 86 cycles, 9 restarts / 9 Dives, 6 saves, 529 queued events / 2 reloads / final 500, peak 540, 7/7, transaction `9ac05a1b4bcc696001e5a6e7`, JSON `d8d5c6c5b0667f3b53844839f5955841430e85842ea168220c1a0d8ca4b5c1e9`, Markdown/bound hash `9ba26093ba394c70b591130544a21094e719d0801d55755d82fd0e5c93814c27`.
+- [x] Current 90.048-second pair passes: 1,169 cycles, 117 restarts / 117 Dives, 60 saves / 1 reload, 637 queued events / 3 queue reloads / final 500, peak 540, 7/7, stable delta 90,040 bytes, slope 218,786.041893738 B/min, transaction `26dad83d28067418d76982a3`, JSON `2bc054556fe9e0c75813feb7e50dfcae5844c8140e4491bfd599e9129309c4c1`, Markdown/bound hash `026962ed338b02db99cfee0ecb08bc16b197c9b2abd1544214e11ed61e69ab83`.
+- [x] All three current pairs use unchanged production fingerprint `e942db6f8a0f1a47518e8afb468f77c651001a2028fcad0820e71c4d993a6382`, complete their two-phase transactions, execute 7/7 travel models, and report zero failures.
+- [x] The current-source 30-minute soak completed 2,668 repeated restarts without retained run/projectile nodes; baseline/final nodes were 11/10 and orphan peak was 0.
+- [x] The current-source 30-minute soak completed 2,668 outside-inside-outside transitions without recorded duplicate/retained state.
 - [ ] Maximum-projectile stress test passes at target frame rate.
-- [x] Headless soak completed 1,620 atomic saves and 27 reload/backup checks.
+- [x] The current-source 30-minute soak completed 1,335 atomic saves and 22 reload/backup checks, plus 3,188 offline events / 24 queue reloads / final queue 500.
 - [ ] Offline/online transition test passes if networking is enabled.
 - [ ] Background return is fast and stable.
 - [ ] No blocking network or save operation occurs during combat.
-- [x] Final current-source package names, sizes, hashes, `BUILD_EVIDENCE.md`, and `SHA256SUMS` are recorded under `../build/final-0.1.0-8e9810de/`; none is browser, native-install, production-signing, physical-device, or store evidence.
+- [x] Canonical package names, sizes, hashes, `BUILD_EVIDENCE.md`, and `SHA256SUMS` are recorded under `../build/final-0.1.0-e942db6f/`; none is browser, native-install, production-signing, physical-device, or store evidence.
 
 ## 9. Web release
 
-- [x] Fresh current-source Web evidence under `../build/final-0.1.0-8e9810de/web/` is complete, hashed, and passes static/local-HTTP validation; no local real-browser canvas was available.
-- [x] Web ZIP `INFINIDIVE-0.1.0-prealpha-web-8e9810de.zip` is recorded in passing `SHA256SUMS` with SHA-256 `4b0ab0515d12c23e5426dd952e47eff21006dc0e066dfd52697ef46e2836bba0`.
+- [x] Fresh canonical Web evidence under `../build/final-0.1.0-e942db6f/web/` is complete, hashed, and passes static/local-HTTP validation; no local real-browser canvas was available.
+- [x] Web ZIP `INFINIDIVE-0.1.0-prealpha-web-e942db6f.zip` contains the deployment-corrected bilingual privacy/support pages and is recorded in the passing `SHA256SUMS` with SHA-256 `8df771d497ce98c5807e40bf2e2f0bff9aa5bbdb74f614551668b8fd559b0001`.
 - [x] Static Web validation passes and confirms tooling/adaptive-icon sources are excluded from the package.
 - [x] Local HTTP smoke returns 200 for the frozen game root, privacy page, and support page; this is not a real-browser canvas/WebGL/touch run.
-- [x] Historical remote Web output for commit `8e4be782` records HTML 2,618, PCK 440,384, and WASM 39,514,754 in Pages artifact `9803007777`; smoke artifact `9803006599` retains its Chromium evidence. These are not the frozen local files.
-- [x] The historical remote Web artifact boots through CI-served HTTP in headless Chromium with no page errors; this does not cover the frozen export, touch gameplay, Safari, or the public host.
+- [x] Actions run `33557365042`, attempt 2, exports exact-tree commit `67e2c54` and boots that output through CI-served HTTP in headless Chrome; this does not cover touch gameplay, Safari, or the public host.
 - [ ] Export is smoke-tested in desktop Safari and Chrome.
 - [ ] Export is touch-tested in mobile Safari and mobile Chrome.
 - [ ] Hosting sends any headers required by the exported Godot configuration.
-- [ ] GitHub Pages workflow completes successfully; current deploy job 99878161111 stopped at Get Pages `Not Found` / Create Pages `Resource not accessible by integration`.
-- [ ] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opens the current game directly, returns HTTP 200, and passes runtime smoke.
-- [x] Fail-closed verification records HTTP 404 for the game, support, and privacy URLs and no canvas; no public deployment is claimed.
+- [x] GitHub Pages deployment completes successfully in job `100024023277` (Actions run `33557365042`, attempt 2).
+- [x] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opens the commit-bound current game directly, returns HTTP 200, and passes the public-host boot smoke in run `33559947112`.
+- [x] The live game, support, and privacy URLs each return HTTP 200.
 - [ ] Public build displays current version and a working feedback link.
 
 ## 10. Android internal test
 
-- [x] Fresh arm64 portrait debug APK `INFINIDIVE-0.1.0-prealpha-debug-8e9810de.apk` is hashed (`d089cebf2207391634fa6b2719d9b8c0a56e654619c33b05292e47aacc78bfa6`) and passes package/min24/target36/arm64/exact-VIBRATE/alignment/Debug-v2-v3 validation.
-- [x] Historical Android job 99877839931 for commit `8e4be782` passed using build-tools 36 and produced remote debug APK SHA-256 `9b981f4d0accc600ef8f869e600b16f5585533ea1fe4cf8c71a983cfbdd87172` in artifact `9802998519`; it is not the frozen local APK.
+- [x] Fresh arm64 portrait debug APK `INFINIDIVE-0.1.0-prealpha-debug-e942db6f.apk` is hashed (`d089cebf2207391634fa6b2719d9b8c0a56e654619c33b05292e47aacc78bfa6`) and passes package/min24/target36/arm64/exact-VIBRATE/alignment/Debug-v2-v3 validation.
+- [x] Actions run `33557365042`, attempt 2, exports and structurally validates the Android debug build for exact-tree commit `67e2c54`; no emulator/device install or production-signing claim is made.
 - [x] Its manifest verifies `com.matan.infinidive`, version `0.1.0 (1)`, min SDK 24, target SDK 36, and exactly normal `android.permission.VIBRATE`.
 - [x] The APK passes zip alignment and v2/v3 signature verification with `CN=Android Debug`; it is not production-distributable evidence.
 - [x] Both reconciled Android presets request only normal `android.permission.VIBRATE` for optional haptics; it has no runtime prompt and does not collect data.
@@ -221,7 +225,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 - [x] Full iOS export was attempted and failed exactly because the Development Team is blank.
 - [x] Fresh current-source iOS PCK is 625,908 bytes / `8cf2bd0732b1df958f65958cd45fee65d2387527f6a7cf08b6287dff1f3ccf83` and passes the headless main-pack probe; the owner Team ID remains required for full native export.
-- [x] Unsigned iOS ZIP `INFINIDIVE-0.1.0-prealpha-ios-unsigned-8e9810de.zip` is recorded in passing `SHA256SUMS` with SHA-256 `5e3276c7d3c92a21ef154e776c290e4308424975c0af4f9eb604194537e51ede`; no compiled, signed, installable iOS build is claimed.
+- [x] Unsigned iOS ZIP `INFINIDIVE-0.1.0-prealpha-ios-unsigned-e942db6f.zip` is recorded in passing `SHA256SUMS` with SHA-256 `5e3276c7d3c92a21ef154e776c290e4308424975c0af4f9eb604194537e51ede`; no compiled, signed, installable iOS build is claimed.
 - [x] The assembled unsigned scaffold records unchanged pbxproj SHA-256 `dbbc0f658d31f09a8ad0b020a4ef1d1f6072e422088d13c996dd0d09ee7748bb` and 413-byte export-options plist SHA-256 `7c41fe82380ed9bede2ad63898916de5b45e85839ef5800fafb9fa595fb7d661`.
 - [ ] The full current source is successfully exported as a regenerated Xcode project and compiled for iOS; the attempt failed because the preset has no Apple Development Team ID, although the current-source PCK was exported separately.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
@@ -255,7 +259,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [ ] Hebrew metadata is reviewed by a fluent human and entered only after complete in-game RTL QA.
 - [ ] Age-rating and privacy answers are completed truthfully.
 - [x] Repository-local bilingual support/privacy pages and bilingual Terms draft exist; open-source notices are recorded.
-- [ ] Support, privacy, and marketing URLs are public and correct.
+- [ ] Support, privacy, and marketing URLs are public and correct. The deployed support and privacy URLs return HTTP 200; final content/legal/marketing validation remains open.
 - [ ] No screenshot, trailer, claim, testimonial, metric, or award is fabricated.
 
 ## 13. Final release gates
