@@ -1,6 +1,6 @@
 # INFINIDIVE — Game Bible
 
-> Truth status: pre-alpha development snapshot 0.1.0, recorded 2026-09-02. This document describes the game present in the repository now. It is not a claim that INFINIDIVE 1.0, a signed store build, public deployment, or device-validated release exists.
+> Truth status: pre-alpha development snapshot 0.1.0, recorded 2026-09-02. A bright Greek-mythic/AION Web pre-alpha is publicly deployed from commit `e9e7a50f`; this document is not a claim that INFINIDIVE 1.0, a production-signed store build, device-validated release, or submitted App Store product exists. Current first-breach/schema-7/Terms/stage-capture changes remain local until their next source-bound deployment.
 
 ## Product identity
 
@@ -188,7 +188,7 @@ Fourteen local achievements and nineteen local contracts are data-driven, rotate
 
 | Mode | Implemented behavior | Current boundary |
 |---|---|---|
-| Story Descent | Select an unlocked Titan, weapon and one of three difficulties; victory advances progression. The first eligible CRONUS Story run presents a skippable four-beat English-first prologue. Main also presents the localized chapter intro before an eligible Story attempt while that chapter has no Story difficulty progress, and the shard-restoration beat when the run result explicitly marks its first Story clear | Intro and first-clear victory presentation are connected for all four chapter records. Intro-seen state lives in the handed-off run config rather than a durable story ledger. Story gating does not rely on the cross-mode `boss_clears` counter. The authored `first_breach` beat remains data-only and is not yet shown during a run |
+| Story Descent | Select an unlocked Titan, weapon and one of three difficulties; victory advances progression. The first eligible CRONUS Story run presents a skippable four-beat English-first prologue. Main also presents the localized chapter intro before an eligible Story attempt, injects that chapter's authored first-breach beat into the actual breach event, and presents the shard-restoration beat when the run result explicitly marks its first Story clear | All four chapter intros, first-breach lines, and first-clear victory beats are connected. The breach line is a short nonmodal HUD message: movement, the seven-second breach timer, and the Dive control remain active. Its globally unique beat ID is saved before display in a versioned exact-once ledger; save failure suppresses the line and allows a later retry. Story gating does not rely on the cross-mode `boss_clears` counter |
 | Daily Rift | Uses a seed derived from the current UTC date, chooses a fixed boss and weapon, and runs on Deep difficulty | A completed run can queue an unverified local summary under a canonical UTC-day challenge ID; there is no synchronization authority, upload transport, or online leaderboard |
 | Friend Rift | Creates and parses ID1 codes containing boss, seed, weapon, difficulty, modifiers and optional targets | Accepted runs queue under a canonical payload-derived challenge ID, so unrelated codes do not share a local board. Score/time targets are evaluated and shown as met/missed after the run. Clipboard checksum is not server authority; modifier IDs are transported but do not yet alter rules |
 | Abyss Loop | Cycles bosses after wins, increases HP, damage and projectile speed by depth, carries selected mutations, restores part of health, and advances local meta goals | Continuation occurs through the Retry action; no online leaderboard or periodic choice screen |
@@ -243,7 +243,7 @@ Audio is synthesized at runtime. The current library contains 24 named one-shots
 - That launch is marked `aether_prologue`. The Keeper enters the run with the Spark dormant and automatic fire blocked.
 - Moving at least 12 pixels records the tutorial movement observation and starts a 0.36-second awakening delay. The AION Spark then appears, automatic fire becomes active, and the game emits its toast, sound, haptic request and analytics event.
 - The authored hero and procedural fallback both present empty hands. Even after awakening, `PlayerController.presentation_snapshot()` reports no visible physical weapon and no muzzle flash. Weapon selection and automatic projectile behavior still exist as combat systems; “unarmed” describes the hero presentation, not removal of the weapon catalog.
-- Prologue eligibility currently relies on the tutorial understood mask rather than a separate narrative-completion save field. The prologue handoff marks `story_intro_seen` so it does not immediately duplicate CRONUS's chapter intro. For each Titan, Main otherwise shows the chapter intro only while its Story difficulty progress is incomplete. Before banking, RunScene records an explicit `story_first_clear` result marker; Main uses that marker for the victory/shard beat, so Daily/Friend/Abyss wins cannot suppress or fabricate chapter delivery. `story_intro_seen` survives the handed-off config and its retry, but is not separately persisted; returning to the Nest before a clear can therefore show the intro again. The authored `first_breach` beat remains data-only.
+- Prologue eligibility currently relies on the tutorial understood mask rather than a separate narrative-completion save field. The prologue handoff marks `story_intro_seen` so it does not immediately duplicate CRONUS's chapter intro. For each Titan, Main otherwise shows the chapter intro only while its Story difficulty progress is incomplete. Main prepares the authored `first_breach` beat only for a fresh Story chapter; `RunScene` persists its beat ID before showing a nonmodal HUD line at the actual first breach, removes the consumed notice from retry configuration, and leaves movement, the breach timer, and Dive active. Daily/Friend/Abyss and malformed state fail closed. Before banking, RunScene records an explicit `story_first_clear` result marker; Main uses that marker for the victory/shard beat, so non-Story wins cannot suppress or fabricate chapter delivery. `story_intro_seen` survives the handed-off config and its retry, but is not separately persisted; returning to the Nest before a clear can therefore show the intro again.
 
 ### Localization
 
@@ -272,7 +272,7 @@ Damage-flash intensity controls the player highlight blend while retaining a sho
 
 ## Save and local data
 
-Save schema 6 stores currencies, weapon unlocks, upgrade levels, Nest stage, boss progress, achievements/meta goals, discovered mutations, tutorial state, settings, run totals and supporting future-facing fields.
+Save schema 7 stores currencies, weapon unlocks, upgrade levels, Nest stage, boss progress, achievements/meta goals, discovered mutations, tutorial state, exact-once Story beat receipts, settings, run totals and supporting future-facing fields.
 
 Current reliability measures:
 
@@ -280,7 +280,7 @@ Current reliability measures:
 - Temporary-file write before promotion
 - Previous primary rotated to a backup
 - Backup recovery when the primary is invalid
-- Migrations from schema 1 through schema 6
+- Migrations from schema 1 through schema 7
 - Legacy `tutorial_complete=true` maps to the full ten-step `TutorialFlow.FULL_MASK`; replay presentation remains separate
 - Default-field deep merge
 - A durable processed-run ledger retained to reject duplicate banking, including after later runs
@@ -301,7 +301,7 @@ Present and playable in source:
 - A skippable English-first AION opening, optional Hebrew localization, and first-movement Spark awakening for the first eligible CRONUS Story run
 - Four Titan records, authored textures and distinct visual silhouettes
 - Three selectable fractured organs per Titan, with twelve supported exterior-loss visual tokens
-- A four-chapter bilingual story catalog and read-only story service, with localized chapter-intro and first-clear victory presentation connected through Main
+- A four-chapter bilingual story catalog and read-only story service, with localized chapter-intro, live nonmodal first-breach, and first-clear victory presentation connected through Main and RunScene
 - Five weapon records and runtime weapon behaviors
 - 24 mutation records
 - 18 permanent-upgrade records
@@ -315,7 +315,7 @@ Present and playable in source:
 Not established by this snapshot:
 
 - Full production-quality uniqueness for every boss attack and room
-- Live presentation of the four authored `first_breach` chapter beats
+- Human pacing and comprehension validation for the four live `first_breach` chapter beats
 - Separate persistence or player-facing collection UI for the four named AION story shards
 - Human balance/feel validation for mutation and permanent-upgrade combinations
 - Complete cosmetic system and richer achievement/contract presentation
@@ -323,7 +323,7 @@ Not established by this snapshot:
 - Backend leaderboards, cloud saves or score validation
 - Monetization, purchases, ads or restore flow
 - Android or iOS signed builds
-- Complete semantic full-path Web validation, release-candidate device/performance QA, or physical-device control-feel testing. The current candidate passed both CI-served and public-host movement/Dash gates in Actions run `33572931398`, alongside its source-bound 30-minute structural soak. Those bounded gates prove 3/3/3 canvas-targeted touch events, accepted movement, one Dash with charge consumption, a stable run generation, and changed rendered frames; they do not prove breach/Dive/organ return, reload persistence, mobile-browser behavior, device ergonomics, or human comprehension.
+- Release-candidate device/performance QA or physical-device control-feel testing. Commit `e9e7a50f` passed both CI-served and public-host full outside-inside-outside semantic paths plus same-context reload in Actions run `33590118787`, alongside its source-bound 30-minute structural soak. That proves automated desktop-Chromium state transitions and persistence for `e9e7a50`; it does not prove the current uncommitted first-breach/schema-7 follow-up, mobile Safari/Chrome behavior, device ergonomics, or human comprehension.
 - Final Apple 6.9-inch screenshots, a supported-Apple-path App Preview capture, store approval, or submission. Five 1080×1920 stills, an audio-complete 1080×1920 social edit, and an 886×1920 Apple-format experiment exist, but all are virtual-display evidence from the superseded pre-pivot identity and must not represent the current product.
 
 ## Source precedence

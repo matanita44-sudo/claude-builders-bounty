@@ -436,6 +436,23 @@ async function waitForRunState(expectedState, runGeneration, afterRevision, time
   return snapshot;
 }
 
+async function captureStageScreenshot(result, stageName) {
+  if (!/^[a-z0-9-]+$/.test(stageName)) {
+    throw new Error(`Unsafe screenshot stage name: ${JSON.stringify(stageName)}`);
+  }
+  await page.waitForTimeout(100);
+  const fileName = `infinidive-stage-${stageName}.png`;
+  const screenshot = await page.screenshot({
+    path: path.join(evidenceDir, fileName),
+    fullPage: true,
+  });
+  result.semantic_touch.stage_screenshots[stageName] = fileName;
+  result.semantic_touch.stage_screenshot_sha256[stageName] = crypto
+    .createHash('sha256')
+    .update(screenshot)
+    .digest('hex');
+}
+
 async function persistEvidence(result, screenshotAlreadyCaptured = false) {
   if (page) {
     try {
@@ -490,6 +507,8 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
       stage: 'launch',
       minimum_player_displacement_px: 12,
       snapshots: {},
+      stage_screenshots: {},
+      stage_screenshot_sha256: {},
     },
   };
 
@@ -687,10 +706,12 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
 
     const beforeInputPath = path.join(evidenceDir, 'infinidive-before-input.png');
     const beforeInput = await page.screenshot({ path: beforeInputPath, fullPage: true });
-    result.semantic_touch.stage_screenshots = {
-      nest: path.basename(beforeInputPath),
-      latest: 'infinidive-browser.png',
-    };
+    result.semantic_touch.stage_screenshots.nest = path.basename(beforeInputPath);
+    result.semantic_touch.stage_screenshot_sha256.nest = crypto
+      .createHash('sha256')
+      .update(beforeInput)
+      .digest('hex');
+    result.semantic_touch.stage_screenshots.latest = 'infinidive-browser.png';
     result.semantic_touch.stage = 'start_tap';
     await page.touchscreen.tap(270, 842);
     await page.waitForTimeout(1_500);
@@ -731,6 +752,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
       throw new Error(`Run start did not create exactly one run generation: ${JSON.stringify({ nestProbe, runStartProbe })}`);
     }
     result.semantic_touch.snapshots.run_start = runStartProbe;
+    await captureStageScreenshot(result, 'run-start-unarmed');
 
     const cdp = await context.newCDPSession(page);
     result.semantic_touch.stage = 'movement_drag';
@@ -789,6 +811,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
     }
     result.semantic_touch.snapshots.after_move = afterMoveProbe;
     result.semantic_touch.player_displacement_px = displacementPx;
+    await captureStageScreenshot(result, 'aion-spark-combat');
 
     result.semantic_touch.stage = 'dash_ready';
     await page.waitForFunction(
@@ -904,6 +927,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
     assertRunTransition(dashDurableProbe, breachOpenProbe, 'Breach open', 'BREACH_OPEN', true);
     result.semantic_touch.snapshots.breach_open = breachOpenProbe;
     result.semantic_touch.core_path.observed_states.push('BREACH_OPEN');
+    await captureStageScreenshot(result, 'breach-open');
 
     result.semantic_touch.stage = 'dive_tap';
     await page.touchscreen.tap(476, 888);
@@ -917,6 +941,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
     assertRunTransition(breachOpenProbe, organSelectProbe, 'Organ selection', 'ORGAN_SELECT', false);
     result.semantic_touch.snapshots.organ_select = organSelectProbe;
     result.semantic_touch.core_path.observed_states.push('ORGAN_SELECT');
+    await captureStageScreenshot(result, 'organ-select');
 
     result.semantic_touch.stage = 'hunter_eye_tap';
     await page.touchscreen.tap(270, 421);
@@ -948,6 +973,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
     }
     result.semantic_touch.snapshots.internal_rooms = internalRoomsProbe;
     result.semantic_touch.core_path.observed_states.push('INTERNAL_ROOMS');
+    await captureStageScreenshot(result, 'internal-route');
 
     result.semantic_touch.stage = 'organ_chamber_wait';
     const organChamberProbe = await driveUntilState(
@@ -964,6 +990,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
     }
     result.semantic_touch.snapshots.organ_chamber = organChamberProbe;
     result.semantic_touch.core_path.observed_states.push('ORGAN_CHAMBER');
+    await captureStageScreenshot(result, 'organ-chamber');
 
     result.semantic_touch.stage = 'organ_destroyed_wait';
     const mutationChoiceProbe = await driveUntilState(
@@ -984,6 +1011,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
     }
     result.semantic_touch.snapshots.mutation_choice = mutationChoiceProbe;
     result.semantic_touch.core_path.observed_states.push('MUTATION_CHOICE');
+    await captureStageScreenshot(result, 'mutation-choice');
 
     result.semantic_touch.stage = 'mutation_tap';
     await page.touchscreen.tap(270, 360);
@@ -1157,8 +1185,10 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
       path: afterInputPath,
       fullPage: true,
     });
+    result.semantic_touch.stage_screenshots.outside_return = path.basename(afterInputPath);
     const beforeInputSha256 = crypto.createHash('sha256').update(beforeInput).digest('hex');
     const afterInputSha256 = crypto.createHash('sha256').update(afterInput).digest('hex');
+    result.semantic_touch.stage_screenshot_sha256.outside_return = afterInputSha256;
     const retainedBeforeInputSha256 = crypto
       .createHash('sha256')
       .update(fs.readFileSync(beforeInputPath))

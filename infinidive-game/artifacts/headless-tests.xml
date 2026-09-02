@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="INFINIDIVE" tests="2726" failures="0" time="12.467">
+<testsuite name="INFINIDIVE" tests="2726" failures="0" time="12.826">
 <testcase name="assertion_0001" classname="INFINIDIVE"><system-out>GameData must pass validation: []</system-out></testcase>
 <testcase name="assertion_0002" classname="INFINIDIVE"><system-out>Exactly four bosses are required</system-out></testcase>
 <testcase name="assertion_0003" classname="INFINIDIVE"><system-out>Exactly five weapons are required</system-out></testcase>
@@ -1338,18 +1338,18 @@
 <testcase name="assertion_1336" classname="INFINIDIVE"><system-out>The pre-alpha fixture must identify its source schema and profile payload</system-out></testcase>
 <testcase name="assertion_1337" classname="INFINIDIVE"><system-out>The checked-in prior-schema fixture must preserve currencies and run history</system-out></testcase>
 <testcase name="assertion_1338" classname="INFINIDIVE"><system-out>The checked-in prior-schema fixture must preserve selection/language and receive current nested defaults</system-out></testcase>
-<testcase name="assertion_1339" classname="INFINIDIVE"><system-out>The checked-in prior-schema fixture must migrate tutorial and transaction state to the current contract</system-out></testcase>
+<testcase name="assertion_1339" classname="INFINIDIVE"><system-out>The checked-in prior-schema fixture must migrate tutorial, transaction, and Story receipt state to the current contract</system-out></testcase>
 <testcase name="assertion_1340" classname="INFINIDIVE"><system-out>Schema 1 bank currency must migrate to Bio-Matter</system-out></testcase>
 <testcase name="assertion_1341" classname="INFINIDIVE"><system-out>Legacy victory data must migrate to an unlocked Abyss Loop</system-out></testcase>
 <testcase name="assertion_1342" classname="INFINIDIVE"><system-out>Nested save defaults must merge without replacing an existing language</system-out></testcase>
-<testcase name="assertion_1343" classname="INFINIDIVE"><system-out>Save migration must add current transaction and contract fields</system-out></testcase>
-<testcase name="assertion_1344" classname="INFINIDIVE"><system-out>Save migration must add resumable tutorial presentation state</system-out></testcase>
+<testcase name="assertion_1343" classname="INFINIDIVE"><system-out>Save migration must add current transaction, contract, and versioned Story receipt fields</system-out></testcase>
+<testcase name="assertion_1344" classname="INFINIDIVE"><system-out>Save migration must add resumable tutorial presentation state without losing a valid pre-release Story receipt</system-out></testcase>
 <testcase name="assertion_1345" classname="INFINIDIVE"><system-out>A legacy tutorial_complete flag must migrate to all ten understood-step bits</system-out></testcase>
 <testcase name="assertion_1346" classname="INFINIDIVE"><system-out>Migrated legacy tutorial completion must remain semantically complete</system-out></testcase>
-<testcase name="assertion_1347" classname="INFINIDIVE"><system-out>Malformed upgrade storage must recover to a typed-safe dictionary</system-out></testcase>
+<testcase name="assertion_1347" classname="INFINIDIVE"><system-out>Malformed upgrade and Story receipt storage must recover to typed-safe defaults</system-out></testcase>
 <testcase name="assertion_1348" classname="INFINIDIVE"><system-out>Malformed settings storage must recover to the complete default shape</system-out></testcase>
 <testcase name="assertion_1349" classname="INFINIDIVE"><system-out>Malformed scalar save fields must recover to their safe default</system-out></testcase>
-<testcase name="assertion_1350" classname="INFINIDIVE"><system-out>Unknown future save fields must survive shape recovery</system-out></testcase>
+<testcase name="assertion_1350" classname="INFINIDIVE"><system-out>Unknown future save fields and nested Story contracts must survive shape recovery</system-out></testcase>
 <testcase name="assertion_1351" classname="INFINIDIVE"><system-out>A valid run result must bank once</system-out></testcase>
 <testcase name="assertion_1352" classname="INFINIDIVE"><system-out>A duplicate run id must be rejected</system-out></testcase>
 <testcase name="assertion_1353" classname="INFINIDIVE"><system-out>Rejected duplicate banking must not change currencies or run totals</system-out></testcase>

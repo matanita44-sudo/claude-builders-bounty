@@ -11,6 +11,8 @@ const CHAPTER_ACCENTS := {
 	"abyss_leviathan": "#2CB8BC",
 	"null_twin": "#9B78C6",
 }
+const STORY_STATE_PROFILE_KEY := "story_state"
+const STORY_STATE_VERSION := 1
 
 
 static func chapter_intro(service: StoryService, chapter: Dictionary, locale: String) -> Dictionary:
@@ -37,6 +39,70 @@ static func chapter_intro(service: StoryService, chapter: Dictionary, locale: St
 			"progress": "{current} / {total}",
 		},
 	}
+
+
+static func chapter_breach(service: StoryService, chapter: Dictionary, locale: String) -> Dictionary:
+	if service == null or chapter.is_empty():
+		return {}
+	var beat := _beat_for_moment(chapter,"first_breach")
+	if beat.is_empty():
+		return {}
+	var is_hebrew := _normalized_locale(locale) == "he"
+	return {
+		"beats": [{
+			"id": String(beat.get("id","chapter_breach")),
+			"speaker": String(beat.get("speaker","AION")),
+			"eyebrow": "איון · הפרצה פתוחה" if is_hebrew else "AION · BREACH OPEN",
+			"title": service.localized_field(chapter,"title",locale),
+			"body": service.localized_field(beat,"text",locale),
+			"symbol": "breach",
+			"accent": _accent_for_chapter(chapter),
+		}],
+		"copy": {
+			"skip": "דלג" if is_hebrew else "SKIP",
+			"continue": "המשך" if is_hebrew else "CONTINUE",
+			"finish": "צלול" if is_hebrew else "DIVE",
+			"progress": "{current} / {total}",
+		},
+	}
+
+
+static func presented_ledger_is_valid(profile: Dictionary) -> bool:
+	if not profile.has(STORY_STATE_PROFILE_KEY):
+		return true
+	var raw_state: Variant = profile.get(STORY_STATE_PROFILE_KEY,{})
+	if typeof(raw_state) != TYPE_DICTIONARY:
+		return false
+	var story_state := raw_state as Dictionary
+	var raw_version: Variant = story_state.get("version",null)
+	if typeof(raw_version) not in [TYPE_INT,TYPE_FLOAT] or not is_finite(float(raw_version)) or float(raw_version) != floor(float(raw_version)) or int(raw_version) != STORY_STATE_VERSION:
+		return false
+	var raw_ledger: Variant = story_state.get("presented_beat_ids",null)
+	if typeof(raw_ledger) != TYPE_ARRAY:
+		return false
+	var seen: Dictionary = {}
+	for raw_id in raw_ledger as Array:
+		if typeof(raw_id) != TYPE_STRING:
+			return false
+		var beat_id := String(raw_id).strip_edges()
+		if beat_id.is_empty() or beat_id.length() > 64 or seen.has(beat_id):
+			return false
+		seen[beat_id] = true
+	return true
+
+
+static func presented_beat_ids(profile: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+	if not presented_ledger_is_valid(profile):
+		return result
+	var story_state: Dictionary = profile.get(STORY_STATE_PROFILE_KEY,{})
+	for raw_id in story_state.get("presented_beat_ids",[]):
+		result.append(String(raw_id))
+	return result
+
+
+static func has_presented_beat(profile: Dictionary, beat_id: String) -> bool:
+	return not beat_id.is_empty() and presented_beat_ids(profile).has(beat_id)
 
 
 static func chapter_victory(service: StoryService, chapter: Dictionary, locale: String) -> Dictionary:

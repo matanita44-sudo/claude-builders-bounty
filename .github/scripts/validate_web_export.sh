@@ -9,6 +9,7 @@ test -n "$(find "${web_dir}" -maxdepth 1 -type f -name '*.wasm' -print -quit)"
 test -n "$(find "${web_dir}" -maxdepth 1 -type f -name '*.pck' -print -quit)"
 test -s "${web_dir}/privacy.html"
 test -s "${web_dir}/support.html"
+test -s "${web_dir}/terms.html"
 test -f "${web_dir}/.nojekyll"
 
 if grep -q '\$GODOT_' "${web_dir}/index.html"; then

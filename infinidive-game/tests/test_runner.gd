@@ -1199,8 +1199,10 @@ func _test_save_migration_and_banking() -> void:
 	_assert(
 		int(migrated_fixture.tutorial_state.understood_mask) == TutorialFlowClass.FULL_MASK
 		and migrated_fixture.has("tutorial_presentation")
-		and migrated_fixture.has("processed_run_ids"),
-		"The checked-in prior-schema fixture must migrate tutorial and transaction state to the current contract"
+		and migrated_fixture.has("processed_run_ids")
+		and int(migrated_fixture.story_state.version) == SaveManager.STORY_STATE_VERSION
+		and (migrated_fixture.story_state.presented_beat_ids as Array).is_empty(),
+		"The checked-in prior-schema fixture must migrate tutorial, transaction, and Story receipt state to the current contract"
 	)
 	var legacy := {
 		"_schema": 1,
@@ -1212,8 +1214,25 @@ func _test_save_migration_and_banking() -> void:
 	_assert(int(migrated.bio_matter) == 87 and not migrated.has("bank"), "Schema 1 bank currency must migrate to Bio-Matter")
 	_assert(bool(migrated.abyss_unlocked), "Legacy victory data must migrate to an unlocked Abyss Loop")
 	_assert(String(migrated.settings.language) == "he" and migrated.settings.has("dash_method"), "Nested save defaults must merge without replacing an existing language")
-	_assert(migrated.has("processed_run_ids") and migrated.has("contracts"), "Save migration must add current transaction and contract fields")
-	_assert(migrated.has("tutorial_presentation"), "Save migration must add resumable tutorial presentation state")
+	_assert(
+		migrated.has("processed_run_ids")
+		and migrated.has("contracts")
+		and int(migrated.story_state.version) == SaveManager.STORY_STATE_VERSION
+		and (migrated.story_state.presented_beat_ids as Array).is_empty(),
+		"Save migration must add current transaction, contract, and versioned Story receipt fields"
+	)
+	var migrated_pre_release_receipt := SaveManager._migrate_and_merge({
+		"_schema": 6,
+		"story_state": {
+			"version": SaveManager.STORY_STATE_VERSION,
+			"presented_beat_ids": ["cronus_breach"],
+		},
+	})
+	_assert(
+		migrated.has("tutorial_presentation")
+		and migrated_pre_release_receipt.story_state.presented_beat_ids == ["cronus_breach"],
+		"Save migration must add resumable tutorial presentation state without losing a valid pre-release Story receipt"
+	)
 	var legacy_tutorial_complete := SaveManager._migrate_and_merge({
 		"_schema": 4,
 		"tutorial_complete": true
@@ -1227,12 +1246,28 @@ func _test_save_migration_and_banking() -> void:
 		"upgrades": [],
 		"settings": "broken",
 		"bio_matter": "NaN",
+		"story_state": {"version": 1, "presented_beat_ids": ["cronus_breach", 7]},
 		"future_field": {"keep": true}
 	})
-	_assert(typeof(malformed_shape.upgrades) == TYPE_DICTIONARY and malformed_shape.upgrades.is_empty(), "Malformed upgrade storage must recover to a typed-safe dictionary")
+	_assert(
+		typeof(malformed_shape.upgrades) == TYPE_DICTIONARY
+		and malformed_shape.upgrades.is_empty()
+		and int(malformed_shape.story_state.version) == SaveManager.STORY_STATE_VERSION
+		and (malformed_shape.story_state.presented_beat_ids as Array).is_empty(),
+		"Malformed upgrade and Story receipt storage must recover to typed-safe defaults"
+	)
 	_assert(typeof(malformed_shape.settings) == TYPE_DICTIONARY and malformed_shape.settings.has("language"), "Malformed settings storage must recover to the complete default shape")
 	_assert(int(malformed_shape.bio_matter) == 0, "Malformed scalar save fields must recover to their safe default")
-	_assert(bool(malformed_shape.future_field.keep), "Unknown future save fields must survive shape recovery")
+	var future_story_shape := SaveManager._migrate_and_merge({
+		"_schema": SaveManager.SAVE_SCHEMA + 1,
+		"story_state": {"version": SaveManager.STORY_STATE_VERSION + 1, "future_ledger": ["preserve_me"]},
+	})
+	_assert(
+		bool(malformed_shape.future_field.keep)
+		and int(future_story_shape.story_state.version) == SaveManager.STORY_STATE_VERSION + 1
+		and future_story_shape.story_state.future_ledger == ["preserve_me"],
+		"Unknown future save fields and nested Story contracts must survive shape recovery"
+	)
 
 	var original := SaveManager.profile.duplicate(true)
 	SaveManager.profile = SaveManager.default_profile()

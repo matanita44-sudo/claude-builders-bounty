@@ -4,6 +4,34 @@ Every gameplay pixel in this folder came from an actual running INFINIDIVE Godot
 
 > **Legacy identity notice:** this capture predates the bright Greek-mythic/AION presentation pivot. It truthfully records the earlier dark GRAVEMAW build, but it does **not** represent the current CRONUS, unarmed-Keeper, AION SPARK, sky-world, or story presentation. None of these stills, posters, or trailers is submission-ready or approved for current store/marketing use. Preserve them as development provenance only; replace them with real release-candidate captures after the pivot is frozen and validated.
 
+## Current-source CI stage captures (QA evidence only)
+
+A successful Web semantic-smoke run now retains a separate sequence of bright Greek-mythic stage screenshots in its supplied smoke-evidence directory. These files are CI artifacts; they are not copied into this historical media folder and they do not replace any asset listed in the historical manifest.
+
+When the artifact is tied to the workflow run's checked-out commit, `infinidive-browser.json` reports both smoke statuses as `passed`, and the validator below succeeds, the screenshots may be described as **current-source browser QA evidence** for that exact run. The JSON file alone does not contain a commit identifier, so detached or copied evidence must not be described as current-source without the workflow-run/commit association.
+
+| Stage key | Expected artifact file | QA observation point |
+|---|---|---|
+| `nest` | `infinidive-before-input.png` | Fresh Nest before synthetic input |
+| `run-start-unarmed` | `infinidive-stage-run-start-unarmed.png` | Exterior run begins with the Keeper unarmed |
+| `aion-spark-combat` | `infinidive-stage-aion-spark-combat.png` | Live exterior movement and AION SPARK combat |
+| `breach-open` | `infinidive-stage-breach-open.png` | CRONUS breach-open state |
+| `organ-select` | `infinidive-stage-organ-select.png` | Organ-route selection |
+| `internal-route` | `infinidive-stage-internal-route.png` | Internal-room route traversal |
+| `organ-chamber` | `infinidive-stage-organ-chamber.png` | Live organ-chamber state |
+| `mutation-choice` | `infinidive-stage-mutation-choice.png` | Mutation choice after organ destruction |
+| `outside_return` | `infinidive-browser.png` | Stable return to exterior in the same run |
+
+Validate a downloaded CI or public-smoke evidence directory from the repository root:
+
+```bash
+node .github/scripts/validate_stage_screenshots.cjs /absolute/path/to/smoke-evidence
+```
+
+The validator requires the exact stage/file maps, recomputes every recorded SHA-256, and verifies every retained PNG is 540×960. `latest` is a convenience alias for canonical stage `outside_return`; it deliberately resolves to that stage's hash instead of duplicating an alias entry in the hash map. Validation establishes artifact integrity and the browser-smoke capture contract; it does not inspect aesthetic quality or independently prove which source commit produced detached files.
+
+These stage screenshots are **not submission-ready store assets**. They come from headless CI Chrome with synthetic touch at the design viewport, not a supported iPhone/Android capture path; they do not prove native safe areas, device rendering, physical controls, human play quality, accepted store dimensions, store processing, or reviewer approval. They may guide final capture selection, but final store screenshots still require fresh, human-reviewed release-candidate capture through the target-device workflows.
+
 ## Trailer deliverables
 
 | File | Intended use | What changed from the runtime edit |

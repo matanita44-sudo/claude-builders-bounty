@@ -8,11 +8,13 @@ const RoomPatternRuntimeScript := preload("res://scripts/core/room_pattern_runti
 const RoomSpaceScript := preload("res://scripts/core/room_space.gd")
 const RoomDefenderEffectsScript := preload("res://scripts/core/room_defender_effects.gd")
 const MetaGoalServiceScript := preload("res://scripts/services/meta_goal_service.gd")
+const StoryPresentationScript := preload("res://scripts/core/story_presentation.gd")
 const SkyBattleTexture := preload("res://assets/art/backgrounds/sky_battle.png")
 const DivineInteriorTexture := preload("res://assets/art/backgrounds/divine_interior.png")
 const STORY_BOSS_ORDER := ["gravemaw","seraph_9","abyss_leviathan","null_twin"]
 
 signal run_finished(payload: Dictionary)
+signal story_notice_presented(beat_id: String)
 
 enum RunState {
 	INTRO,
@@ -397,6 +399,53 @@ static func build_degraded_attack_specs(attack_contract: Dictionary, origin: Vec
 
 func initialize(run_config: Dictionary) -> void:
 	config = run_config.duplicate(true)
+
+func _present_first_breach_story_notice() -> bool:
+	if state != RunState.BREACH_OPEN or String(config.get("mode","story")) != "story" or _hud == null:
+		return false
+	var raw_notice: Variant = config.get("story_first_breach_notice",null)
+	if typeof(raw_notice) != TYPE_DICTIONARY:
+		return false
+	var notice := raw_notice as Dictionary
+	var beat_id := String(notice.get("id","")).strip_edges()
+	var body := String(notice.get("body","")).strip_edges()
+	var speaker := String(notice.get("speaker","AION")).strip_edges()
+	if beat_id.is_empty() or beat_id.length() > 64 or body.is_empty():
+		return false
+	if speaker.is_empty():
+		speaker = "AION"
+	if not _persist_story_beat_presented(beat_id):
+		return false
+	config.erase("story_first_breach_notice")
+	var accent := Color.from_string(String(notice.get("accent","")),VisualTheme.VULNERABLE)
+	_hud.show_toast(
+		"%s — %s\n%s" % [speaker,body,LocalizationService.text("breach_enter")],
+		accent,
+		2.8
+	)
+	story_notice_presented.emit(beat_id)
+	return true
+
+func _persist_story_beat_presented(beat_id: String) -> bool:
+	if not StoryPresentationScript.presented_ledger_is_valid(SaveManager.profile):
+		return false
+	var presented := StoryPresentationScript.presented_beat_ids(SaveManager.profile)
+	if presented.has(beat_id):
+		return false
+	var had_story_state := SaveManager.profile.has(StoryPresentationScript.STORY_STATE_PROFILE_KEY)
+	var previous_state: Variant = SaveManager.profile.get(StoryPresentationScript.STORY_STATE_PROFILE_KEY,null)
+	presented.append(beat_id)
+	SaveManager.profile[StoryPresentationScript.STORY_STATE_PROFILE_KEY] = {
+		"version": StoryPresentationScript.STORY_STATE_VERSION,
+		"presented_beat_ids": presented,
+	}
+	if SaveManager.save_profile():
+		return true
+	if had_story_state:
+		SaveManager.profile[StoryPresentationScript.STORY_STATE_PROFILE_KEY] = previous_state
+	else:
+		SaveManager.profile.erase(StoryPresentationScript.STORY_STATE_PROFILE_KEY)
+	return false
 
 func qa_snapshot() -> Dictionary:
 	var player_position := Vector2.ZERO
@@ -3589,6 +3638,7 @@ func _open_breach() -> void:
 	if not _first_breach_sent:
 		_first_breach_sent=true
 		AnalyticsService.track("first_breach",{"seconds":elapsed})
+	_present_first_breach_story_notice()
 
 func _close_breach() -> void:
 	if state != RunState.BREACH_OPEN:

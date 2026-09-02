@@ -60,6 +60,29 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 ## Apple App Store — English (U.S.)
 
+### App Store Connect operational worksheet
+
+This is a preparation record, not evidence that an App Store Connect app record exists or that any field was submitted.
+
+| App Store Connect field | Prepared value | Release status |
+|---|---|---|
+| Primary language | English (U.S.) | Ready to enter; English remains the fresh-install default |
+| Bundle ID | `com.matan.infinidive` | Fixed in the Godot presets; must be registered to the owner's Apple Developer team |
+| SKU | `INFINIDIVE-IOS-001` | Reversible candidate only; confirm uniqueness before creating the app record |
+| Version | `0.1.0` for the current pre-release build | Replace with the frozen submission version and matching native build number |
+| Price | Free | Product decision prepared; territories and tax availability still require owner review in App Store Connect |
+| Availability | Not selected | Choose territories only after name, content, legal, and export-compliance review |
+| Copyright | Not entered | Requires the owner's exact legal person or company name; do not infer it from GitHub |
+| Content rights | Original project code, art, and procedural audio with provenance in `ASSET_LICENSES.md` and `OPEN_SOURCE_NOTICES.md` | Owner must confirm the App Store Connect content-rights declaration for the frozen archive |
+| App Review contact | Email: `matanita44@gmail.com` | Exact legal contact name and phone number are still required; never place private credentials in this file |
+| Demo account | Not applicable | The current build has no account or login gate |
+| Review notes | Portrait, offline-first action game; automatic fire; first movement awakens AION SPARK; no account, ads, purchases, analytics upload, or backend | Recheck against the signed archive and include any non-obvious review path or Assist Mode detail |
+| Release method | Manual release after approval | Recommended so approval cannot publish an unverified build automatically; final release remains an owner confirmation |
+| Export compliance | Pending final-binary questionnaire | Inspect the Xcode archive and answer Apple's encryption questions truthfully; do not assume an exemption from source code alone |
+| App Privacy | Draft: Data Not Collected / No Tracking | Submit only after inspecting the exact signed archive and active SDK set |
+| Age rating | Questionnaire draft below | Complete from the final visuals, audio, organ imagery, and social feature set |
+| Apple Developer Team / signing | Not available in source control | Owner-only blocker: Team ID, certificates/profiles, agreements, and two-factor authentication |
+
 ### App information
 
 | Field | Draft |
@@ -317,7 +340,7 @@ Retake both questionnaires whenever art, audio, social functionality, ads, purch
 
 ## Current official metadata and asset requirements
 
-The following was checked against primary platform documentation on 2026-09-01. Platform rules can change; verify again inside App Store Connect and Play Console immediately before upload.
+The following was checked against primary platform documentation on 2026-09-02. Platform rules can change; verify again inside App Store Connect and Play Console immediately before upload.
 
 ### Apple
 
@@ -354,7 +377,7 @@ The following was checked against primary platform documentation on 2026-09-01. 
 
 ## Official sources
 
-Reviewed 2026-09-01:
+Reviewed 2026-09-02:
 
 ### Apple Developer
 

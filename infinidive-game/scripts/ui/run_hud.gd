@@ -438,10 +438,11 @@ func set_dive_ready(ready: bool) -> void:
 	_dive_ring.set_available(ready)
 	_dive_ring.set_progress(1.0 if ready else 0.0)
 
-func show_toast(message: String, color: Color = VisualTheme.TEXT) -> void:
+func show_toast(message: String, color: Color = VisualTheme.TEXT, duration_seconds: float = 1.45) -> void:
 	_toast_is_transient = true
 	toast_label.text = message
 	toast_label.add_theme_color_override("font_color",color)
+	toast_panel.size = Vector2(412,72 if message.contains("\n") else 54)
 	if _toast_tween and _toast_tween.is_running():
 		_toast_tween.kill()
 	var reduced_motion := bool(SettingsManager.get_value("reduced_motion",false))
@@ -451,7 +452,7 @@ func show_toast(message: String, color: Color = VisualTheme.TEXT) -> void:
 	if not reduced_motion:
 		_toast_tween.tween_property(toast_label, "modulate:a", 1.0, 0.15)
 		_toast_tween.parallel().tween_property(toast_panel, "modulate:a", 1.0, 0.15)
-	_toast_tween.tween_interval(1.45)
+	_toast_tween.tween_interval(clampf(duration_seconds,1.0,4.0))
 	if not reduced_motion:
 		_toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.28)
 		_toast_tween.parallel().tween_property(toast_panel, "modulate:a", 0.0, 0.28)
@@ -465,6 +466,7 @@ func set_tutorial_prompt(message: String, color: Color = VisualTheme.FRIENDLY) -
 
 func _restore_tutorial_prompt() -> void:
 	_toast_is_transient = false
+	toast_panel.size = Vector2(412,54)
 	if _tutorial_message.is_empty():
 		toast_label.text = ""
 		toast_label.modulate.a = 0.0

@@ -4,7 +4,9 @@ signal profile_changed(profile: Dictionary)
 signal recovery_performed(source: String)
 
 const TutorialFlowClass := preload("res://scripts/core/tutorial_flow.gd")
-const SAVE_SCHEMA := 6
+const SAVE_SCHEMA := 7
+const STORY_STATE_VERSION := 1
+const STORY_BEAT_ID_MAX_LENGTH := 64
 const SAVE_PATH := "user://infinidive.save.json"
 const BACKUP_PATH := "user://infinidive.save.backup.json"
 const TEMP_PATH := "user://infinidive.save.tmp.json"
@@ -35,6 +37,7 @@ func default_profile() -> Dictionary:
 		"tutorial_state": {"version": 1, "understood_mask": 0},
 		"tutorial_presentation": {"version": 1, "replay_active": false, "replay_mask": 0},
 		"tutorial_replay_requested": false,
+		"story_state": _default_story_state(),
 		"cosmetic": "diver_default",
 		"contracts": {},
 		"meta_goal_state": {"schema_version": 1, "achievement_progress": {}, "reward_ledger": [], "processed_event_ids": []},
@@ -141,8 +144,54 @@ func _migrate_and_merge(loaded: Dictionary) -> Dictionary:
 		if not loaded.has("tutorial_presentation"):
 			loaded["tutorial_presentation"] = {"version": 1, "replay_active": false, "replay_mask": 0}
 		schema = 6
+	if schema <= 6:
+		# First-breach presentation receipts became a supported profile field in
+		# schema 7. Preserve a valid receipt written by a pre-release build, while
+		# giving older profiles an explicit, versioned empty ledger.
+		if not loaded.has("story_state"):
+			loaded["story_state"] = _default_story_state()
+		schema = 7
 	var merged := _deep_defaults(loaded, default_profile())
+	merged["story_state"] = _normalize_story_state(merged.get("story_state",null))
 	return merged
+
+func _default_story_state() -> Dictionary:
+	return {
+		"version": STORY_STATE_VERSION,
+		"presented_beat_ids": [],
+	}
+
+func _normalize_story_state(raw_state: Variant) -> Dictionary:
+	var fallback := _default_story_state()
+	if typeof(raw_state) != TYPE_DICTIONARY:
+		return fallback
+	var state := (raw_state as Dictionary).duplicate(true)
+	var raw_version: Variant = state.get("version",null)
+	if typeof(raw_version) not in [TYPE_INT,TYPE_FLOAT] or not is_finite(float(raw_version)) or float(raw_version) != floor(float(raw_version)):
+		return fallback
+	var version := int(raw_version)
+	# A newer nested contract belongs to a future build. Preserve its version and
+	# unknown fields; StoryPresentation will fail closed instead of replaying it.
+	if version > STORY_STATE_VERSION:
+		return state
+	if version != STORY_STATE_VERSION:
+		return fallback
+	var raw_ids: Variant = state.get("presented_beat_ids",null)
+	if typeof(raw_ids) != TYPE_ARRAY:
+		return fallback
+	var normalized_ids: Array[String] = []
+	var seen: Dictionary = {}
+	for raw_id in raw_ids as Array:
+		if typeof(raw_id) != TYPE_STRING:
+			return fallback
+		var beat_id := String(raw_id).strip_edges()
+		if beat_id.is_empty() or beat_id.length() > STORY_BEAT_ID_MAX_LENGTH or seen.has(beat_id):
+			return fallback
+		seen[beat_id] = true
+		normalized_ids.append(beat_id)
+	state["version"] = STORY_STATE_VERSION
+	state["presented_beat_ids"] = normalized_ids
+	return state
 
 func _deep_defaults(value: Dictionary, defaults: Dictionary) -> Dictionary:
 	var result: Dictionary = {}

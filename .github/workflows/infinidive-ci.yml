@@ -52,6 +52,12 @@ jobs:
       - name: Validate test scene inventory
         shell: bash
         run: python3 .github/scripts/validate_test_inventory.py .
+      - name: Validate staged gameplay screenshot contract
+        shell: bash
+        run: |
+          node --check .github/scripts/smoke_web.cjs
+          node --check .github/scripts/validate_stage_screenshots.cjs
+          node .github/scripts/validate_stage_screenshots.cjs --self-test
       - name: Validate CI evidence guards
         shell: bash
         run: python3 .github/scripts/validate_soak_report.py --self-test
@@ -162,6 +168,7 @@ jobs:
         run: |
           cp infinidive-game/web_pages/privacy.html build/web/privacy.html
           cp infinidive-game/web_pages/support.html build/web/support.html
+          cp infinidive-game/web_pages/terms.html build/web/terms.html
           touch build/web/.nojekyll
           mkdir -p build/pages/infinidive
           cp -a build/web/. build/pages/infinidive/
@@ -200,6 +207,7 @@ jobs:
               http://127.0.0.1:4173/infinidive/ \
               "${evidence_dir}" \
               2> "${RUNNER_TEMP}/infinidive-chrome.log"
+          node .github/scripts/validate_stage_screenshots.cjs "${evidence_dir}"
       - name: Upload Web smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -210,6 +218,7 @@ jobs:
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-before-input.png
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.json
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.png
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-stage-*.png
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-failure-*.png
             ${{ runner.temp }}/infinidive-chrome.log
             ${{ runner.temp }}/infinidive-http.log
@@ -549,7 +558,7 @@ jobs:
           done
           test "${deployment_ready}" = true
 
-          for path in index.html privacy.html support.html index.pck index.wasm; do
+          for path in index.html privacy.html support.html terms.html index.pck index.wasm; do
             curl --location --silent --show-error --fail \
               --max-time 120 \
               --output /dev/null \
@@ -573,6 +582,7 @@ jobs:
               "https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/infinidive/" \
               "${evidence_dir}" \
               2> "${RUNNER_TEMP}/infinidive-public-chrome.log"
+          node .github/scripts/validate_stage_screenshots.cjs "${evidence_dir}"
       - name: Upload public Web smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -583,6 +593,7 @@ jobs:
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-before-input.png
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.json
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.png
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-stage-*.png
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-failure-*.png
             ${{ runner.temp }}/infinidive-public-chrome.log
             ${{ runner.temp }}/infinidive-deployment.json

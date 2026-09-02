@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "status": "legacy_pre_pivot_development_evidence_not_submission_ready",
   "captured_at_utc": "2026-09-01",
   "presentation_identity": {
@@ -8,6 +8,71 @@
     "represents_current_product": false,
     "approved_for_current_store_or_marketing_use": false,
     "required_action": "Recapture every store still, poster, and trailer from the frozen release candidate after the visual and narrative pivot is complete."
+  },
+  "planned_capture": {
+    "ci_stage_screenshots": {
+      "status": "per_run_smoke_artifact_contract",
+      "classification": "current_source_ci_browser_qa_evidence_not_submission_ready_store_asset",
+      "presentation_identity": "Bright Greek-mythic/AION presentation with CRONUS and the unarmed Keeper",
+      "storage": "Retained with each CI-served or public Web smoke artifact; not committed into this historical gameplay directory.",
+      "source_binding": {
+        "required": true,
+        "method": "Associate the downloaded evidence artifact with the successful workflow run and its checked-out commit.",
+        "json_limit": "infinidive-browser.json does not embed a source commit, so hash/dimension validation alone cannot establish current-source provenance."
+      },
+      "evidence_manifest": "infinidive-browser.json",
+      "required_report_status": {
+        "status": "passed",
+        "semantic_touch.status": "passed"
+      },
+      "screenshot_manifest_field": "semantic_touch.stage_screenshots",
+      "sha256_manifest_field": "semantic_touch.stage_screenshot_sha256",
+      "expected_image": {
+        "format": "PNG",
+        "width": 540,
+        "height": 960,
+        "device_scale_factor": 1,
+        "capture_surface": "Headless CI Chrome full-page capture of the 540x960 Web smoke viewport"
+      },
+      "stage_files": {
+        "nest": "infinidive-before-input.png",
+        "run-start-unarmed": "infinidive-stage-run-start-unarmed.png",
+        "aion-spark-combat": "infinidive-stage-aion-spark-combat.png",
+        "breach-open": "infinidive-stage-breach-open.png",
+        "organ-select": "infinidive-stage-organ-select.png",
+        "internal-route": "infinidive-stage-internal-route.png",
+        "organ-chamber": "infinidive-stage-organ-chamber.png",
+        "mutation-choice": "infinidive-stage-mutation-choice.png",
+        "outside_return": "infinidive-browser.png"
+      },
+      "screenshot_aliases": {
+        "latest": "outside_return"
+      },
+      "sha256_alias_policy": "Only canonical stage keys appear in semantic_touch.stage_screenshot_sha256. Aliases resolve to their target stage and do not duplicate digest entries.",
+      "validator": {
+        "command": "node .github/scripts/validate_stage_screenshots.cjs /absolute/path/to/smoke-evidence",
+        "checks": [
+          "The smoke report and semantic-touch result both passed",
+          "The exact required stage and alias mappings are present without path traversal or schema drift",
+          "Every recorded lowercase SHA-256 matches the retained PNG bytes",
+          "Every retained stage PNG has the expected 540x960 IHDR dimensions"
+        ]
+      },
+      "claims_allowed": [
+        "Hash-bound browser runtime QA evidence for the workflow run and checked-out source commit",
+        "Stage-by-stage visual review input for the current bright Greek-mythic/AION presentation"
+      ],
+      "claims_prohibited": [
+        "Submission-ready App Store or Google Play screenshot",
+        "Target-device, native-rendering, physical-input, safe-area, or human-play evidence",
+        "Store-console processing, acceptance, approval, or marketing sign-off",
+        "Independent proof of source revision after evidence is detached from its workflow run"
+      ]
+    },
+    "release_candidate_store_media": {
+      "status": "still_required",
+      "requirements": "Fresh human-reviewed captures from the frozen release candidate through supported target-device workflows, followed by current store-spec and console-processing validation. CI stage screenshots cannot satisfy this requirement."
+    }
   },
   "game": {
     "name": "INFINIDIVE",

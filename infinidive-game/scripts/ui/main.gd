@@ -89,10 +89,46 @@ func _launch_run(config: Dictionary) -> void:
 		_qa_run_generation += 1
 	_clear_view()
 	var run := RunSceneScript.new()
-	run.initialize(config)
+	run.initialize(_story_run_config(config))
 	run.run_finished.connect(_on_run_finished)
 	add_child(run)
 	current_view=run
+
+func _story_run_config(config: Dictionary) -> Dictionary:
+	var prepared := config.duplicate(true)
+	prepared.erase("story_first_breach_notice")
+	if not _should_present_chapter_breach(prepared):
+		return prepared
+	var chapter := _story_catalog.get_chapter_for_boss(String(prepared.get("boss","")))
+	var presentation := StoryPresentationScript.chapter_breach(_story_catalog,chapter,LocalizationService.current_locale())
+	var beats: Array = presentation.get("beats",[])
+	if beats.size() != 1 or typeof(beats[0]) != TYPE_DICTIONARY:
+		return prepared
+	prepared["story_first_breach_notice"] = (beats[0] as Dictionary).duplicate(true)
+	return prepared
+
+func _should_present_chapter_breach(config: Dictionary) -> bool:
+	if _qa_enabled or OS.get_environment("INFINIDIVE_TEST_ISOLATED") == "1":
+		return false
+	if not _story_catalog.initialized or String(config.get("mode","story")) != "story":
+		return false
+	var boss_id := String(config.get("boss",""))
+	var chapter := _story_catalog.get_chapter_for_boss(boss_id)
+	if chapter.is_empty() or _story_boss_completed(boss_id):
+		return false
+	if not StoryPresentationScript.presented_ledger_is_valid(SaveManager.profile):
+		return false
+	var beat_id := _story_breach_beat_id(chapter)
+	return not beat_id.is_empty() and not StoryPresentationScript.has_presented_beat(SaveManager.profile,beat_id)
+
+func _story_breach_beat_id(chapter: Dictionary) -> String:
+	for raw_beat in chapter.get("beats",[]):
+		if typeof(raw_beat) != TYPE_DICTIONARY:
+			continue
+		var beat: Dictionary = raw_beat
+		if String(beat.get("moment","")) == "first_breach":
+			return String(beat.get("id","")).strip_edges()
+	return ""
 
 func _should_present_aion_prologue(config: Dictionary) -> bool:
 	if _qa_enabled or OS.get_environment("INFINIDIVE_TEST_ISOLATED") == "1":
