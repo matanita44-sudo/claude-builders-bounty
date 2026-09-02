@@ -11,6 +11,7 @@ const TEMP_PATH := "user://infinidive.save.tmp.json"
 
 var profile: Dictionary = {}
 var last_load_source := "default"
+var _test_save_failures_remaining := 0
 
 func _ready() -> void:
 	load_profile()
@@ -183,6 +184,10 @@ func _value_matching_default(raw_value: Variant, default_value: Variant, was_pre
 	return default_value
 
 func save_profile() -> bool:
+	if _test_save_failures_remaining > 0:
+		_test_save_failures_remaining -= 1
+		push_warning("SaveManager: injected isolated-test save failure")
+		return false
 	var payload := profile.duplicate(true)
 	var payload_json := JSON.stringify(payload)
 	var envelope := {
@@ -212,6 +217,12 @@ func save_profile() -> bool:
 		push_error("SaveManager: failed atomic save promotion")
 		return false
 	profile_changed.emit(profile.duplicate(true))
+	return true
+
+func inject_isolated_test_save_failures(count: int) -> bool:
+	if OS.get_environment("INFINIDIVE_TEST_ISOLATED") != "1":
+		return false
+	_test_save_failures_remaining = maxi(0,count)
 	return true
 
 func update_value(key: String, value: Variant, persist_now := true) -> void:

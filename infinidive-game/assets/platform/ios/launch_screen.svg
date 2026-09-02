@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1170" height="2532" viewBox="0 0 1170 2532" role="img" aria-labelledby="title desc">
+  <title id="title">INFINIDIVE launch screen</title>
+  <desc id="desc">A cyan Diver descends into a bone-armored magenta iris on a dark biopunk space field.</desc>
+  <defs>
+    <radialGradient id="space" cx="50%" cy="47%" r="76%">
+      <stop offset="0" stop-color="#19101D"/>
+      <stop offset="0.5" stop-color="#070A0F"/>
+      <stop offset="1" stop-color="#03050C"/>
+    </radialGradient>
+    <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#F32D83" stop-opacity="0.24"/>
+      <stop offset="0.58" stop-color="#A78BFA" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#03050C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1170" height="2532" fill="url(#space)"/>
+  <circle cx="585" cy="1356" r="560" fill="url(#pulse)"/>
+  <circle cx="585" cy="1356" r="420" fill="#100A16" stroke="#59606B" stroke-width="42"/>
+  <circle cx="585" cy="1356" r="342" fill="#070A0F" stroke="#D7D0BD" stroke-width="42"/>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#070A0F" stroke-width="116">
+      <path d="M229 1215 C274 1069 397 970 545 948"/>
+      <path d="M650 961 C797 999 892 1112 916 1259"/>
+      <path d="M889 1495 C805 1641 651 1707 502 1682"/>
+      <path d="M392 1652 C254 1582 185 1448 197 1321"/>
+    </g>
+    <g stroke="#D7D0BD" stroke-width="78">
+      <path d="M229 1215 C274 1069 397 970 545 948"/>
+      <path d="M650 961 C797 999 892 1112 916 1259"/>
+      <path d="M889 1495 C805 1641 651 1707 502 1682"/>
+      <path d="M392 1652 C254 1582 185 1448 197 1321"/>
+    </g>
+  </g>
+
+  <g fill="#F32D83" stroke="#070A0F" stroke-width="24" stroke-linejoin="round">
+    <path d="M585 1044 C653 1126 670 1212 631 1284 C616 1311 599 1333 585 1355 C571 1333 554 1311 539 1284 C500 1212 517 1126 585 1044 Z"/>
+    <path d="M585 1044 C653 1126 670 1212 631 1284 C616 1311 599 1333 585 1355 C571 1333 554 1311 539 1284 C500 1212 517 1126 585 1044 Z" transform="rotate(120 585 1356)"/>
+    <path d="M585 1044 C653 1126 670 1212 631 1284 C616 1311 599 1333 585 1355 C571 1333 554 1311 539 1284 C500 1212 517 1126 585 1044 Z" transform="rotate(240 585 1356)"/>
+  </g>
+  <circle cx="585" cy="1356" r="136" fill="#03050C" stroke="#A78BFA" stroke-width="16"/>
+  <circle cx="585" cy="1356" r="89" fill="#070A0F" stroke="#F32D83" stroke-opacity="0.72" stroke-width="10"/>
+
+  <path d="M585 458 V1040" fill="none" stroke="#54F2E7" stroke-opacity="0.14" stroke-width="80" stroke-linecap="round"/>
+  <path d="M585 482 V1048" fill="none" stroke="#C9FFFB" stroke-opacity="0.8" stroke-width="12" stroke-linecap="round"/>
+  <g stroke="#070A0F" stroke-width="22" stroke-linejoin="round">
+    <path d="M585 606 L630 1033 L607 1091 L585 1222 L563 1091 L540 1033 Z" fill="#54F2E7"/>
+    <path d="M557 997 L462 1084 L560 1112 Z" fill="#D7D0BD"/>
+    <path d="M613 997 L708 1084 L610 1112 Z" fill="#D7D0BD"/>
+  </g>
+  <path d="M585 688 L603 1026 L585 1136 L567 1026 Z" fill="#C9FFFB"/>
+  <circle cx="585" cy="1044" r="16" fill="#070A0F" stroke="#A78BFA" stroke-width="9"/>
+
+  <g fill="#F4F1E8" opacity="0.74">
+    <circle cx="126" cy="316" r="7"/>
+    <circle cx="992" cy="386" r="5"/>
+    <circle cx="1054" cy="1918" r="8"/>
+    <circle cx="103" cy="2208" r="5"/>
+  </g>
+  <path d="M424 2010 H746" stroke="#F32D83" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="424" cy="2010" r="9" fill="#F32D83"/>
+  <circle cx="746" cy="2010" r="9" fill="#F32D83"/>
+</svg>

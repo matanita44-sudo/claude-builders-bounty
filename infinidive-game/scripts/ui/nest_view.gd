@@ -54,7 +54,10 @@ func _apply_safe_layout() -> void:
 	SafeAreaHelperScript.fit_design_control(self)
 
 func _process(delta:float)->void:
-	_time+=delta
+	# Nest machinery remains visible in Reduced Motion, but its decorative
+	# rotation, bobbing, and pulsing freeze at a stable pose.
+	if not bool(SettingsManager.get_value("reduced_motion",false)):
+		_time+=delta
 	queue_redraw()
 
 func _build_ui()->void:
@@ -428,7 +431,24 @@ func _add_slider(parent:VBoxContainer,key:String,min_value:float,max_value:float
 	var row:=VBoxContainer.new();row.layout_direction=LocalizationService.layout_direction();parent.add_child(row);var title:=VisualTheme.label(LocalizationService.text(key),12,VisualTheme.TEXT);title.horizontal_alignment=LocalizationService.start_alignment();row.add_child(title);var slider:=HSlider.new();slider.min_value=min_value;slider.max_value=max_value;slider.step=step;slider.value=float(SettingsManager.get_value(key,max_value));slider.value_changed.connect(func(value:float):SettingsManager.set_value(key,value));row.add_child(slider)
 
 func _add_toggle(parent:VBoxContainer,key:String)->void:
-	var toggle:=CheckButton.new();toggle.layout_direction=LocalizationService.layout_direction();toggle.text=LocalizationService.text(key);toggle.button_pressed=bool(SettingsManager.get_value(key,false));toggle.toggled.connect(func(value:bool):SettingsManager.set_value(key,value);AnalyticsService.track("settings_changed",{"setting":key}));parent.add_child(toggle)
+	var toggle:=CheckButton.new();toggle.layout_direction=LocalizationService.layout_direction();toggle.text=LocalizationService.text(key);toggle.button_pressed=bool(SettingsManager.get_value(key,false));toggle.toggled.connect(func(value:bool):
+		if not _apply_toggle_value(key,value):
+			toggle.set_pressed_no_signal(not value)
+	);parent.add_child(toggle)
+
+func _apply_toggle_value(key:String,value:bool)->bool:
+	# Persist opt-out before attempting deletion so no new diagnostics can enter
+	# the queue even if the filesystem refuses the cleanup. The error cue makes
+	# that rare failure observable, and AnalyticsService retries it at next boot.
+	if not SettingsManager.set_value(key,value):
+		AudioManager.play_sfx("ui_error")
+		return false
+	if key=="analytics_opt_in" and not value:
+		if not AnalyticsService.clear_local_data():
+			AudioManager.play_sfx("ui_error")
+			return false
+	AnalyticsService.track("settings_changed",{"setting":key})
+	return true
 
 func _add_option(parent:VBoxContainer,key:String,ids:Array,label_keys:Array)->void:
 	var row:=HBoxContainer.new()

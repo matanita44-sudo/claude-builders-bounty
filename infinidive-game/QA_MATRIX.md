@@ -119,15 +119,16 @@ XDG_DATA_HOME="$soak_data_root" \
 | COMBAT-003 | Shield | One shield absorbs one hit without reducing hull | PASS |
 | SAVE-001 | Atomic generations | A second save rotates the previous valid generation into backup | PASS |
 | SAVE-002 | Corruption recovery | Invalid primary JSON recovers the checksum-valid backup | PASS |
-| SAVE-003 | Migration | Schema 1 bank, settings, contracts, Abyss unlock, transaction, tutorial, and meta fields migrate into schema 6 defaults; legacy `tutorial_complete=true` maps to `TutorialFlow.FULL_MASK` | PASS for automated source fixtures; installed-app update remains untested |
-| SAVE-004 | Reward banking | A valid run banks once; both immediate and old run IDs remain non-bankable after more than 30 subsequent transactions | PASS |
+| SAVE-003 | Migration | The checked-in `save_schema_1_prealpha.json` fixture and inline malformed/legacy cases migrate bank, settings, contracts, Abyss unlock, transaction, tutorial, and meta fields into schema 6 defaults; legacy `tutorial_complete=true` maps to `TutorialFlow.FULL_MASK` | PASS for source-level fixture migration; installed-app update remains untested |
+| SAVE-004 | Reward banking | A valid run banks once; immediate/old run IDs remain non-bankable after more than 30 later transactions, and a fresh process rejects a completed result replay after synchronous suspend/close notification saves | PASS (headless/separate-process); native kill timing remains untested |
 | SAVE-005 | Persistence | Banked currency, unlocks, and processed run ID survive teardown/reload | PASS |
 | SAVE-006 | Intentional local reset | Confirmed reset replaces profile/backup with defaults and idempotently removes analytics plus leaderboard primary/backup/temporary files | PASS for service/UI contract; human interaction and forced I/O failure presentation remain untested |
 | LOC-001 | Localization completeness | English and Hebrew tables contain identical non-empty keys | PASS |
 | LOC-002 | Direction/fallback | English is LTR, Hebrew is RTL, language switch changes copy, and a missing key remains visible | PASS |
 | SETTINGS-001 | Required settings | Default save includes the required audio, accessibility, control, language, and privacy settings | PASS |
+| SETTINGS-002 | Accessibility effects | Reduced Motion freezes decorative boss motion, uses a stable Dive frame, and removes toast fading while retaining hit timing; damage-flash intensity spans no highlight to full highlight | PASS (headless behavior); browser/device/human comfort not run |
 | ANALYTICS-001 | Event contract | Every required product event exists in the analytics abstraction | PASS |
-| ANALYTICS-002 | Privacy opt-out | Opted-out analytics does not enqueue an event; nested/unsupported properties are discarded | PASS |
+| ANALYTICS-002 | Privacy opt-out | Opted-out diagnostics do not enqueue; disabling in Settings persists opt-out and deletes queued data; disabled boot retries legacy queue deletion; nested/unsupported properties are discarded | PASS; forced filesystem-failure presentation not run |
 | BACKEND-001 | Offline result staging | Canonical Daily/Friend summaries remain challenge-separated, duplicates reject, Story/Abyss stay out of the outbox, checksummed backup recovers, and transport fails closed | PASS (focused suite) |
 | META-001 | Local goals | Fourteen achievements and nineteen contracts validate; UTC rotation, migration, bounded SHA receipts, fail-closed saturation, idempotent progress, and rewards behave deterministically | PASS (focused suite) |
 | AUDIO-001 | Adaptive audio contract | Four boss profiles, nine three-layer states, SFX coloring, cache bounds, invalid-input fallback, headless safety, and rate-limited live `armor_hit`/`organ_damage`/`boss_phase` emission behave deterministically | PASS (focused/main suites); listening and mobile profiling not performed |
@@ -137,7 +138,7 @@ XDG_DATA_HOME="$soak_data_root" \
 | RUN-001 | Full three-organ boss victory | All 24 combinations of four bosses and six organ orders complete three dives, disable the selected abilities, expose the core, win, bank configured rewards once, and retain deterministic identity | PASS |
 | RUN-002 | Failure, reward, Forge purchase, retry | Real result/Nest/Forge controls bank a 55-Bio failure, buy Reinforced Hull, start a 110-HP run, bank a second failure, and press instant retry | PASS (main suite) |
 | SAVE-007 | Separate-process relaunch | A new Godot process loads the primary profile and verifies Bio-Matter, two total runs, Reinforced Hull level, and both processed run IDs | PASS (main suite) |
-| ABYSS-001 | Endless progression | Multiple consecutive Abyss depths with carried state and scaling | NOT RUN |
+| ABYSS-001 | Endless progression | Five consecutive Abyss victory/continue cycles retain the mutation build and choice count, apply bounded repair, rotate bosses, derive deterministic seeds, preserve every reward receipt, and strictly increase health/damage/projectile-speed scaling | PASS (headless continuation contract); real-time and device play remain untested |
 
 ## Browser and export matrix
 
@@ -174,12 +175,12 @@ No row in this section may be changed to `PASS` without naming the actual device
 | Scenario | Automated evidence | Device evidence | Overall status |
 |---|---|---|---|
 | Fresh profile | Default profile and isolated save path load during headless suite | None | PARTIAL |
-| Upgrade from schema 1 save | Schema migration and nested defaults verified | No installed-app upgrade | PARTIAL |
+| Upgrade from schema 1 save | Checked-in schema-1 pre-alpha fixture migration and nested defaults verified | No installed-app upgrade | PARTIAL |
 | Corrupt primary save | Backup recovery verified | No forced-close device exercise | PARTIAL |
-| Duplicate reward submission | Immediate and older replayed run IDs rejected after more than 30 later transactions | No background/kill interruption | PARTIAL |
+| Duplicate reward submission | Immediate/old IDs reject, and a fresh process rejects the same completed result after headless suspend/close notification saves without mutating reward totals | No native background/kill interruption | PARTIAL |
 | Airplane mode | Core systems have no required network calls | Not exercised in an installed build | NOT RUN |
 | Unstable connection | No online backend connected | Not exercised | NOT RUN |
-| Background/resume | Headless application-notification tests verify pause/save locking across focus loss and mobile suspend | No installed-app/native lifecycle exercise | PARTIAL |
+| Background/resume | Headless application notifications verify pause/save locking; a banked result remains frozen, persists its reward/receipt, and rejects replay after process relaunch | No installed-app/native lifecycle exercise | PARTIAL |
 | Phone-call interruption | Not automatable in current Linux runner | Not exercised | NOT RUN |
 | Low-power mode | Not automatable in current Linux runner | Not exercised | NOT RUN |
 | Audio interruption | No audio-session interruption harness | Not exercised | NOT RUN |
@@ -213,7 +214,7 @@ The current tree passed the complete 13-suite matrix (`28,410/0`) plus source-lo
 |---|---|---|
 | Gate 1 — Control feel | PARTIAL | Mathematical movement/dash behavior passes; real touch comprehension, accidental dash rate, readability, and attributable deaths require human device sessions |
 | Gate 2 — Core hook | PASS (automated alpha) | Headless production systems complete the outside-inside-organ-outside sequence; all 12 losses have concrete data-driven mechanics and procedural exterior states, but human/device readability remains untested |
-| Gate 3 — Complete run | PARTIAL | All boss/order victories pass, and the combined UI failure/bank/Forge/110-HP/second-failure/instant-retry/separate-process reload path passes; background/force-close, prior-build update, repeated Abyss, and human play remain |
+| Gate 3 — Complete run | PARTIAL | All boss/order victories, combined UI progression/relaunch, source-fixture migration, headless suspend-adjacent reward replay defense, and five repeated Abyss continuations pass; native background/force-close timing, installed prior-build update, and human play remain |
 | Gate 4 — Content complete | PARTIAL | Counts, effect contracts, tutorial/meta logic, all boss/order state machines, and authored room-runtime identities exist; human room/boss readability, cosmetics, mode polish, and real-time balance remain incomplete |
 | Gate 5 — Release candidate | BLOCKED | Production-signed native exports/installs, Mobile Safari/Chrome and physical-touch runtime tests, lifecycle tests, target-device performance tests, and P0/P1 closure |
 | Gate 6 — Launch ready | BLOCKED | Signed installs, final store assets/listings, legally reviewed public policies/notices, final device install, and store review |
@@ -235,6 +236,6 @@ The current tree passed the complete 13-suite matrix (`28,410/0`) plus source-lo
 ## Next executable QA work
 
 1. Extend the current CI/public semantic probe through breach, Dive, organ destruction, return, saved reload, all 12 organ-loss states, and representative room cases across all eight categories and ten defender archetypes.
-2. Add a previously shipped save fixture, background/force-close reward interruption, and repeated Abyss-depth coverage; the combined UI progression/relaunch smoke now passes.
+2. Install a prior TestFlight build and current update on-device, then exercise real background/force-close reward timing; source-fixture migration, fresh-process replay defense, and repeated Abyss continuation now pass headlessly.
 3. Add real-time attack-pattern safety and balance runs; the completed soak deliberately accelerates combat state transitions.
 4. Install the canonical Android debug build, produce a full current-source iOS export/compile/archive, then complete the named physical-device matrix without extrapolating from headless or browser evidence.

@@ -83,8 +83,11 @@ func flash_hit() -> void:
 	queue_redraw()
 
 func _process(delta: float) -> void:
-	pulse_time += delta
-	spin += delta * (0.16 + phase * 0.025)
+	# Boss silhouettes, scars, breach state, and health remain fully readable in
+	# Reduced Motion; only decorative breathing and rotation are frozen.
+	if not bool(SettingsManager.get_value("reduced_motion", false)):
+		pulse_time += delta
+		spin += delta * (0.16 + phase * 0.025)
 	hit_flash = maxf(0.0, hit_flash - delta)
 	queue_redraw()
 

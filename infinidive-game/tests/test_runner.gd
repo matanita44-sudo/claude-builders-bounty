@@ -6,6 +6,7 @@ const OrganAbilityMapClass := preload("res://scripts/core/organ_ability_map.gd")
 const RoomGeneratorClass := preload("res://scripts/core/room_generator.gd")
 const ProjectilePoolClass := preload("res://scripts/gameplay/projectile_pool.gd")
 const PlayerControllerClass := preload("res://scripts/gameplay/player_controller.gd")
+const BossVisualClass := preload("res://scripts/gameplay/boss_visual.gd")
 const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
 const RunHUDClass := preload("res://scripts/ui/run_hud.gd")
 const MainClass := preload("res://scripts/ui/main.gd")
@@ -15,6 +16,7 @@ const TutorialFlowClass := preload("res://scripts/core/tutorial_flow.gd")
 const AnalyticsServiceClass := preload("res://scripts/services/analytics_service.gd")
 
 const ANALYTICS_CLEAR_TEST_PATH := "user://infinidive_analytics_clear_test.json"
+const ANALYTICS_OPTOUT_TEST_PATH := "user://infinidive_analytics_optout_test.json"
 const RESET_ANALYTICS_TEST_PATH := "user://infinidive_reset_analytics_test.json"
 const RESET_LEADERBOARD_TEST_PATH := "user://infinidive_reset_leaderboard_test.json"
 const TEST_ISOLATION_ENV := "INFINIDIVE_TEST_ISOLATED"
@@ -56,6 +58,7 @@ func _run_all() -> void:
 	_test_mutations()
 	_test_localization_and_settings()
 	await _test_localized_ui()
+	await _test_accessibility_behaviors()
 	_test_analytics_contract()
 	_test_room_generation()
 	_test_project_configuration()
@@ -69,6 +72,8 @@ func _run_all() -> void:
 	await _test_meta_save_handoff()
 	await _test_save_recovery()
 	await _test_save_migration_and_banking()
+	await _test_result_lifecycle_replay_guard()
+	await _test_repeated_abyss_continuation()
 	await _test_failure_forge_retry_relaunch()
 	await _test_reset_local_data_integration()
 	await _test_tutorial_scene_handoff()
@@ -447,6 +452,57 @@ func _collect_ui_text(node:Node)->String:
 		fragments.append(_collect_ui_text(child))
 	return "\n".join(fragments)
 
+func _test_accessibility_behaviors() -> void:
+	var original_values := SettingsManager.values.duplicate(true)
+	SettingsManager.values.reduced_motion = true
+
+	var boss := BossVisualClass.new()
+	boss.set_process(false)
+	add_child(boss)
+	boss.pulse_time = 2.5
+	boss.spin = 1.25
+	boss.hit_flash = 0.1
+	boss._process(0.05)
+	_assert(is_equal_approx(boss.pulse_time,2.5) and is_equal_approx(boss.spin,1.25), "Reduced Motion must freeze decorative boss breathing and rotation")
+	_assert(is_equal_approx(boss.hit_flash,0.05), "Reduced Motion must preserve bounded hit-feedback timing")
+	SettingsManager.values.reduced_motion = false
+	boss._process(0.1)
+	_assert(boss.pulse_time>2.5 and boss.spin>1.25, "Normal motion must keep the boss silhouette animated")
+	boss.queue_free()
+
+	var reduced_in_start := RunSceneClass.dive_transition_visual_radius(RunSceneClass.RunState.DIVING_IN,1.15,true)
+	var reduced_in_end := RunSceneClass.dive_transition_visual_radius(RunSceneClass.RunState.DIVING_IN,0.0,true)
+	var normal_in_start := RunSceneClass.dive_transition_visual_radius(RunSceneClass.RunState.DIVING_IN,1.15,false)
+	var normal_in_end := RunSceneClass.dive_transition_visual_radius(RunSceneClass.RunState.DIVING_IN,0.0,false)
+	var normal_out_start := RunSceneClass.dive_transition_visual_radius(RunSceneClass.RunState.DIVING_OUT,1.0,false)
+	_assert(is_equal_approx(reduced_in_start,260.0) and is_equal_approx(reduced_in_end,260.0), "Reduced Motion must replace the full-screen Dive sweep with a stable tunnel frame")
+	_assert(is_zero_approx(normal_in_start) and is_equal_approx(normal_in_end,650.0) and is_equal_approx(normal_out_start,650.0), "Normal Dive transitions must still use their complete directional visual range")
+
+	var hud := RunHUDClass.new()
+	add_child(hud)
+	await get_tree().process_frame
+	SettingsManager.values.reduced_motion = true
+	hud.show_toast("Reduced")
+	_assert(is_equal_approx(hud.toast_label.modulate.a,1.0), "Reduced Motion must show transient guidance immediately without an opacity sweep")
+	if hud._toast_tween and hud._toast_tween.is_running():
+		hud._toast_tween.kill()
+	SettingsManager.values.reduced_motion = false
+	hud.show_toast("Normal")
+	_assert(is_zero_approx(hud.toast_label.modulate.a), "Normal motion must retain the short toast fade")
+	if hud._toast_tween and hud._toast_tween.is_running():
+		hud._toast_tween.kill()
+	hud.queue_free()
+
+	var base_color := VisualTheme.FRIENDLY
+	_assert(PlayerControllerClass.damage_flash_color(base_color,0.0,true).is_equal_approx(base_color), "Zero damage-flash intensity must leave the player color unchanged")
+	_assert(PlayerControllerClass.damage_flash_color(base_color,1.0,true).is_equal_approx(Color.WHITE), "Full damage-flash intensity must visibly reach the configured highlight")
+	_assert(PlayerControllerClass.damage_flash_color(base_color,1.0,false).is_equal_approx(base_color), "Damage-flash intensity must not affect the player outside the damage window")
+	_assert(is_equal_approx(PlayerControllerClass.invulnerability_alpha(0.5,true),0.72), "Reduced Motion must replace rapid invulnerability blinking with a stable readable alpha")
+	_assert(is_equal_approx(PlayerControllerClass.invulnerability_alpha(0.5,false),0.4), "Normal motion must retain the invulnerability blink cue")
+
+	SettingsManager.values = original_values
+	await get_tree().process_frame
+
 func _test_analytics_contract() -> void:
 	var required_events := [
 		"app_open", "session_start", "tutorial_start", "tutorial_step", "tutorial_complete",
@@ -476,8 +532,38 @@ func _test_analytics_contract() -> void:
 	_assert(scoped_service.clear_local_data(), "Analytics local-data deletion must report success")
 	_assert(scoped_service.queue.is_empty() and not FileAccess.file_exists(ANALYTICS_CLEAR_TEST_PATH), "Analytics local-data deletion must clear memory and remove its file")
 	_assert(String(scoped_service.last_storage_status) == "cleared" and scoped_service.clear_local_data(), "Analytics local-data deletion must be inspectable and idempotent")
+	scoped_service.queue = [{"event":"first_dive","properties":{},"session_id":"legacy","timestamp":"2026-09-01T00:00:00Z"}]
+	_assert(scoped_service._persist_queue(), "Analytics boot opt-out test must stage a legacy local queue")
+	SettingsManager.values.analytics_opt_in = false
+	scoped_service._ready()
+	_assert(scoped_service.queue.is_empty() and not FileAccess.file_exists(ANALYTICS_CLEAR_TEST_PATH), "Analytics boot must delete a legacy local queue while diagnostics are disabled")
 	scoped_service.free()
+
+	var original_analytics_path := AnalyticsService.queue_path
+	var original_analytics_queue := AnalyticsService.queue.duplicate(true)
+	var original_analytics_status := AnalyticsService.last_storage_status
+	_remove_test_file(ANALYTICS_OPTOUT_TEST_PATH)
+	AnalyticsService.queue_path = ANALYTICS_OPTOUT_TEST_PATH
+	AnalyticsService.queue = [{"event":"first_dash","properties":{},"session_id":"test","timestamp":"2026-09-01T00:00:00Z"}]
+	_assert(AnalyticsService._persist_queue(), "Settings opt-out test must stage the active local diagnostics queue")
+	SettingsManager.values.analytics_opt_in = true
+	SaveManager.profile.settings = SettingsManager.values.duplicate(true)
+	var nest := NestViewClass.new()
+	_assert(SaveManager.inject_isolated_test_save_failures(1), "Settings persistence regression must arm an isolated save failure")
+	_assert(not nest._apply_toggle_value("analytics_opt_in",false), "Analytics opt-out must report failure when the preference cannot be persisted")
+	_assert(bool(SettingsManager.get_value("analytics_opt_in",false)) and bool(SaveManager.profile.settings.analytics_opt_in), "A failed opt-out persistence attempt must roll memory and profile back to the durable enabled value")
+	_assert(not AnalyticsService.queue.is_empty() and FileAccess.file_exists(ANALYTICS_OPTOUT_TEST_PATH), "A failed opt-out persistence attempt must not delete diagnostics before durable consent state changes")
+	_assert(nest._apply_toggle_value("analytics_opt_in",false), "Turning local diagnostics off in Settings must report a successful cleanup")
+	_assert(not bool(SettingsManager.get_value("analytics_opt_in",true)) and AnalyticsService.queue.is_empty() and not FileAccess.file_exists(ANALYTICS_OPTOUT_TEST_PATH), "Turning local diagnostics off must persist opt-out and erase queued events")
+	nest.free()
+	AnalyticsService.queue_path = original_analytics_path
+	AnalyticsService.queue = original_analytics_queue
+	AnalyticsService.last_storage_status = original_analytics_status
+	_remove_test_file(ANALYTICS_OPTOUT_TEST_PATH)
+	_assert(String(LocalizationService.STRINGS.en.analytics_opt_in).contains("local") and not String(LocalizationService.STRINGS.en.analytics_opt_in).contains("Share"), "English diagnostics copy must describe on-device storage instead of data sharing")
+	_assert(String(LocalizationService.STRINGS.he.analytics_opt_in).contains("מקומי") and not String(LocalizationService.STRINGS.he.analytics_opt_in).contains("שיתוף"), "Hebrew diagnostics copy must describe local storage instead of data sharing")
 	SettingsManager.values = original_values
+	SaveManager.profile.settings = original_values.duplicate(true)
 
 func _test_room_generation() -> void:
 	var generator := RoomGeneratorClass.new()
@@ -1059,6 +1145,41 @@ func _test_meta_save_handoff() -> void:
 	await get_tree().process_frame
 
 func _test_save_migration_and_banking() -> void:
+	var fixture_file := FileAccess.open("res://tests/progression/fixtures/save_schema_1_prealpha.json", FileAccess.READ)
+	_assert(fixture_file != null, "The checked-in schema-1 pre-alpha save fixture must be readable")
+	var fixture_value: Variant = JSON.parse_string(fixture_file.get_as_text()) if fixture_file != null else null
+	_assert(typeof(fixture_value) == TYPE_DICTIONARY, "The schema-1 pre-alpha save fixture must decode as an object")
+	var fixture: Dictionary = fixture_value if typeof(fixture_value) == TYPE_DICTIONARY else {}
+	var fixture_profile_value: Variant = fixture.get("profile", null)
+	_assert(
+		String(fixture.get("fixture_id", "")) == "infinidive-prealpha-schema-1"
+		and int(fixture.get("schema", 0)) == 1
+		and typeof(fixture_profile_value) == TYPE_DICTIONARY,
+		"The pre-alpha fixture must identify its source schema and profile payload"
+	)
+	var fixture_profile: Dictionary = (fixture_profile_value as Dictionary).duplicate(true) if typeof(fixture_profile_value) == TYPE_DICTIONARY else {}
+	fixture_profile["_schema"] = int(fixture.get("schema", 0))
+	var migrated_fixture := SaveManager._migrate_and_merge(fixture_profile)
+	_assert(
+		int(migrated_fixture.bio_matter) == 233
+		and int(migrated_fixture.core_shards) == 2
+		and int(migrated_fixture.total_runs) == 7
+		and int(migrated_fixture.total_wins) == 1,
+		"The checked-in prior-schema fixture must preserve currencies and run history"
+	)
+	_assert(
+		String(migrated_fixture.selected_weapon) == "scatter_maw"
+		and String(migrated_fixture.settings.language) == "he"
+		and migrated_fixture.settings.has("reduced_motion")
+		and bool(migrated_fixture.abyss_unlocked),
+		"The checked-in prior-schema fixture must preserve selection/language and receive current nested defaults"
+	)
+	_assert(
+		int(migrated_fixture.tutorial_state.understood_mask) == TutorialFlowClass.FULL_MASK
+		and migrated_fixture.has("tutorial_presentation")
+		and migrated_fixture.has("processed_run_ids"),
+		"The checked-in prior-schema fixture must migrate tutorial and transaction state to the current contract"
+	)
 	var legacy := {
 		"_schema": 1,
 		"bank": 87,
@@ -1133,6 +1254,201 @@ func _test_save_migration_and_banking() -> void:
 	_assert(int(reset_recovered.bio_matter) == 0 and SaveManager.last_load_source == "backup", "Reset backup recovery must never resurrect pre-reset progress")
 	SaveManager.profile = original
 	SaveManager.save_profile()
+	await get_tree().process_frame
+
+func _test_result_lifecycle_replay_guard() -> void:
+	var original_profile := SaveManager.profile.duplicate(true)
+	SaveManager.profile = SaveManager.default_profile()
+	_assert(SaveManager.save_profile(), "Lifecycle replay regression must begin from a persisted clean profile")
+	var retry_run := RunSceneClass.new()
+	retry_run.initialize({"boss":"gravemaw","weapon":"pulse_needle","difficulty":"diver","seed":772240,"mode":"story"})
+	add_child(retry_run)
+	await get_tree().process_frame
+	retry_run.run_id = "qa-lifecycle-retry-after-save-failure-772240"
+	retry_run.elapsed = 18.0
+	retry_run.run_bio = 70
+	_assert(SaveManager.inject_isolated_test_save_failures(1), "Result persistence regression must arm an isolated save failure")
+	retry_run._complete_run(false,"injected_save_failure")
+	_assert(retry_run.state == RunSceneClass.RunState.DEAD and not retry_run._result_banked, "A failed reward write must freeze on the result without claiming that banking succeeded")
+	_assert(int(SaveManager.profile.bio_matter) == 0 and int(SaveManager.profile.total_runs) == 0, "A failed reward write must roll back partial currency, totals, and receipts")
+	var late_actions: Array[Dictionary] = []
+	retry_run.run_finished.connect(func(payload:Dictionary):late_actions.append(payload))
+	retry_run._on_result_action("nest")
+	_assert(retry_run._result_banked and int(SaveManager.profile.bio_matter) == 55 and int(SaveManager.profile.total_runs) == 1, "A result action must retry and durably bank the exact reward after storage recovers")
+	_assert(late_actions.size() == 1 and String(late_actions[0].action) == "nest", "Navigation may leave a failed-save result only after the retry succeeds")
+	_assert(not SaveManager.bank_run(retry_run._result), "The late reward retry must record the same exact-once receipt")
+	retry_run.free()
+	SaveManager.profile = SaveManager.default_profile()
+	_assert(SaveManager.save_profile(), "Lifecycle replay regression must reset after the injected failure recovery case")
+
+	var run := RunSceneClass.new()
+	run.initialize({"boss":"gravemaw","weapon":"pulse_needle","difficulty":"diver","seed":772241,"mode":"story"})
+	add_child(run)
+	await get_tree().process_frame
+	run.run_id = "qa-lifecycle-banked-failure-772241"
+	run.elapsed = 18.0
+	run.run_bio = 70
+	run._complete_run(false, "lifecycle_regression")
+	_assert(
+		run.state == RunSceneClass.RunState.DEAD
+		and run._result_banked
+		and int(SaveManager.profile.bio_matter) == 55
+		and int(SaveManager.profile.total_runs) == 1,
+		"Run completion must synchronously bank one durable failure result before suspension"
+	)
+	var result_overlay := run._hud.overlay.get_child(0)
+	run._notification(NOTIFICATION_APPLICATION_PAUSED)
+	run._notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	_assert(
+		run.state == RunSceneClass.RunState.DEAD
+		and run._hud.overlay.visible
+		and run._hud.overlay.get_child(0) == result_overlay
+		and not run._player.controls_active,
+		"Headless suspend/close notifications after banking must preserve the frozen result state and controls"
+	)
+	var persisted_after_suspend := SaveManager._read_envelope(SaveManager.SAVE_PATH)
+	_assert(
+		int(persisted_after_suspend.get("bio_matter", -1)) == 55
+		and int(persisted_after_suspend.get("total_runs", -1)) == 1
+		and (persisted_after_suspend.get("processed_run_ids", []) as Array).has(run.run_id),
+		"The synchronous suspend-adjacent save must contain both reward and exact-once receipt"
+	)
+	run.free()
+
+	var child_output: Array = []
+	var child_args := PackedStringArray([
+		"--headless",
+		"--path", ProjectSettings.globalize_path("res://"),
+		"--scene", "res://tests/progression/ProcessRelaunchProbe.tscn",
+		"--",
+		"--expected-bio=55",
+		"--expected-runs=1",
+		"--expected-run-ids=qa-lifecycle-banked-failure-772241",
+		"--reject-run-id=qa-lifecycle-banked-failure-772241",
+		"--reject-bio=55",
+		"--reject-shards=0",
+		"--reject-won=false",
+		"--reject-boss=gravemaw"
+	])
+	var child_exit := OS.execute(OS.get_executable_path(), child_args, child_output, true, false)
+	var child_log := "\n".join(PackedStringArray(child_output))
+	_assert(child_exit == 0, "A fresh process must reject replay of the synchronously banked result: %s" % child_log)
+	_assert(child_log.contains("replay_rejected=true"), "The relaunch probe must emit explicit duplicate-reward rejection evidence")
+
+	SaveManager.profile = SaveManager.default_profile()
+	var reloaded := SaveManager.load_profile()
+	_assert(
+		int(reloaded.bio_matter) == 55
+		and int(reloaded.total_runs) == 1
+		and reloaded.processed_run_ids.has("qa-lifecycle-banked-failure-772241"),
+		"Parent reload after the replay probe must retain exactly one reward and one receipt"
+	)
+	SaveManager.profile = original_profile
+	_assert(SaveManager.save_profile(), "Lifecycle replay regression must restore the pre-test profile")
+	await get_tree().process_frame
+
+func _test_repeated_abyss_continuation() -> void:
+	var original_profile := SaveManager.profile.duplicate(true)
+	SaveManager.profile = SaveManager.default_profile()
+	SaveManager.profile.abyss_unlocked = true
+	_assert(SaveManager.save_profile(), "Repeated Abyss continuation must begin from a persisted clean profile")
+
+	var next_config := {
+		"boss":"gravemaw",
+		"weapon":"pulse_needle",
+		"difficulty":"abyss",
+		"seed":912733,
+		"mode":"abyss",
+		"abyss_depth":1,
+		"carried_mutations":["split_chamber"],
+		"mutation_choice_count":1
+	}
+	var expected_run_ids: Array[String] = []
+	var hp_scales: Array[float] = []
+	var damage_scales: Array[float] = []
+	var projectile_scales: Array[float] = []
+	for continuation_index in range(5):
+		var run := RunSceneClass.new()
+		run.initialize(next_config)
+		add_child(run)
+		await get_tree().process_frame
+		var current_depth := int(next_config.abyss_depth)
+		run.run_id = "qa-abyss-continuation-depth-%d" % current_depth
+		expected_run_ids.append(run.run_id)
+		hp_scales.append(run._difficulty_hp())
+		damage_scales.append(run._difficulty_damage())
+		projectile_scales.append(run._difficulty_projectile_speed())
+		_assert(
+			int(run.config.abyss_depth) == current_depth
+			and String(run.config.mode) == "abyss"
+			and run._selected_mutations.has("split_chamber")
+			and run._mutation_choice_count == 1,
+			"Abyss depth %d must restore its mode, carried mutation, and mutation-choice count" % current_depth
+		)
+		run.elapsed = 24.0 + current_depth
+		run.run_bio = 40 * current_depth
+		run._player.health = run._player.max_health * 0.4
+		for organ_value in run.boss_definition.organs:
+			run._organ_map.destroy_organ(String((organ_value as Dictionary).id))
+		run.organs_destroyed = 3
+		var finished_payloads: Array[Dictionary] = []
+		run.run_finished.connect(func(payload: Dictionary): finished_payloads.append(payload.duplicate(true)))
+		run._complete_run(true, "abyss_continuation_regression")
+		_assert(
+			run.state == RunSceneClass.RunState.VICTORY
+			and run._result_banked
+			and int(run._result.get("abyss_depth", 0)) == current_depth
+			and int(run._result.get("banked_shards", -1)) == 0,
+			"Abyss depth %d victory must bank once without Story-only Core Shards" % current_depth
+		)
+		var seed_before := int(run.config.seed)
+		run._on_result_action("retry")
+		_assert(finished_payloads.size() == 1, "Abyss depth %d continuation must emit exactly one retry payload" % current_depth)
+		var payload: Dictionary = finished_payloads[0] if not finished_payloads.is_empty() else {}
+		var retry_config_value: Variant = payload.get("config", null)
+		_assert(typeof(retry_config_value) == TYPE_DICTIONARY, "Abyss depth %d retry payload must contain a configuration" % current_depth)
+		var retry_config: Dictionary = retry_config_value if typeof(retry_config_value) == TYPE_DICTIONARY else {}
+		var expected_depth := current_depth + 1
+		var expected_boss := String(GameData.bosses[(expected_depth - 1) % GameData.bosses.size()].id)
+		_assert(
+			int(retry_config.get("abyss_depth", 0)) == expected_depth
+			and String(retry_config.get("boss", "")) == expected_boss
+			and int(retry_config.get("seed", 0)) == seed_before + expected_depth * 104729,
+			"Abyss continuation %d must advance depth, rotate boss, and derive the next deterministic seed" % current_depth
+		)
+		_assert(
+			(retry_config.get("carried_mutations", []) as Array).has("split_chamber")
+			and int(retry_config.get("mutation_choice_count", -1)) == 1
+			and is_equal_approx(float(retry_config.get("starting_health_ratio", 0.0)), 0.6),
+			"Abyss continuation %d must carry the build and grant only the bounded inter-depth repair" % current_depth
+		)
+		next_config = retry_config.duplicate(true)
+		run.queue_free()
+		await get_tree().process_frame
+
+	_assert(
+		int(SaveManager.profile.total_runs) == 5
+		and int(SaveManager.profile.total_wins) == 5
+		and int(next_config.abyss_depth) == 6,
+		"Five repeated Abyss victories must produce five banked runs and a playable depth-six configuration"
+	)
+	var processed: Array = SaveManager.profile.get("processed_run_ids", [])
+	var every_receipt_present := true
+	for expected_run_id in expected_run_ids:
+		every_receipt_present = every_receipt_present and processed.has(expected_run_id)
+	_assert(every_receipt_present, "Repeated Abyss continuation must retain every exact-once reward receipt")
+	var scales_increase := true
+	for scale_index in range(1, hp_scales.size()):
+		scales_increase = (
+			scales_increase
+			and hp_scales[scale_index] > hp_scales[scale_index - 1]
+			and damage_scales[scale_index] > damage_scales[scale_index - 1]
+			and projectile_scales[scale_index] > projectile_scales[scale_index - 1]
+		)
+	_assert(scales_increase, "Repeated Abyss depths must strictly increase health, damage, and projectile-speed scaling")
+
+	SaveManager.profile = original_profile
+	_assert(SaveManager.save_profile(), "Repeated Abyss continuation must restore the pre-test profile")
 	await get_tree().process_frame
 
 func _test_failure_forge_retry_relaunch() -> void:

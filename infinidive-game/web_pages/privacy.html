@@ -154,8 +154,8 @@
       <p>The game stores progress and settings in its local app storage. This can include currencies, unlocked content, upgrades, Nest state, boss progress, achievement completion/progress, contract progress, high scores, tutorial state, selected cosmetic, audio and control preferences, accessibility preferences, language, run-reward identifiers, meta-goal reward-ledger keys, and bounded SHA-256 event receipts (up to 4,096) used to prevent the same local reward from being banked twice.</p>
       <p>The save system keeps a primary file and a local backup. It uses a checksum to detect damaged data. The checksum is not encryption, so local files may be readable by someone who can access your device, browser profile, or app storage.</p>
 
-      <h3>2. Analytics in the current build</h3>
-      <p>The code contains an optional analytics event queue for possible future testing. It is disabled by default and can be enabled or disabled in Settings. When enabled, events are written only to a local file capped at 500 entries. There is no uploader, analytics vendor, or backend endpoint in the current game. Turning the setting off stops new events but does not erase an existing local queue; confirmed Reset Progress or clearing local app/site data deletes it.</p>
+      <h3>2. Local diagnostics in the current build</h3>
+      <p>The code contains an optional local diagnostics queue for possible future testing. It is disabled by default and can be enabled or disabled in Settings. When enabled, events are written only to a local file capped at 500 entries. There is no uploader, analytics vendor, or backend endpoint in the current game. Turning the setting off first saves the disabled preference, then deletes the existing local queue. If preference saving fails, the control rolls back to the last durable value and the queue is not deleted. If file removal is interrupted or fails after opt-out is saved, the game reports an error and retries deletion at the next boot while diagnostics remain disabled. Confirmed Reset Progress or clearing local app/site data also deletes it.</p>
       <p>Possible local events describe gameplay, such as a boss, weapon, mutation, run time, destroyed organ, death cause, or changed setting. They do not include your name, email address, contacts, precise location, or advertising identifier.</p>
 
       <h3>3. Daily and Friend Rifts</h3>
@@ -196,8 +196,8 @@
       <p>המשחק שומר התקדמות והגדרות באחסון המקומי של האפליקציה. המידע עשוי לכלול מטבעות, תוכן שנפתח, שדרוגים, מצב הקן, התקדמות מול בוסים, השלמת הישגים והתקדמותם, התקדמות בחוזים, שיאים, מצב ההדרכה, פריט קוסמטי נבחר, הגדרות שמע ושליטה, העדפות נגישות, שפה, מזהי תגמולי ריצה, מפתחות יומן תגמולי יעדים וטביעות SHA-256 מוגבלות של אירועים (עד 4,096) שנועדו למנוע קבלת תגמול מקומי פעמיים.</p>
       <p>מערכת השמירה מחזיקה קובץ ראשי וגיבוי מקומי ומשתמשת בסכום ביקורת כדי לזהות מידע שנפגם. סכום הביקורת אינו הצפנה, ולכן אדם בעל גישה למכשיר, לפרופיל הדפדפן או לאחסון האפליקציה עשוי לקרוא את הקבצים המקומיים.</p>
 
-      <h3>2. ניתוח נתונים בגרסה הנוכחית</h3>
-      <p>הקוד כולל תור אופציונלי של אירועי ניתוח שנועד לאפשר בדיקות עתידיות. הוא כבוי כברירת מחדל וניתן להפעיל או לכבות אותו בהגדרות. כשהוא מופעל, האירועים נכתבים רק לקובץ מקומי שמוגבל ל־500 רשומות. במשחק הנוכחי אין מנגנון העלאה, ספק ניתוח או נקודת קצה של שרת. כיבוי ההגדרה עוצר אירועים חדשים אך אינו מוחק תור מקומי שכבר נוצר; איפוס התקדמות מאושר או מחיקת נתוני האפליקציה/האתר מוחקים אותו.</p>
+      <h3>2. אבחון מקומי בגרסה הנוכחית</h3>
+      <p>הקוד כולל תור אופציונלי של אבחון מקומי שנועד לאפשר בדיקות עתידיות. הוא כבוי כברירת מחדל וניתן להפעיל או לכבות אותו בהגדרות. כשהוא מופעל, האירועים נכתבים רק לקובץ מקומי שמוגבל ל־500 רשומות. במשחק הנוכחי אין מנגנון העלאה, ספק ניתוח או נקודת קצה של שרת. כיבוי ההגדרה שומר תחילה את ההעדפה הכבויה ולאחר מכן מוחק את התור המקומי הקיים. אם שמירת ההעדפה נכשלת, המצב חוזר לערך האחרון שנשמר והתור אינו נמחק. אם מחיקת הקובץ נקטעת או נכשלת לאחר שמירת הכיבוי, המשחק מדווח על שגיאה ומנסה למחוק שוב בהפעלה הבאה, בעוד האבחון נשאר כבוי. איפוס התקדמות מאושר או מחיקת נתוני האפליקציה/האתר גם מוחקים אותו.</p>
       <p>אירועים מקומיים אפשריים מתארים משחקיות, למשל בוס, נשק, מוטציה, משך ריצה, איבר שהושמד, סיבת מוות או הגדרה ששונתה. הם אינם כוללים שם, כתובת דוא״ל, אנשי קשר, מיקום מדויק או מזהה פרסומי.</p>
 
       <h3>3. אתגרי Daily ו־Friend Rift</h3>

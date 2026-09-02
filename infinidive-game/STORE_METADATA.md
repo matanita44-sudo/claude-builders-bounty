@@ -2,17 +2,17 @@
 
 **Status:** DRAFT — DO NOT SUBMIT\
 **Code snapshot:** `0.1.0` pre-release\
-**Requirements reviewed:** 2026-09-01\
+**Requirements reviewed:** 2026-09-02\
 **Support contact:** `matanita44@gmail.com`
 
-This file contains candidate English and Hebrew listing copy plus current official asset requirements. It does not mean that INFINIDIVE is store-ready, approved, uploaded, or signed. A browser pre-release is publicly deployed and boot-verified; semantic touch gameplay remains unverified, and it is not a store release.
+This file contains candidate English and Hebrew listing copy plus current official asset requirements. It does not mean that INFINIDIVE is store-ready, approved, uploaded, or signed. Automated exported-Web whole-path gameplay has evidence; human touch feel, mobile Safari/Chrome, native install, and device QA remain unverified.
 
 ## Submission blockers and truth constraints
 
 - Privacy and support pages are available as public pre-release pages at the HTTPS URLs listed below. Final legal review is still required before store submission.
-- Original brand sources and verified raster exports exist for the icon, wordmark, Google feature graphic, and social card. Five 1080×1920 real-runtime stills, a 17.2-second 1080×1920 H.264/AAC social-development trailer, and a 17.2-second 886×1920 H.264/AAC Apple-format technical candidate also exist. They remain development evidence: the still set has only five scenes, Apple needs accepted 6.9-inch still dimensions, and its preview requires recapture from a supported iPhone. The Play icon and feature raster dimensions/channels are verified below.
+- Original brand sources and verified raster exports exist for the icon, wordmark, Google feature graphic, and social card. Five 1080×1920 real-runtime stills and two 17.2-second development trailers also exist. The five stills are invalid for Apple's 6.9-inch submission sizes. App Preview is optional; the current Linux/Xvfb technical candidate can be omitted, or recaptured from the RC through Xcode Device Hub if used.
 - Android presets target `com.matan.infinidive`, include a separate Gradle/AAB preset, and request only normal `android.permission.VIBRATE` for optional haptics. The verified template-install path creates `android/build`, but no compiled/signed AAB or internal-test upload is evidenced.
-- The iOS preset uses `com.matan.infinidive`, targets iPhone, and wires exact-size RGB/no-alpha icons. Full export failed because Team ID is blank. The final evidence directory combines the retained same-Godot unsigned scaffold with a fresh current-source PCK that passes Linux main-pack boot; it is not a regenerated current-source Xcode project. No Xcode compile/archive, signed install, or TestFlight upload is evidenced.
+- The iOS preset uses `com.matan.infinidive`, targets iPhone, and wires exact-size RGB/no-alpha icons plus custom portrait launch assets. A fresh local unsigned scaffold passes strict plist/privacy/launch/Bundle ID/version/empty-entitlement checks and scrubs its fake export-only Team ID. Remote committed evidence is pending; no macOS/Xcode 26 compile/archive, signed install, or TestFlight upload is evidenced.
 - There is no backend, cloud save, remote leaderboard, account, advertising, or purchase flow. Listing copy must not imply otherwise.
 - Daily Rift and Friend Rift are local deterministic modes. Friend challenges are exchanged as codes through a player-directed clipboard action.
 - English and Hebrew metadata drafts are complete here. The current code has matching non-empty English/Hebrew UI keys, translated launch catalogs, and headless RTL widget coverage; do not publish a Hebrew store localization until text fit, visual order, screenshots, and live language switching pass final device QA.
@@ -48,10 +48,11 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 | `assets/brand/wordmark.svg` and `assets/store/wordmark-2400.png` | Original path-based wordmark; verified 2400×630 RGBA raster with recorded SHA-256; no external font file | Verify final lockup, padding, contrast, and localizations where used |
 | `assets/brand/feature_graphic.svg` and `assets/store/google-play-feature-1024x500.png` | Original composition plus verified 1024×500 8-bit/color RGB raster with no alpha | Dimension/channel requirement is met; retain final composition and console-upload review |
 | `assets/brand/social_card.svg` and `assets/store/social-card-1200x630.png` | Original 1200×630 RGBA social key art with recorded SHA-256 | It is illustrative key art, not gameplay; do not use it as a screenshot |
+| `assets/platform/ios/launch_screen.svg`, `launch_screen@2x.png`, and `launch_screen.png` | Original portrait launch composition; local validation confirms exact 780×1688/1170×2532 RGB dimensions and exported pixel parity | Record committed remote evidence and inspect the final archived storyboard on Xcode/Device Hub |
 | `assets/store/gameplay/*.png` | Five direct runtime captures at 1080×1920: Nest, exterior combat, breach, organ choice, and internal zone | Development/virtual-display evidence only; capture final RC, organ destruction/changed exterior/mutations/developed Nest/Friend/Abyss scenes, and Apple-accepted sizes |
 | `assets/store/gameplay/trailer-runtime-dev-17s.mp4` | 17.2 seconds, H.264, 1080×1920, 30 fps, 516 frames, hard cuts from real runtime | Silent because capture used Dummy audio; not at Apple's accepted 6.9-inch preview resolution; not uploaded to an ad-free public/unlisted YouTube URL for Google |
 | `assets/store/gameplay/trailer-runtime-social-17s.mp4` | 17.2 seconds, 1080×1920 H.264/30 fps plus 48 kHz stereo AAC rendered only from shipped procedural-audio code; SHA-256 `3950107d8ef89abffd42fec303f96ef5931a1c4139dcc771d91c17c7fa9c7103` | Virtual-display development capture; requires final listening/caption review and compliant YouTube publication before Google listing use |
-| `assets/store/gameplay/trailer-runtime-apple-candidate-886x1920-17s.mp4` and poster | 17.2 seconds, 886×1920 H.264/30 fps plus 48 kHz stereo AAC; video SHA-256 `7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8`; poster is 886×1920 RGB JPEG | Technical stream candidate only: Linux/Xvfb footage was scaled/padded, not captured on a supported iPhone; recapture and App Store Connect processing are required |
+| `assets/store/gameplay/trailer-runtime-apple-candidate-886x1920-17s.mp4` and poster | 17.2 seconds, 886×1920 H.264/30 fps plus 48 kHz stereo AAC; video SHA-256 `7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8`; poster is 886×1920 RGB JPEG | Optional technical candidate only. Omit for 1.0, or recapture the RC through Xcode Device Hub and pass App Store Connect processing. |
 | `assets/store/gameplay/capture-manifest.json` | Records capture method, limitations, segment ranges, sizes, and SHA-256 hashes | Preserve and regenerate against the final committed release candidate |
 
 `assets/store/gameplay/README.md` and `ASSET_LICENSES.md` are the provenance sources. None of this media is evidence of a physical-phone test or store acceptance.
@@ -315,11 +316,12 @@ The following was checked against primary platform documentation on 2026-09-01. 
 | Support URL | Required and must lead to real contact information | Finalize, legally review, and verify the published HTTPS support page before submission |
 | Privacy Policy URL | Required for iOS | Finalize, legally review, and verify the published HTTPS privacy page before submission |
 | App icon source | iOS/iPadOS layout size 1024×1024 px; included through the Xcode asset catalog or Icon Composer | Original 1024 source plus exact-size RGB/no-alpha icon set is wired in the preset and inspected in the retained unsigned scaffold; complete a regenerated current-source Xcode export, validate small sizes, and inspect the final signed archive |
-| iPhone screenshots | 1–10; `.jpeg`, `.jpg`, or `.png`; no alpha/transparency | Capture eight real portrait scenes after RC freeze |
+| iPhone screenshots | 1–10; `.jpeg`, `.jpg`, or `.png`; no alpha/transparency | Capture at least one complete accepted-dimension set after RC freeze; eight scenes remain the planned marketing narrative |
 | 6.9-inch iPhone portrait sizes | 1260×2736, 1290×2796, or 1320×2868 px | Existing 1080×1920 development stills do not qualify; recapture an accepted 6.9-inch set |
 | 6.5-inch iPhone portrait sizes | 1284×2778 or 1242×2688 px; required only if a 6.9-inch set is not provided | Not separately required if accepted 6.9-inch screenshots are supplied; verify in Connect |
 | iPad screenshots | 13-inch screenshots are required if the app runs on iPad | Current iOS preset targets iPhone only; reassess if device family changes |
-| 6.9-inch iPhone App Preview | H.264 or ProRes 422 HQ; 15–30 seconds; maximum 500 MB; portrait 886×1920 px; maximum 30 fps; stereo audio; up to 3 previews | The technical candidate meets the recorded resolution/codec/duration/fps/stereo-audio contract locally, but its underlying Linux/Xvfb capture is not submission-ready. Recapture from the release candidate on a supported iPhone and validate in App Store Connect. |
+| iPhone App Preview | Optional; up to 3. If used: H.264 or ProRes 422 HQ; 15–30 seconds; maximum 500 MB; portrait 886×1920 px; maximum 30 fps; stereo audio | Omit the Linux/Xvfb candidate for 1.0, or recapture the release candidate through Xcode Device Hub on a supported simulated or physical iPhone and validate in App Store Connect. |
+| Upload toolchain | Since April 28, 2026, uploads must be built with Xcode 26+ and the iOS 26 SDK | Compile and archive the frozen RC on a compliant Mac; the Linux scaffold is not upload evidence |
 
 ### Google Play
 

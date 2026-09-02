@@ -55,6 +55,11 @@ jobs:
       - name: Validate CI evidence guards
         shell: bash
         run: python3 .github/scripts/validate_soak_report.py --self-test
+      - name: Validate iOS Info.plist hardening
+        shell: bash
+        run: |
+          python3 .github/scripts/sanitize_ios_plist.py --self-test
+          python3 .github/scripts/validate_ios_privacy_manifest.py --self-test
       - name: Validate retained 30-minute evidence
         if: >-
           !(github.ref == 'refs/heads/infinidive-production' &&
@@ -283,6 +288,126 @@ jobs:
         with:
           name: infinidive-android-debug-${{ github.run_attempt }}
           path: build/android/infinidive-ci-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  ios-unsigned-scaffold:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install verified Godot and export templates
+        shell: bash
+        env:
+          GODOT_INSTALL_IOS_TEMPLATE: "1"
+        run: bash .github/scripts/install_godot.sh
+      - name: Export an ephemeral unsigned iOS scaffold
+        shell: bash
+        env:
+          # This unmistakable non-secret placeholder exists only to let the
+          # Linux exporter generate an Xcode scaffold. It is never used to sign.
+          INFINIDIVE_CI_FAKE_TEAM_ID: CIEXPORT00
+        run: |
+          ios_project="$(mktemp -d "${RUNNER_TEMP}/infinidive-ios-project.XXXXXX")"
+          ios_output="${RUNNER_TEMP}/infinidive-ios-unsigned-scaffold"
+          test ! -e "${ios_output}"
+          mkdir -p "${ios_output}"
+          cleanup_ios_project() {
+            rm -rf -- "${ios_project}"
+          }
+          trap cleanup_ios_project EXIT
+
+          cp -a infinidive-game/. "${ios_project}/"
+          python3 - "infinidive-game/export_presets.cfg" "${ios_project}/export_presets.cfg" <<'PY'
+          import os
+          import pathlib
+          import re
+          import sys
+
+          source = pathlib.Path(sys.argv[1])
+          temporary = pathlib.Path(sys.argv[2])
+          fake_team_id = os.environ["INFINIDIVE_CI_FAKE_TEAM_ID"]
+          if re.fullmatch(r"CI[A-Z0-9]{8}", fake_team_id) is None:
+              raise SystemExit("CI Team ID must be an obvious 10-character fake")
+          source_text = source.read_text(encoding="utf-8")
+          if source_text.count('application/app_store_team_id=""') != 1:
+              raise SystemExit("checked-in iOS Team ID must remain blank")
+          temporary_text = temporary.read_text(encoding="utf-8")
+          if temporary_text.count('application/app_store_team_id=""') != 1:
+              raise SystemExit("temporary preset does not have one blank Team ID")
+          temporary.write_text(
+              temporary_text.replace(
+                  'application/app_store_team_id=""',
+                  f'application/app_store_team_id="{fake_team_id}"',
+                  1,
+              ),
+              encoding="utf-8",
+          )
+          PY
+
+          ./godot --headless --path "${ios_project}" --export-release iOS \
+            "${ios_output}/INFINIDIVE.xcodeproj"
+
+          test -d "${ios_output}/INFINIDIVE.xcodeproj"
+          mapfile -t application_plists < <(
+            find "${ios_output}" -type f -name '*-Info.plist' -print | sort
+          )
+          test "${#application_plists[@]}" -eq 1
+          application_plist="${application_plists[0]}"
+          python3 .github/scripts/sanitize_ios_plist.py "${application_plist}"
+          python3 .github/scripts/sanitize_ios_plist.py --check "${application_plist}"
+
+          python3 .github/scripts/validate_ios_launch_screen.py \
+            --preset infinidive-game/export_presets.cfg \
+            --project-root infinidive-game \
+            --export-root "${ios_output}"
+
+          mapfile -t privacy_manifests < <(
+            find "${ios_output}" -type f -name 'PrivacyInfo.xcprivacy' -print | sort
+          )
+          test "${#privacy_manifests[@]}" -eq 1
+          python3 .github/scripts/validate_ios_privacy_manifest.py \
+            "${privacy_manifests[0]}"
+          python3 - "${application_plist}" <<'PY'
+          import pathlib
+          import plistlib
+          import sys
+
+          application_path = pathlib.Path(sys.argv[1])
+          application = plistlib.loads(application_path.read_bytes())
+          if application.get("CFBundleIdentifier") != "$(PRODUCT_BUNDLE_IDENTIFIER)":
+              raise SystemExit("generated application bundle identifier is unexpected")
+          print("Unsigned Linux iOS application plist validation: PASS")
+          PY
+
+          grep -Fq "${INFINIDIVE_CI_FAKE_TEAM_ID}" \
+            "${ios_output}/INFINIDIVE.xcodeproj/project.pbxproj"
+          grep -Fxq 'application/app_store_team_id=""' \
+            infinidive-game/export_presets.cfg
+          python3 .github/scripts/finalize_ios_scaffold.py \
+            --root "${ios_output}" \
+            --placeholder-team-id "${INFINIDIVE_CI_FAKE_TEAM_ID}" \
+            --source-sha "${GITHUB_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          python3 .github/scripts/validate_ios_project_metadata.py \
+            --root "${ios_output}" \
+            --preset infinidive-game/export_presets.cfg
+          python3 .github/scripts/sanitize_ios_plist.py --check "${application_plist}"
+          python3 .github/scripts/validate_ios_privacy_manifest.py \
+            "${privacy_manifests[0]}"
+          test -s "${ios_output}/UNSIGNED_LINUX_EXPORT_EVIDENCE.md"
+          sha256sum "${application_plist}" "${privacy_manifests[0]}"
+          echo "Sanitized unsigned Linux Xcode scaffold is ready for bounded artifact retention; it is not compile, signing, archive, install, or TestFlight evidence."
+      - name: Upload sanitized unsigned iOS Xcode scaffold
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-ios-unsigned-xcode-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/infinidive-ios-unsigned-scaffold
           if-no-files-found: error
           retention-days: 14
 

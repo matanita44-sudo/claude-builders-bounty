@@ -149,11 +149,14 @@ func show_toast(message: String, color: Color = VisualTheme.TEXT) -> void:
 	toast_label.add_theme_color_override("font_color",color)
 	if _toast_tween and _toast_tween.is_running():
 		_toast_tween.kill()
-	toast_label.modulate.a = 0.0
+	var reduced_motion := bool(SettingsManager.get_value("reduced_motion",false))
+	toast_label.modulate.a = 1.0 if reduced_motion else 0.0
 	_toast_tween = create_tween()
-	_toast_tween.tween_property(toast_label,"modulate:a",1.0,0.15)
+	if not reduced_motion:
+		_toast_tween.tween_property(toast_label,"modulate:a",1.0,0.15)
 	_toast_tween.tween_interval(1.45)
-	_toast_tween.tween_property(toast_label,"modulate:a",0.0,0.28)
+	if not reduced_motion:
+		_toast_tween.tween_property(toast_label,"modulate:a",0.0,0.28)
 	_toast_tween.tween_callback(_restore_tutorial_prompt)
 
 func set_tutorial_prompt(message: String, color: Color = VisualTheme.FRIENDLY) -> void:

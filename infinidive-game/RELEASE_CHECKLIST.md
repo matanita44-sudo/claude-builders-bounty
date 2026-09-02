@@ -2,7 +2,7 @@
 
 This checklist is evidence-based. Check an item only after the artifact or test exists. A configured preset, authored data row, or code path is not equivalent to a validated build or feature.
 
-> Candidate commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a` is pushed with production fingerprint `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e` and tests/CI fingerprint `ff2530d3aad779a21a3b775e8d973ba1b3e3c37a86b5b97cea133801c954dc59`. Local strict editor, `28,410/0`, 8.049/90.041/1,800.035-second source-bound soaks, refreshed canonical packages, and all jobs in Actions run `33572931398` pass, including Web/Android export, CI-served and public-host semantic movement/Dash smoke, and deployment. Checked `e942db6f` public/30-minute items below are retained as explicitly historical evidence.
+> Deployed commit `73a3f4a` remains the last completed public evidence candidate. Newer committed candidate `8f123f4` has passed Validate, Android debug, and exported-Web whole-path/reload semantics in run `33579010786`; its long soak/deploy is still pending. The present working tree passes local strict editor and main `2,714/0` with iOS, lifecycle, save-failure, privacy, and accessibility hardening, but it is not yet a pushed or remotely validated candidate.
 
 ## 0. Source and version control
 
@@ -52,7 +52,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Automated smoke test validates a complete death, second death, and instant-retry path through the real result controls.
 - [x] Automated smoke test purchases Reinforced Hull through the Forge UI and verifies the next run starts at 110 HP.
 - [x] Save survives teardown and a separate Godot process relaunch with Bio-Matter, run count, upgrade level, and both run receipts intact.
-- [ ] Save survives background/force-close timing tests and a real installed-app update from a prior shipped fixture.
+- [x] Headless suspend/close notifications synchronously preserve a completed reward plus receipt, and a fresh Godot process rejects replay of that result without changing totals.
+- [ ] Save survives real installed-app background/force-close timing and update from a prior TestFlight/App Store build.
 - [x] First failure banks the 55 Bio-Matter floor and affords the functional Reinforced Hull upgrade in the combined smoke.
 - [x] Immediate retry preserves the purchased upgrade and durable reward receipts without rebanking either completed run in the combined smoke.
 
@@ -127,8 +128,9 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Corrupt-primary recovery from backup has automated evidence.
 - [x] Run IDs are retained for local duplicate-reward defense.
 - [x] Schema-1-to-current migration, nested defaults, reward banking, durable run-ID deduplication, and in-process save reload have automated coverage.
-- [x] Automated migration fixtures preserve supported schema data, and legacy `tutorial_complete=true` maps to `TutorialFlow.FULL_MASK` while replay presentation remains separate.
-- [ ] Force-close/background reward-duplication tests pass.
+- [x] A checked-in schema-1 pre-alpha fixture plus malformed/legacy cases preserve supported data, add current nested defaults, and map `tutorial_complete=true` to `TutorialFlow.FULL_MASK` while replay presentation remains separate.
+- [x] Headless application suspend/close callbacks persist a banked result synchronously; a fresh process rejects replay and retains exactly one reward/receipt.
+- [ ] Native force-close/background reward-duplication tests pass on an installed build.
 - [ ] Update from a previously shipped build is tested.
 - [x] Intentional reset confirmation and service orchestration have automated coverage; human interaction and forced storage-failure presentation remain untested.
 - [x] Reset Progress replaces the primary profile and recovery backup with clean defaults; corruption cannot resurrect the pre-reset profile.
@@ -149,8 +151,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 7. Automated QA and CI
 
-- [x] Latest local JUnit-style artifact reports main `2,631/0`; wall time is intentionally omitted because the artifact is regenerated on reruns.
-- [x] Final frozen local matrix passes `28,410/0` across 13 suites: main 2,631; backend 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta 111; audio 505. The six room suites total `24,438/0`.
+- [x] Latest local JUnit-style artifact reports main `2,714/0`; wall time is intentionally omitted because the artifact is regenerated on reruns.
+- [x] Current working-tree local matrix passes `28,493/0` across 13 suites: main 2,714; backend 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta 111; audio 505. The six room suites total `24,438/0`. Remote evidence for this uncommitted tree is pending.
 - [x] Editor import and every suite pass the isolated strict wrapper with exact sentinel/count validation and zero engine `ERROR`, script-error, or parse-error lines.
 - [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.
@@ -170,10 +172,12 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] The commit-bound public-host synthetic canvas automation passes in Actions run `33565500042`: HTTP 200, 540×960 canvas, zero page errors, and `3/3/3` canvas `touchstart` / `touchmove` / `touchend` events. Before SHA-256 `31212c7891fccbb64e3993062614178a854ac29b185878ee1a5db2963ccf2e23` differs from after SHA-256 `94e6d2654a466e0ecb37670e6621d2b873eb5c9c56c39a5565ea2f38afa0b6d8`, proving rendered change. Artifact `9823113363` is 90,667 bytes / `5038d055d8cf723b479424b4d099d0e3c036bb4e9eb325cb9c1ee6e00b750985`. This proves synthetic delivery and rendering only, not semantic gameplay state, mobile Safari/Chrome, or physical touch feel.
 - [x] Local complete-boss victory smoke tests pass for four bosses × six organ orders.
 - [x] Combined failure, 55-Bio banking, Forge upgrade, 110-HP new run, second failure, instant retry, and separate-process relaunch smoke passes.
-- [ ] A previously shipped-build update fixture, background/force-close reward timing, and repeated Abyss-depth smoke pass.
-- [ ] The full gameplay path produces no repeated console errors in an actual Web run; the current public movement/Dash semantic smoke emitted zero page, crash, network, or critical failures but does not traverse or assert the full gameplay path.
+- [x] Five consecutive headless Abyss win/continue cycles preserve carried build state, bounded repair, deterministic boss/seed progression, scaling, and exact-once reward receipts.
+- [ ] A prior installed-build update and native background/force-close reward timing pass on iPhone/Android.
+- [x] CI-served exported Web for commit `8f123f4` traverses exterior → breach → organ choice → Dive → chamber → organ destruction → mutation → Dive out → changed exterior, then reloads the same context and restores the exact persisted state with zero page/crash/network failures. Deployed-public confirmation for that candidate remains pending.
 - [x] Malformed and deterministic-fuzz Friend Rift corpora fail closed in the main headless suite.
-- [ ] Pause/backgrounding cannot avoid or duplicate damage/rewards incorrectly.
+- [x] Headless simulated pause/close reward writes remain exact-once across a fresh process, including a retryable injected storage failure.
+- [ ] Native pause/backgrounding cannot avoid damage or duplicate rewards on installed iOS/Android builds.
 - [ ] Procedural routes pass a large seeded-layout sweep.
 - [x] Recorded-path travel retires at the first arena exit even if a later point re-enters during the same hitch; a true hit before that exit remains valid.
 - [x] CI inventories all 13 standalone suites plus the nested relaunch probe and soak scene; new or stale scenes fail validation.
@@ -243,17 +247,21 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 11. iOS TestFlight
 
-- [x] Full iOS export was attempted and failed exactly because the Development Team is blank.
+- [x] A direct iOS export from the checked-in preset remains intentionally gated because the owner Development Team is blank. A fresh local Linux export using an obvious non-secret Team placeholder in an ephemeral project copy successfully regenerated the Xcode scaffold; the placeholder was scrubbed before validation and was never added to the source preset.
 - [x] Fresh current-candidate iOS PCK `../../build/semantic-qa-1db2d97a/INFINIDIVE.pck` is 629,332 bytes / `8133fcd7ebbb071b20f30ca65a43cb35488b6fff2335915ef47d710693c33a88` and passes a Linux headless `--main-pack` boot with zero errors; this is not an iOS app or simulator result.
 - [x] Current-candidate unsigned iOS scaffold ZIP `../../build/semantic-qa-1db2d97a/INFINIDIVE-0.1.0-prealpha-ios-unsigned-1db2d97a.zip` is 98,500,694 bytes / `54bb7d9f866608773470c90f8b8d953b4668f2bc3914086e2e96e131b0f85b9d`; archive integrity and embedded-PCK parity pass. It uses the retained scaffold with the current PCK and does not claim Xcode compilation, archive, signing, simulator/device install, or TestFlight readiness.
 - [x] Historical unsigned iOS ZIP `INFINIDIVE-0.1.0-prealpha-ios-unsigned-e942db6f.zip` remains recorded in the prior passing `SHA256SUMS` with SHA-256 `5e3276c7d3c92a21ef154e776c290e4308424975c0af4f9eb604194537e51ede`; it is retained as prior-source evidence only.
 - [x] The assembled unsigned scaffold records pbxproj SHA-256 `dbbc0f658d31f09a8ad0b020a4ef1d1f6072e422088d13c996dd0d09ee7748bb` and a 411-byte app-store-method export-options plist with SHA-256 `50c3cbc7d11c6c3c37357dc14e59ef93f1c011897467a9b94bb11637a795ea7d`.
-- [x] Empty Camera, Microphone, and Photo Library usage-description entries were removed from the checked-in iOS export preset because the game does not use those capabilities. A fresh export attempt now reaches the same sole blank-Team-ID gate; verify the regenerated `Info.plist` after the owner Team ID is supplied.
-- [ ] The full current source is successfully exported as a regenerated Xcode project and compiled for iOS; the attempt failed because the preset has no Apple Development Team ID, although the current-source PCK was exported separately.
+- [x] Godot 4.7 still generates empty Camera, Microphone, and Photo Library usage-description entries even when the preset omits them. The deterministic post-export sanitizer removes only empty reviewed defaults plus `CFBundleSignature`; it rejects non-empty/non-string reviewed descriptions and every new unreviewed `NS*UsageDescription` key, writes atomically, reparses, and passes positive/negative/idempotency self-tests.
+- [x] A fresh local Linux-generated scaffold passed exact custom 780×1688/1170×2532 RGB launch-pixel comparison, rejected the stock Godot splash path, and emitted tracking false with only `FileTimestamp:C617.1`, `SystemBootTime:35F9.1`, and `DiskSpace:E174.1`; collected-data and tracking-domain arrays are absent/empty. This is structural export evidence, not an Apple-platform build result.
+- [ ] The new CI unsigned-scaffold job passes remotely and its 14-day sanitized current-source Xcode artifact/run ID is recorded. It uses a fake Team ID only in a temporary project copy, scrubs it from generated project/export-options files, scans the whole artifact, and labels the result as unsigned Linux export evidence.
+- [ ] The full current source is compiled for iOS. The Xcode scaffold can now be regenerated structurally on Linux, but no macOS/Xcode compile has occurred.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
 - [x] The retained unsigned scaffold contains 47 files and records an approximately 368 MB directory size; this does not claim that the scaffold itself was regenerated for the current tree.
 - [ ] Bundle ID, Apple team, capabilities, and minimum iOS version receive final owner/store approval.
 - [ ] Xcode archive is produced on macOS.
+- [ ] Release candidate is compiled and archived with Xcode 26 or later and the iOS 26 SDK.
+- [ ] Final `.xcarchive` Privacy Report, Info.plist, entitlements, embedded frameworks, required-reason manifest, export-compliance answer, bundle version/build, and icon/launch assets are inspected.
 - [ ] Signing/provisioning uses private protected credentials.
 - [ ] Archive uploads to App Store Connect/TestFlight.
 - [ ] Fresh TestFlight install passes.
@@ -264,12 +272,12 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 - [x] Original 1024×1024 app-icon source/raster exists; the raster is verified RGB without alpha.
 - [x] Dedicated Google Play icon raster exists at 512×512, 141,587 bytes, 8-bit/color RGBA; final visual and console-upload validation remain pending.
-- [x] Exact-size RGB/no-alpha iOS icon rasters are wired in the preset and verified in the retained historical scaffold's Xcode asset catalog; frozen-source full re-export remains blocked by the Team ID.
+- [x] Exact-size RGB/no-alpha iOS icon rasters and custom portrait launch assets are wired in the preset. A fresh local scaffold validates launch pixel parity and metadata; committed remote proof and final signed-archive inspection remain open.
 - [ ] App icon is visually tested at small sizes and wired into the final Android asset catalog.
 - [x] Five direct runtime screenshots exist at 1080×1920 with provenance and hashes.
-- [ ] Final iPhone screenshots are recaptured from the RC at Apple-accepted device dimensions.
+- [ ] At least one complete 6.9-inch screenshot set is recaptured from the RC at Apple-accepted dimensions; the planned eight-scene narrative is a product choice, not Apple's minimum count.
 - [x] A technical 886×1920, 17.2-second H.264/AAC stereo Apple-format candidate exists with provenance and hash.
-- [ ] Final 6.9-inch App Preview is recaptured from a supported iPhone at 886×1920 for 15–30 seconds with stereo audio and passes App Store Connect processing; the technical candidate is not submission-ready.
+- [ ] If an App Preview is used, recapture it from the RC in Xcode Device Hub on a supported simulated or physical iPhone and pass App Store Connect processing; otherwise omit it for 1.0. App Preview is optional.
 - [ ] Final Android screenshot narrative contains the planned eight real-gameplay scenes; current development set contains five.
 - [x] Original Google Play feature-graphic source and verified 1024×500, 79,388-byte RGB raster with no alpha exist.
 - [x] Original logo/wordmark and social-card source/raster assets exist with recorded dimensions, formats, and SHA-256 hashes.

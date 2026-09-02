@@ -12,15 +12,21 @@ func _ready() -> void:
 func get_value(key: String, fallback: Variant = null) -> Variant:
 	return values.get(key, fallback)
 
-func set_value(key: String, value: Variant, persist_now := true) -> void:
+func set_value(key: String, value: Variant, persist_now := true) -> bool:
+	var previous_values := values.duplicate(true)
+	var previous_settings: Dictionary = SaveManager.profile.get("settings",SaveManager.default_profile().settings).duplicate(true)
 	values[key] = value
 	SaveManager.profile.settings = values.duplicate(true)
+	if persist_now and not SaveManager.save_profile():
+		values = previous_values
+		SaveManager.profile.settings = previous_settings
+		_apply(key,values.get(key,null))
+		return false
 	_apply(key, value)
 	setting_changed.emit(key, value)
 	if key == "language":
 		language_changed.emit(String(value))
-	if persist_now:
-		SaveManager.save_profile()
+	return true
 
 func apply_all() -> void:
 	for key in values:

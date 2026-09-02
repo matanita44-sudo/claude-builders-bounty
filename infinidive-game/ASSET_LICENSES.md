@@ -18,6 +18,7 @@ Copyright © 2026 Matan. All rights reserved.
 | `assets/brand/android_adaptive_background.svg` | Android adaptive-icon background source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/android_adaptive_foreground.svg` | Android adaptive-icon foreground source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/android_adaptive_monochrome.svg` | Android themed/monochrome icon source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
+| `assets/platform/ios/launch_screen.svg` | iOS launch-screen source | Original hand-authored SVG geometry; no font or external image | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/brand-metadata.json` | Asset metadata | Original project metadata | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/README.md` | Asset documentation | Original project documentation | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/*.svg.import` | Godot import metadata, when present | Generated automatically from the SVG sources by Godot | Godot Engine | Generated metadata; not a separate creative asset |
@@ -39,6 +40,8 @@ The following files are deterministic raster exports of the original SVG sources
 | `assets/store/social-card-1200x630.png` | PNG, 1200×630, 8-bit/color RGBA | 115,461 bytes | `3fef144afb1d783e276a5c4b4e0dda272bd0ac46703a3d7174e24d2054ec3321` | Copyright © 2026 Matan. All rights reserved. |
 
 `assets/platform/ios/icon-{40,58,60,76,80,87,114,120,128,136,152,167,180,192,1024}.png` are deterministic exact-size RGB/no-alpha derivatives of the same original app-icon source, wired through `export_presets.cfg`. Their generated `.import` files are Godot metadata, not separate creative assets.
+
+`assets/platform/ios/launch_screen@2x.png` and `launch_screen.png` are the 780×1688 and 1170×2532, 8-bit sRGB RGB/no-alpha rasters exported from `launch_screen.svg` and wired to the iOS storyboard as its 2x/3x images. Source SHA-256: `a351126dbddfff161a28744a854d85ec210a6c4f88cfde07abb0d0922aad6985`; 2x raster SHA-256: `98582dc2439409c857fca71613cd2fa4266eb41d960377075d950284a873ca93`; 3x raster SHA-256: `4478c6e3b26f1a3d80e87b954418e38909cca30a63caab8168d40a592e14960a`.
 
 The feature graphic satisfies the recorded no-alpha channel requirement. The Play icon has the recorded 512×512, 32-bit RGBA format and size limit; final visual and console-upload validation still remain before submission.
 

@@ -21,6 +21,11 @@ func _ready() -> void:
 	session_id = "%s-%s" % [Time.get_unix_time_from_system(), randi_range(100000, 999999)]
 	session_started_ms = Time.get_ticks_msec()
 	_load_queue()
+	# Older builds retained already-recorded local diagnostics after opt-out.
+	# Retry that deletion at boot so a disabled preference remains effective even
+	# when the prior in-session file removal was interrupted.
+	if not bool(SettingsManager.get_value("analytics_opt_in", false)):
+		clear_local_data()
 	track("app_open", {"version": ProjectSettings.get_setting("application/config/version", "0")})
 	track("session_start")
 
@@ -74,7 +79,7 @@ func _persist_queue() -> bool:
 	last_storage_status = "saved"
 	return true
 
-## Permanently clears the on-device analytics outbox. The in-memory queue is
+## Permanently clears the on-device diagnostics queue. The in-memory queue is
 ## changed only after the file removal succeeds, so callers never receive a
 ## false success while events remain recoverable on disk.
 func clear_local_data() -> bool:

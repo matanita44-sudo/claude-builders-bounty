@@ -293,6 +293,16 @@ static func evaluate_friend_target(final_score: int, duration_ms: int, won: bool
 		"met": score_met or time_met
 	}
 
+static func dive_transition_visual_radius(state_value: int, timer_seconds: float, reduced_motion: bool) -> float:
+	# Reduced Motion keeps a stable tunnel frame while the state/timing remains
+	# unchanged. Normal rendering expands/contracts across the complete visual
+	# range and uses the actual duration of each transition direction.
+	if reduced_motion:
+		return 260.0
+	var duration := 1.15 if state_value==RunState.DIVING_IN else 1.0
+	var ratio := clampf(timer_seconds/maxf(0.01,duration),0.0,1.0)
+	return (1.0-ratio)*650.0 if state_value==RunState.DIVING_IN else ratio*650.0
+
 static func should_emit_rate_limited_sfx(last_played: Dictionary, sfx_id: String, now_seconds: float, minimum_interval: float) -> bool:
 	if sfx_id.is_empty():
 		return false
@@ -3847,13 +3857,9 @@ func _complete_run(won: bool,cause: String) -> void:
 		"damage_taken":int(round(_damage_taken_total)),
 		"duration_ms":maxi(1000,int(round(elapsed*1000.0)))
 	}, false)
-	_result_banked=SaveManager.bank_run(_result)
+	_result_banked=_ensure_result_banked()
 	if _result_banked:
-		# bank_run persists the same profile dictionary, including meta-goal
-		# receipts/rewards. Never acknowledge them if that atomic save failed.
-		_meta_goals.mark_profile_persisted()
-		_meta_dirty = false
-	_submit_result_offline()
+		_submit_result_offline()
 	_hud.show_result(_result)
 	AudioManager.play_sfx("boss_death" if won else "player_death",1.0,1.0)
 	AudioManager.set_music_state("victory" if won else "interior",0.3)
@@ -3898,7 +3904,28 @@ func _submit_result_offline() -> void:
 	if not bool(queue_result.get("accepted", false)):
 		push_warning("Offline run result not queued: %s" % String(queue_result.get("status", "unknown")))
 
+func _ensure_result_banked() -> bool:
+	if _result_banked:
+		return true
+	_result_banked = SaveManager.bank_run(_result)
+	if not _result_banked:
+		AudioManager.play_sfx("ui_error")
+		if _hud:
+			_hud.show_toast(LocalizationService.text("save_retry_required"),VisualTheme.ENEMY)
+		return false
+	# bank_run persists the same profile dictionary, including meta-goal
+	# receipts/rewards. Never acknowledge them if that atomic save failed.
+	_meta_goals.mark_profile_persisted()
+	_meta_dirty = false
+	return true
+
 func _on_result_action(action: String) -> void:
+	if action in ["retry","nest","share"]:
+		var was_banked := _result_banked
+		if not _ensure_result_banked():
+			return
+		if not was_banked:
+			_submit_result_offline()
 	match action:
 		"retry":
 			AnalyticsService.track("instant_retry",{"boss":String(boss_definition.id)})
@@ -4003,17 +4030,21 @@ func _notification(what: int) -> void:
 		# the state-aware policy, and modal/transition states remain locked.
 		_sync_player_controls_for_state()
 
+func _decorative_motion_time() -> float:
+	return 0.0 if bool(SettingsManager.get_value("reduced_motion",false)) else elapsed
+
 func _draw() -> void:
 	var interior:=state in [RunState.DIVING_IN,RunState.INTERNAL_ROOMS,RunState.ORGAN_CHAMBER,RunState.MUTATION_CHOICE,RunState.DIVING_OUT]
+	var motion_time:=_decorative_motion_time()
 	draw_rect(Rect2(0,0,540,960),VisualTheme.TISSUE.darkened(0.58) if interior else VisualTheme.DEEP_SPACE)
 	for star in _stars:
 		var point:Vector2=star.position
-		var alpha:=0.0 if interior else 0.18+sin(elapsed*1.4+float(star.phase))*0.12
+		var alpha:=0.0 if interior else 0.18+sin(motion_time*1.4+float(star.phase))*0.12
 		draw_circle(point,float(star.size),Color(0.72,0.88,1.0,alpha))
 	if interior:
 		for index in 15:
-			var y:=float(index)*72.0+fmod(elapsed*35.0,72.0)-50.0
-			var x:=270.0+sin(index*1.7+elapsed*0.45)*205.0
+			var y:=float(index)*72.0+fmod(motion_time*35.0,72.0)-50.0
+			var x:=270.0+sin(index*1.7+motion_time*0.45)*205.0
 			draw_line(Vector2(0,y),Vector2(x,y+35),Color(VisualTheme.VULNERABLE,0.08),3.0+index%3)
 			draw_line(Vector2(540,y+18),Vector2(540-x,y+55),Color(VisualTheme.SHARD,0.06),2.0)
 	_draw_active_room_motifs()
@@ -4029,7 +4060,8 @@ func _draw() -> void:
 			draw_circle(target,12.0+warning_progress*7.0,warning_color,false,2.5)
 	for pickup in _bio_pickups:
 		var pickup_position:=Vector2(pickup.position)
-		var pickup_pulse:=2.5+sin(float(pickup.phase))*0.8
+		var pickup_phase:=0.0 if bool(SettingsManager.get_value("reduced_motion",false)) else float(pickup.phase)
+		var pickup_pulse:=2.5+sin(pickup_phase)*0.8
 		draw_circle(pickup_position,6.0+pickup_pulse,Color(VisualTheme.BIO,0.16))
 		draw_circle(pickup_position,3.2,VisualTheme.BIO)
 	for wake in _dash_wakes:
@@ -4039,10 +4071,12 @@ func _draw() -> void:
 	_draw_telegraph()
 	_draw_orbitals()
 	if state in [RunState.DIVING_IN,RunState.DIVING_OUT]:
-		var ratio:=clampf(transition_timer/1.15,0,1)
-		var radius:=(1.0-ratio)*650.0 if state==RunState.DIVING_IN else ratio*650.0
+		var reduced_motion:=bool(SettingsManager.get_value("reduced_motion",false))
+		var radius:=dive_transition_visual_radius(state,transition_timer,reduced_motion)
 		draw_circle(Vector2(270,430),radius,Color(VisualTheme.DEEP_SPACE,0.68),false,10.0)
 		draw_arc(Vector2(270,430),maxf(10,radius),0,TAU,64,VisualTheme.VULNERABLE,8.0)
+		if reduced_motion:
+			draw_arc(Vector2(270,430),radius+22.0,0,TAU,64,Color(VisualTheme.FRIENDLY,0.72),3.0)
 
 func _draw_telegraph() -> void:
 	if _telegraph.is_empty():return
@@ -4056,7 +4090,7 @@ func _draw_telegraph() -> void:
 	var contract_family:=String(_telegraph.get("contract_family",""))
 	if _telegraph.has("safe_position"):
 		var safe_position := Vector2(_telegraph.safe_position)
-		draw_circle(safe_position,34.0+sin(elapsed*8.0)*3.0,Color(VisualTheme.FRIENDLY,0.1+progress*0.12))
+		draw_circle(safe_position,34.0+sin(_decorative_motion_time()*8.0)*3.0,Color(VisualTheme.FRIENDLY,0.1+progress*0.12))
 		draw_arc(safe_position,38.0,0.0,TAU,30,Color(VisualTheme.FRIENDLY,0.55+progress*0.35),3.0)
 		draw_dashed_line(_player.position,safe_position,Color(VisualTheme.FRIENDLY,0.26),2.0,10.0)
 	if contract_family=="ring" or ability in ["gravity_ring","suction_waves"] or "vortex" in ability or "pulse" in ability:
@@ -4148,7 +4182,8 @@ func _draw_room_defender_effects() -> void:
 		var color: Color = Color("#E7C994") if material=="bone" else (Color("#8EEBFF") if material=="prism" else VisualTheme.BIO)
 		var life_ratio := clampf(float((cover as Dictionary).get("life",0.0))/maxf(0.01,float((cover as Dictionary).get("duration",1.0))),0.0,1.0)
 		draw_circle(center,radius,Color(color,0.06+life_ratio*0.10))
-		draw_arc(center,radius,elapsed*1.8,elapsed*1.8+TAU*0.82,30,Color(color,0.42+life_ratio*0.42),3.0)
+		var motion_angle:=_decorative_motion_time()*1.8
+		draw_arc(center,radius,motion_angle,motion_angle+TAU*0.82,30,Color(color,0.42+life_ratio*0.42),3.0)
 		var pips := mini(8,maxi(0,int((cover as Dictionary).get("absorb_remaining",0))))
 		for pip in pips:
 			var angle := -PI*0.75+float(pip)*PI*1.5/maxf(1.0,float(pips-1))
@@ -4191,7 +4226,7 @@ func _draw_room_geometry(positions: Array, collision: Dictionary, category: Stri
 		if category == "rain":
 			draw_line(center-Vector2(0,22),center+Vector2(0,22),color,3.0)
 		elif category == "echo":
-			draw_arc(center,12.0+sin(elapsed*8.0+phase_offset)*2.0,0.0,TAU,16,Color(VisualTheme.SHARD,color.a),2.0)
+			draw_arc(center,12.0+sin(_decorative_motion_time()*8.0+phase_offset)*2.0,0.0,TAU,16,Color(VisualTheme.SHARD,color.a),2.0)
 
 static func room_collision_render_width(collision: Dictionary, unit: float) -> float:
 	return maxf(8.0,float(collision.get("thickness_normalized",0.025))*unit)*2.0

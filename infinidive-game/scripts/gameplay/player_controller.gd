@@ -202,19 +202,29 @@ func place_at(safe_position: Vector2) -> void:
 	velocity = Vector2.ZERO
 	reset_physics_interpolation()
 
+static func damage_flash_color(base_color: Color, intensity: float, active: bool) -> Color:
+	return base_color.lerp(Color.WHITE,clampf(intensity,0.0,1.0)) if active else base_color
+
+static func invulnerability_alpha(time_remaining: float, reduced_motion: bool) -> float:
+	if time_remaining <= 0.0:
+		return 1.0
+	if reduced_motion:
+		return 0.72
+	return 0.4 if int(time_remaining * 24.0) % 2 == 0 else 1.0
+
 func _draw() -> void:
-	for index in range(_trail.size() - 1, -1, -1):
-		var point := to_local(_trail[index])
-		var alpha := (1.0 - float(index) / maxf(1.0, _trail.size())) * 0.17
-		draw_circle(point, 3.0 + (12 - index) * 0.28, Color(VisualTheme.FRIENDLY, alpha))
+	if not bool(SettingsManager.get_value("reduced_motion",false)):
+		for index in range(_trail.size() - 1, -1, -1):
+			var point := to_local(_trail[index])
+			var alpha := (1.0 - float(index) / maxf(1.0, _trail.size())) * 0.17
+			draw_circle(point, 3.0 + (12 - index) * 0.28, Color(VisualTheme.FRIENDLY, alpha))
 	var angle := velocity.angle() + PI / 2.0 if velocity.length_squared() > 16.0 else 0.0
 	var transform_points := PackedVector2Array([Vector2(0,-18),Vector2(11,13),Vector2(0,8),Vector2(-11,13)])
 	for index in transform_points.size():
 		transform_points[index] = transform_points[index].rotated(angle)
 	var flash_strength := clampf(float(SettingsManager.get_value("damage_flash",0.7)),0.0,1.0)
-	var body_color := VisualTheme.FRIENDLY.lerp(Color.WHITE,flash_strength) if _damage_flash > 0.0 else VisualTheme.FRIENDLY
-	if invulnerability > 0.0 and int(invulnerability * 24.0) % 2 == 0:
-		body_color.a = 0.4
+	var body_color := damage_flash_color(VisualTheme.FRIENDLY,flash_strength,_damage_flash>0.0)
+	body_color.a = invulnerability_alpha(invulnerability,bool(SettingsManager.get_value("reduced_motion",false)))
 	draw_colored_polygon(transform_points, body_color)
 	draw_polyline(PackedVector2Array([transform_points[1], transform_points[0], transform_points[3]]), Color.WHITE, 2.0)
 	draw_circle(Vector2.ZERO, 5.0, VisualTheme.DEEP_SPACE)

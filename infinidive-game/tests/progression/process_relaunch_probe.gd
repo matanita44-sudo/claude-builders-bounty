@@ -13,6 +13,11 @@ func _verify_loaded_profile() -> void:
 	var expected_upgrade := ""
 	var expected_upgrade_level := -1
 	var expected_run_ids: Array[String] = []
+	var reject_run_id := ""
+	var reject_bio := 0
+	var reject_shards := 0
+	var reject_won := false
+	var reject_boss := "gravemaw"
 	for argument_value in OS.get_cmdline_user_args():
 		var argument := String(argument_value)
 		if argument.begins_with("--expected-bio="):
@@ -27,6 +32,16 @@ func _verify_loaded_profile() -> void:
 		elif argument.begins_with("--expected-run-ids="):
 			for run_id_value in argument.trim_prefix("--expected-run-ids=").split(",",false):
 				expected_run_ids.append(String(run_id_value))
+		elif argument.begins_with("--reject-run-id="):
+			reject_run_id = argument.trim_prefix("--reject-run-id=")
+		elif argument.begins_with("--reject-bio="):
+			reject_bio = int(argument.trim_prefix("--reject-bio="))
+		elif argument.begins_with("--reject-shards="):
+			reject_shards = int(argument.trim_prefix("--reject-shards="))
+		elif argument.begins_with("--reject-won="):
+			reject_won = argument.trim_prefix("--reject-won=") == "true"
+		elif argument.begins_with("--reject-boss="):
+			reject_boss = argument.trim_prefix("--reject-boss=")
 
 	var failures: Array[String] = []
 	if SaveManager.last_load_source != "primary":
@@ -36,15 +51,31 @@ func _verify_loaded_profile() -> void:
 	if expected_runs < 0 or int(SaveManager.profile.get("total_runs",-1)) != expected_runs:
 		failures.append("total_runs mismatch")
 	var upgrades: Dictionary = SaveManager.profile.get("upgrades",{})
-	if expected_upgrade.is_empty() or int(upgrades.get(expected_upgrade,-1)) != expected_upgrade_level:
+	if not expected_upgrade.is_empty() and int(upgrades.get(expected_upgrade,-1)) != expected_upgrade_level:
 		failures.append("Forge upgrade mismatch")
 	var processed: Array = SaveManager.profile.get("processed_run_ids",[])
 	for expected_run_id in expected_run_ids:
 		if not processed.has(expected_run_id):
 			failures.append("missing run receipt %s" % expected_run_id)
 
+	var replay_rejected := false
+	if not reject_run_id.is_empty():
+		var profile_before_replay := SaveManager.profile.duplicate(true)
+		var accepted := SaveManager.bank_run({
+			"run_id": reject_run_id,
+			"banked_bio": reject_bio,
+			"banked_shards": reject_shards,
+			"won": reject_won,
+			"boss_id": reject_boss,
+			"mode": "story",
+			"difficulty": "diver"
+		})
+		replay_rejected = not accepted and SaveManager.profile == profile_before_replay
+		if not replay_rejected:
+			failures.append("duplicate run replay was accepted or mutated the profile")
+
 	if failures.is_empty():
-		print("INFINIDIVE RELAUNCH PROBE: PASS source=primary bio=%d runs=%d upgrade=%s:%d receipts=%d" % [expected_bio,expected_runs,expected_upgrade,expected_upgrade_level,expected_run_ids.size()])
+		print("INFINIDIVE RELAUNCH PROBE: PASS source=primary bio=%d runs=%d upgrade=%s:%d receipts=%d replay_rejected=%s" % [expected_bio,expected_runs,expected_upgrade,expected_upgrade_level,expected_run_ids.size(),str(replay_rejected)])
 		get_tree().quit(0)
 	else:
 		push_error("INFINIDIVE RELAUNCH PROBE: FAIL %s" % "; ".join(failures))

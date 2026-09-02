@@ -55,6 +55,14 @@
       "intended_use": ["Open Graph image source", "social sharing card", "press kit"],
       "gameplay_representation": false,
       "disclosure": "Illustrative key art, not a gameplay screenshot"
+    },
+    {
+      "file": "../platform/ios/launch_screen.svg",
+      "source_dimensions": "1170x2532",
+      "background": "opaque",
+      "intended_use": ["iOS static launch screen source"],
+      "gameplay_representation": false,
+      "disclosure": "Original static brand treatment; the raster export is generated from this vector source"
     }
   ],
   "production_rules": {

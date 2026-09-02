@@ -1,0 +1,28 @@
+{
+  "fixture_id": "infinidive-prealpha-schema-1",
+  "schema": 1,
+  "source_build": "prealpha-fixture",
+  "profile": {
+    "bank": 233,
+    "core_shards": 2,
+    "unlocked_weapons": [
+      "pulse_needle",
+      "scatter_maw"
+    ],
+    "selected_weapon": "scatter_maw",
+    "unlocked_bosses": [
+      "gravemaw",
+      "seraph_9"
+    ],
+    "boss_clears": {
+      "gravemaw": 1
+    },
+    "total_runs": 7,
+    "total_wins": 1,
+    "tutorial_complete": true,
+    "settings": {
+      "master_volume": 0.64,
+      "language": "he"
+    }
+  }
+}

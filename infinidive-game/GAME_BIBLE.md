@@ -254,7 +254,7 @@ Audio is synthesized at runtime. The current library contains 24 named one-shots
 - Assist dash-window multiplier
 - Aim assistance
 
-Damage-flash intensity is saved but the player damage animation still uses a fixed duration, and reduced motion does not suppress every transition effect. The four assist controls above are exposed and consumed by combat. Analytics opt-in is exposed in Settings and defaults off; enabling it only writes to the local queue because no transport exists.
+Damage-flash intensity controls the player highlight blend while retaining a short fixed feedback window. Reduced Motion suppresses shake and player trails, freezes decorative Nest/boss/background movement, uses a stable Dive tunnel frame, and removes toast opacity sweeps while preserving gameplay-significant motion. The four assist controls above are exposed and consumed by combat. The bilingual diagnostics setting accurately describes on-device storage and defaults off; enabling it only writes to the local queue because no transport exists, and disabling it clears the queue with a next-boot retry on failure. All accessibility effects still require browser/device and human-comfort validation.
 
 ## Save and local data
 
