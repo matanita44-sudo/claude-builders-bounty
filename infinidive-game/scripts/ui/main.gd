@@ -3,6 +3,10 @@ extends Node
 const NestViewScript := preload("res://scripts/ui/nest_view.gd")
 const RunSceneScript := preload("res://scripts/gameplay/run_scene.gd")
 const TutorialFlowScript := preload("res://scripts/core/tutorial_flow.gd")
+const StoryOverlayScript := preload("res://scripts/ui/story_overlay.gd")
+const StoryPrologueScript := preload("res://scripts/core/story_prologue.gd")
+const StoryServiceScript := preload("res://scripts/services/story_service.gd")
+const StoryPresentationScript := preload("res://scripts/core/story_presentation.gd")
 const QA_SCHEMA := "infinidive.qa.v2"
 const QA_PUBLISH_INTERVAL := 0.1
 const QA_RUN_SCALAR_FIELDS := [
@@ -31,10 +35,16 @@ var _qa_enabled := false
 var _qa_publish_accumulator := 0.0
 var _qa_revision := 0
 var _qa_run_generation := 0
+var _story_overlay: StoryOverlay
+var _pending_story_run: Dictionary = {}
+var _pending_story_result: Dictionary = {}
+var _story_catalog: StoryService = StoryServiceScript.new()
 
 func _ready() -> void:
 	_qa_enabled = _qa_query_enabled()
 	set_process(_qa_enabled)
+	if not _story_catalog.initialize():
+		push_error("Story catalog failed validation: %s" % ", ".join(_story_catalog.get_validation_errors()))
 	_show_nest()
 	if _qa_enabled:
 		_publish_qa_state()
@@ -53,6 +63,7 @@ func _exit_tree() -> void:
 		JavaScriptBridge.eval("delete globalThis.__INFINIDIVE_QA_STATE;", true)
 
 func _clear_view() -> void:
+	_clear_story_overlay()
 	if is_instance_valid(current_view):
 		current_view.queue_free()
 		current_view = null
@@ -65,6 +76,15 @@ func _show_nest() -> void:
 	current_view=nest
 
 func _start_run(config: Dictionary) -> void:
+	if _should_present_aion_prologue(config):
+		_present_aion_prologue(config)
+		return
+	if _should_present_chapter_intro(config):
+		_present_chapter_intro(config)
+		return
+	_launch_run(config)
+
+func _launch_run(config: Dictionary) -> void:
 	if _qa_enabled:
 		_qa_run_generation += 1
 	_clear_view()
@@ -74,7 +94,123 @@ func _start_run(config: Dictionary) -> void:
 	add_child(run)
 	current_view=run
 
+func _should_present_aion_prologue(config: Dictionary) -> bool:
+	if _qa_enabled or OS.get_environment("INFINIDIVE_TEST_ISOLATED") == "1":
+		return false
+	if String(config.get("mode","story")) != "story" or String(config.get("boss","")) != "gravemaw":
+		return false
+	var tutorial_state: Dictionary = SaveManager.profile.get("tutorial_state",{})
+	return int(tutorial_state.get("understood_mask",0)) == 0
+
+func _present_aion_prologue(config: Dictionary) -> void:
+	_clear_story_overlay()
+	_pending_story_run = config.duplicate(true)
+	_pending_story_run["aether_prologue"] = true
+	_pending_story_run["story_intro_seen"] = true
+	_story_overlay = StoryOverlayScript.new()
+	_story_overlay.finished.connect(_finish_aion_prologue)
+	_story_overlay.skipped.connect(_finish_aion_prologue)
+	add_child(_story_overlay)
+	var locale := LocalizationService.current_locale()
+	var presentation: Dictionary = StoryPrologueScript.localized(locale)
+	if not _story_overlay.present(presentation.get("beats",[]),presentation.get("copy",{}),true):
+		_finish_aion_prologue()
+
+func _finish_aion_prologue() -> void:
+	var config := _pending_story_run.duplicate(true)
+	_pending_story_run.clear()
+	_clear_story_overlay()
+	if not config.is_empty():
+		_launch_run(config)
+
+func _should_present_chapter_intro(config: Dictionary) -> bool:
+	if _qa_enabled or OS.get_environment("INFINIDIVE_TEST_ISOLATED") == "1":
+		return false
+	if not _story_catalog.initialized or bool(config.get("story_intro_seen",false)):
+		return false
+	if String(config.get("mode","story")) != "story":
+		return false
+	var boss_id := String(config.get("boss",""))
+	if _story_catalog.get_chapter_for_boss(boss_id).is_empty():
+		return false
+	return not _story_boss_completed(boss_id)
+
+func _present_chapter_intro(config: Dictionary) -> void:
+	var chapter := _story_catalog.get_chapter_for_boss(String(config.get("boss","")))
+	var locale := LocalizationService.current_locale()
+	var presentation := StoryPresentationScript.chapter_intro(_story_catalog,chapter,locale)
+	_pending_story_run = config.duplicate(true)
+	_pending_story_run["story_intro_seen"] = true
+	_clear_story_overlay()
+	_story_overlay = StoryOverlayScript.new()
+	_story_overlay.finished.connect(_finish_chapter_intro)
+	_story_overlay.skipped.connect(_finish_chapter_intro)
+	add_child(_story_overlay)
+	if not _story_overlay.present(presentation.get("beats",[]),presentation.get("copy",{}),true):
+		_finish_chapter_intro()
+
+func _finish_chapter_intro() -> void:
+	var config := _pending_story_run.duplicate(true)
+	_pending_story_run.clear()
+	_clear_story_overlay()
+	if not config.is_empty():
+		_launch_run(config)
+
+func _clear_story_overlay() -> void:
+	if is_instance_valid(_story_overlay):
+		_story_overlay.queue_free()
+	_story_overlay = null
+
 func _on_run_finished(payload: Dictionary) -> void:
+	if _should_present_chapter_victory(payload):
+		_present_chapter_victory(payload)
+		return
+	_continue_run_finished(payload)
+
+func _should_present_chapter_victory(payload: Dictionary) -> bool:
+	if _qa_enabled or OS.get_environment("INFINIDIVE_TEST_ISOLATED") == "1":
+		return false
+	var result: Dictionary = payload.get("result",{})
+	if not bool(result.get("won",false)) or String(result.get("mode","")) != "story":
+		return false
+	var boss_id := String(result.get("boss_id",""))
+	if _story_catalog.get_chapter_for_boss(boss_id).is_empty():
+		return false
+	return bool(result.get("story_first_clear",false))
+
+func _story_boss_completed(boss_id: String) -> bool:
+	var boss_index := StoryServiceScript.REQUIRED_BOSS_ORDER.find(boss_id)
+	if boss_index < 0:
+		return false
+	var required_depth := boss_index + 1
+	var progress: Dictionary = SaveManager.profile.get("difficulty_progress",{})
+	for raw_depth in progress.values():
+		if int(raw_depth) >= required_depth:
+			return true
+	return false
+
+func _present_chapter_victory(payload: Dictionary) -> void:
+	var result: Dictionary = payload.get("result",{})
+	var chapter := _story_catalog.get_chapter_for_boss(String(result.get("boss_id","")))
+	var locale := LocalizationService.current_locale()
+	var presentation := StoryPresentationScript.chapter_victory(_story_catalog,chapter,locale)
+	_pending_story_result = payload.duplicate(true)
+	_clear_story_overlay()
+	_story_overlay = StoryOverlayScript.new()
+	_story_overlay.finished.connect(_finish_chapter_victory)
+	_story_overlay.skipped.connect(_finish_chapter_victory)
+	add_child(_story_overlay)
+	if not _story_overlay.present(presentation.get("beats",[]),presentation.get("copy",{}),true):
+		_finish_chapter_victory()
+
+func _finish_chapter_victory() -> void:
+	var payload := _pending_story_result.duplicate(true)
+	_pending_story_result.clear()
+	_clear_story_overlay()
+	if not payload.is_empty():
+		_continue_run_finished(payload)
+
+func _continue_run_finished(payload: Dictionary) -> void:
 	match String(payload.get("action","nest")):
 		"retry": _start_run(payload.get("config",{}))
 		_: _show_nest()

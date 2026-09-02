@@ -54,10 +54,12 @@ func _apply_safe_layout() -> void:
 	SafeAreaHelperScript.fit_design_control(self)
 
 func _process(delta:float)->void:
-	# Nest machinery remains visible in Reduced Motion, but its decorative
-	# rotation, bobbing, and pulsing freeze at a stable pose.
-	if not bool(SettingsManager.get_value("reduced_motion",false)):
-		_time+=delta
+	# Sanctuary structures remain visible in Reduced Motion, but decorative
+	# clouds, aether, water, and ornaments freeze at a stable pose. Avoid redrawing
+	# that identical frame every tick so the accessibility mode also saves power.
+	if bool(SettingsManager.get_value("reduced_motion",false)):
+		return
+	_time+=delta
 	queue_redraw()
 
 func _build_ui()->void:
@@ -79,7 +81,7 @@ func _build_ui()->void:
 	settings_button.position=Vector2(472,82)
 	settings_button.size=Vector2(48,48)
 	settings_button.add_theme_font_size_override("font_size",20)
-	settings_button.add_theme_stylebox_override("normal",VisualTheme.button_style(Color(0.06,0.08,0.13,0.82),20))
+	settings_button.add_theme_stylebox_override("normal",VisualTheme.button_style(Color("#173B55",0.88),20))
 	settings_button.pressed.connect(_show_settings)
 	add_child(settings_button)
 
@@ -92,11 +94,19 @@ func _build_ui()->void:
 	for facility in FACILITIES:
 		var button:=Button.new()
 		button.name="Facility_%s"%String(facility.id)
-		button.position=Vector2(facility.position)-Vector2(45,32)
-		button.size=Vector2(90,64)
+		button.position=Vector2(facility.position)-Vector2(52,38)
+		button.size=Vector2(104,76)
 		button.add_theme_font_size_override("font_size",9)
-		button.add_theme_stylebox_override("normal",VisualTheme.button_style(Color(VisualTheme.FRIENDLY,0.08),28))
-		button.add_theme_stylebox_override("hover",VisualTheme.button_style(Color(VisualTheme.FRIENDLY,0.17),28))
+		button.add_theme_color_override("font_color",Color("#102D4D"))
+		button.add_theme_color_override("font_hover_color",Color("#102D4D"))
+		button.add_theme_color_override("font_disabled_color",Color("#60777F"))
+		button.add_theme_color_override("font_shadow_color",Color(1,1,1,0.72))
+		button.add_theme_constant_override("shadow_offset_x",1)
+		button.add_theme_constant_override("shadow_offset_y",2)
+		button.add_theme_stylebox_override("normal",VisualTheme.button_style(Color(1,1,1,0.035),22))
+		button.add_theme_stylebox_override("hover",VisualTheme.button_style(Color("#DFFDF3",0.34),22))
+		button.add_theme_stylebox_override("pressed",VisualTheme.button_style(Color("#FFD66E",0.28),22))
+		button.add_theme_stylebox_override("disabled",VisualTheme.button_style(Color("#6E858B",0.035),22))
 		var facility_id:=String(facility.id)
 		button.pressed.connect(func():_open_facility(facility_id))
 		add_child(button)
@@ -105,7 +115,7 @@ func _build_ui()->void:
 	var boss_panel:=PanelContainer.new()
 	boss_panel.position=Vector2(18,606)
 	boss_panel.size=Vector2(504,184)
-	boss_panel.add_theme_stylebox_override("panel",VisualTheme.panel_style(Color(0.025,0.04,0.08,0.95),25,Color(VisualTheme.VULNERABLE,0.22)))
+	boss_panel.add_theme_stylebox_override("panel",VisualTheme.panel_style(Color("#102D4D",0.95),25,Color("#F3BE45",0.42)))
 	add_child(boss_panel)
 	var boss_box:=VBoxContainer.new()
 	boss_box.add_theme_constant_override("separation",6)
@@ -169,7 +179,10 @@ func _refresh_all()->void:
 		if String(facility.id)=="core" and bool(SaveManager.profile.get("abyss_unlocked",false)):
 			unlocked=true
 		button.disabled=not unlocked
-		button.text=LocalizationService.text(String(facility.key)) if unlocked else LocalizationService.text("locked")
+		button.add_theme_color_override("font_color",Color("#102D4D") if unlocked else Color("#60777F"))
+		# The first line reserves the facility silhouette instead of covering it
+		# with a menu-card label. The full button remains a generous touch target.
+		button.text="\n%s"%(LocalizationService.text(String(facility.key)) if unlocked else LocalizationService.text("locked"))
 	_refresh_boss()
 	queue_redraw()
 
@@ -195,8 +208,8 @@ func _refresh_boss()->void:
 	_boss_index=clampi(_boss_index,0,bosses.size()-1)
 	var boss:=GameData.get_boss(bosses[_boss_index])
 	var boss_id:=String(boss.get("id","gravemaw"))
-	_boss_title.text=LocalizationService.content_text("boss",boss_id,"name",String(boss.get("name","GRAVEMAW")))
-	_boss_subtitle.text=LocalizationService.content_text("boss",boss_id,"subtitle",String(boss.get("subtitle","THE ORBITAL DEVOURER")))
+	_boss_title.text=LocalizationService.content_text("boss",boss_id,"name",String(boss.get("name","CRONUS")))
+	_boss_subtitle.text=LocalizationService.content_text("boss",boss_id,"subtitle",String(boss.get("subtitle","THE GILDED HARVESTER")))
 
 func _selected_boss_id()->String:
 	return _unlocked_bosses()[_boss_index]
@@ -421,7 +434,9 @@ func _show_settings()->void:
 	_add_toggle(box,"analytics_opt_in")
 	_add_option(box,"dash_method",["button","double_tap","flick"],["dash_button","dash_double_tap","dash_flick"])
 	_add_option(box,"handedness",["right","left"],["hand_right","hand_left"])
-	var language:=Button.new();language.alignment=LocalizationService.start_alignment();language.text="%s · %s"%[LocalizationService.text("language"),LocalizationService.text("hebrew") if String(SettingsManager.get_value("language","en"))=="en" else LocalizationService.text("english")];language.custom_minimum_size.y=58;language.pressed.connect(_toggle_language);box.add_child(language)
+	var language_row:=HBoxContainer.new();language_row.name="LanguageSelector";language_row.layout_direction=LocalizationService.layout_direction();box.add_child(language_row)
+	var language_title:=VisualTheme.label(LocalizationService.text("language"),12);language_title.horizontal_alignment=LocalizationService.start_alignment();language_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;language_row.add_child(language_title)
+	var language_option:=OptionButton.new();language_option.name="LanguageOption";language_option.layout_direction=LocalizationService.layout_direction();language_option.custom_minimum_size=Vector2(176,58);language_option.add_item(LocalizationService.text("english"));language_option.add_item(LocalizationService.text("hebrew"));language_option.selected=0 if LocalizationService.current_locale()=="en" else 1;language_option.item_selected.connect(_select_language);language_row.add_child(language_option)
 	var tutorial_replay:=Button.new();tutorial_replay.alignment=LocalizationService.start_alignment();tutorial_replay.text=LocalizationService.text("tutorial_replay");tutorial_replay.custom_minimum_size.y=54;tutorial_replay.pressed.connect(_request_tutorial_replay);box.add_child(tutorial_replay)
 	var support:=Button.new();support.alignment=LocalizationService.start_alignment();support.text=LocalizationService.text("support_feedback");support.custom_minimum_size.y=54;support.pressed.connect(func():_open_public_page("support.html"));box.add_child(support)
 	var privacy:=Button.new();privacy.alignment=LocalizationService.start_alignment();privacy.text=LocalizationService.text("privacy_policy");privacy.custom_minimum_size.y=54;privacy.pressed.connect(func():_open_public_page("privacy.html"));box.add_child(privacy)
@@ -467,8 +482,19 @@ func _add_option(parent:VBoxContainer,key:String,ids:Array,label_keys:Array)->vo
 	option.item_selected.connect(func(index:int):SettingsManager.set_value(key,ids[index]);AnalyticsService.track("settings_changed",{"setting":key}))
 	row.add_child(option)
 
-func _toggle_language()->void:
-	SettingsManager.set_value("language","he" if String(SettingsManager.get_value("language","en"))=="en" else "en")
+func _select_language(index:int)->void:
+	var languages:=["en","he"]
+	if index<0 or index>=languages.size():
+		AudioManager.play_sfx("ui_error")
+		return
+	var requested:=String(languages[index])
+	if requested==LocalizationService.current_locale():
+		return
+	if not SettingsManager.set_value("language",requested):
+		AudioManager.play_sfx("ui_error")
+		_show_settings()
+		return
+	AnalyticsService.track("settings_changed",{"setting":"language"})
 	_show_settings();_refresh_all()
 
 func _request_tutorial_replay()->void:
@@ -520,32 +546,332 @@ func _clear_overlay()->void:
 	for child in _overlay.get_children():child.queue_free()
 
 func _draw()->void:
-	draw_rect(Rect2(0,0,size.x if size.x>0 else 540,size.y if size.y>0 else 960),VisualTheme.DEEP_SPACE)
+	var canvas_width:=size.x if size.x>0 else 540.0
+	var canvas_height:=size.y if size.y>0 else 960.0
 	var stage:=clampi(int(SaveManager.profile.get("nest_stage",0)),0,4)
-	for ring in range(8,0,-1):
-		var radius:=58.0+ring*27.0+sin(_time*0.4+ring)*3.0
-		draw_arc(Vector2(270,365),radius,_time*0.04*(-1 if ring%2 else 1),TAU+_time*0.04,52,Color(VisualTheme.FRIENDLY,0.018+stage*0.008),2.0)
-	for path_index in FACILITIES.size():
-		var facility:Dictionary=FACILITIES[path_index]
+	draw_rect(Rect2(0,0,canvas_width,canvas_height),Color("#102D4D"))
+	_draw_sky_background(stage)
+	_draw_floating_island(stage)
+	_draw_temple_frame(stage)
+	_draw_divine_paths(stage)
+	_draw_sanctuary_growth(stage)
+	for facility_value in FACILITIES:
+		var facility:Dictionary=facility_value
 		var unlocked:=stage>=int(facility.stage)
-		if path_index>0:
-			var previous:Dictionary=FACILITIES[path_index-1]
-			draw_line(previous.position,facility.position,Color(VisualTheme.FRIENDLY,0.15 if unlocked else 0.035),5.0)
-		var position_value:Vector2=facility.position
-		draw_circle(position_value,42.0,Color(0.04,0.08,0.12,0.92) if unlocked else Color(0.025,0.03,0.04,0.9))
-		draw_arc(position_value,42,0,TAU,28,Color(VisualTheme.FRIENDLY,0.45 if unlocked else 0.08),2.5)
-		if unlocked:
-			for light in stage+1:
-				var angle:=_time*(0.3+light*0.05)+light*TAU/maxf(1,stage+1)
-				draw_circle(position_value+Vector2.from_angle(angle)*(27+light*2),2.2,VisualTheme.BIO if light%2 else VisualTheme.FRIENDLY)
-	if stage>=1:
-		draw_circle(Vector2(270,365),32+sin(_time*2.0)*2,Color(VisualTheme.SHARD,0.22))
-		draw_circle(Vector2(270,365),12,VisualTheme.SHARD)
+		if String(facility.id)=="core" and bool(SaveManager.profile.get("abyss_unlocked",false)):
+			unlocked=true
+		_draw_facility(facility,unlocked,stage)
+	_draw_island_edge(stage)
+
+func _draw_sky_background(stage:int)->void:
+	var sky_top:=Color("#3F91C5").lerp(Color("#5BCDE1"),float(stage)/5.0)
+	var sky_bottom:=Color("#B9E9EE").lerp(Color("#E5FFF4"),float(stage)/5.0)
+	for band in 14:
+		var amount:=float(band)/13.0
+		draw_rect(Rect2(0,154.0+amount*446.0,540,36),sky_top.lerp(sky_bottom,amount))
+	var sun:=Vector2(442,214)
+	for halo in range(4,0,-1):
+		draw_circle(sun,26.0+halo*13.0,Color("#FFF1A8",0.028+stage*0.008))
+	draw_circle(sun,25.0,Color("#FFF0A3"))
+	draw_circle(sun-Vector2(5,5),8.0,Color("#FFFCE2",0.85))
+	for cloud in 5:
+		var cloud_x:=34.0+cloud*126.0
+		var cloud_y:=218.0+(cloud%2)*73.0+sin(_time*0.18+cloud)*2.5
+		_draw_cloud(Vector2(cloud_x,cloud_y),0.72+cloud%3*0.14,0.42)
+	# Tiny distant islands establish a playful sky-world without competing with
+	# the interactive sanctuary in the foreground.
+	for distant in 3:
+		var distant_center:=Vector2(92+distant*178,278+distant%2*42)
+		draw_colored_polygon(PackedVector2Array([
+			distant_center+Vector2(-26,0),distant_center+Vector2(25,0),
+			distant_center+Vector2(10,18),distant_center+Vector2(0,29),
+			distant_center+Vector2(-13,17)
+		]),Color("#52798D",0.28))
+		draw_line(distant_center+Vector2(-23,-2),distant_center+Vector2(22,-2),Color("#EAF8E4",0.45),3.0,true)
+
+func _draw_cloud(center:Vector2,scale_value:float,alpha:float)->void:
+	var shade:=Color("#C6E4EA",alpha*0.72)
+	var light:=Color("#F8FFFB",alpha)
+	draw_circle(center+Vector2(0,6)*scale_value,24.0*scale_value,shade)
+	draw_circle(center+Vector2(-20,0)*scale_value,17.0*scale_value,light)
+	draw_circle(center+Vector2(2,-10)*scale_value,23.0*scale_value,light)
+	draw_circle(center+Vector2(25,2)*scale_value,16.0*scale_value,light)
+	draw_rect(Rect2(center+Vector2(-28,-2)*scale_value,Vector2(56,20)*scale_value),light)
+
+func _draw_floating_island(stage:int)->void:
+	var island_top:=PackedVector2Array([
+		Vector2(44,259),Vector2(115,231),Vector2(211,241),Vector2(270,225),
+		Vector2(338,241),Vector2(431,231),Vector2(500,264),Vector2(520,468),
+		Vector2(483,526),Vector2(270,568),Vector2(56,526),Vector2(20,468)
+	])
+	draw_colored_polygon(island_top,Color("#183F59",0.35))
+	var terrace:=PackedVector2Array([
+		Vector2(47,270),Vector2(493,270),Vector2(511,470),Vector2(475,514),
+		Vector2(270,548),Vector2(65,514),Vector2(29,470)
+	])
+	draw_colored_polygon(terrace,Color("#DDE5D7"))
+	var lawn:=PackedVector2Array([
+		Vector2(58,282),Vector2(482,282),Vector2(494,462),Vector2(462,496),
+		Vector2(270,528),Vector2(78,496),Vector2(46,462)
+	])
+	draw_colored_polygon(lawn,Color("#7BCB8B").lerp(Color("#9BE39D"),float(stage)*0.09))
+	draw_polyline(_closed_polygon(terrace),Color("#173B55"),7.0,true)
+	draw_polyline(_closed_polygon(lawn),Color("#F8F1D8"),4.0,true)
+	# Marble terraces and bronze inlay make the home feel like a place rather
+	# than a menu while keeping every facility in a readable pocket.
+	for step in 3:
+		var radius:=64.0+step*30.0
+		draw_arc(Vector2(270,376),radius,0,TAU,44,Color("#F6F0D8",0.42-step*0.07),8.0-step,true)
+		draw_arc(Vector2(270,376),radius,0,TAU,44,Color("#B97832",0.25+stage*0.025),2.0,true)
+	# Rocky underside and a few bright waterfalls sell the floating island.
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(57,516),Vector2(270,568),Vector2(483,516),Vector2(407,551),
+		Vector2(347,574),Vector2(270,600),Vector2(193,574),Vector2(125,551)
+	]),Color("#728697"))
+	draw_polyline(PackedVector2Array([Vector2(57,516),Vector2(270,568),Vector2(483,516)]),Color("#F7EED5"),6.0,true)
 	if stage>=2:
-		for machine in 4:
-			var x:=96+machine*116;draw_rect(Rect2(x,520-machine%2*18,34,48+machine%2*18),Color(0.08,0.14,0.17,0.8));draw_rect(Rect2(x+8,530-machine%2*18,5,5),VisualTheme.FRIENDLY)
+		for fall in 3:
+			var fall_x:=183.0+fall*87.0
+			var fall_length:=22.0+fall%2*12.0
+			draw_line(Vector2(fall_x,548),Vector2(fall_x+sin(_time*0.4+fall)*2.0,548+fall_length),Color("#BDF9FA",0.78),5.0,true)
+			draw_circle(Vector2(fall_x,548+fall_length),4.0,Color("#E7FFFF",0.7))
+
+func _draw_temple_frame(stage:int)->void:
+	# Broken columns remain in state zero; each restoration tier raises a more
+	# complete, festive sanctuary around the same familiar touch layout.
+	var column_height:=50.0+stage*5.0
+	for side in [-1,1]:
+		var x:=33.0 if side<0 else 507.0
+		var top_y:=326.0-column_height
+		_draw_temple_column(Vector2(x,326),column_height,stage>0)
+		if stage>=1:
+			draw_line(Vector2(x,top_y),Vector2(103 if side<0 else 437,246),Color("#F7F0D8"),8.0,true)
+			draw_line(Vector2(x,top_y-2),Vector2(103 if side<0 else 437,244),Color("#B97832"),2.0,true)
+	if stage==0:
+		draw_colored_polygon(PackedVector2Array([Vector2(46,505),Vector2(77,487),Vector2(103,512)]),Color("#AAB3AA"))
+		draw_colored_polygon(PackedVector2Array([Vector2(418,500),Vector2(458,486),Vector2(485,514)]),Color("#929F9B"))
+		draw_polyline(PackedVector2Array([Vector2(252,350),Vector2(267,360),Vector2(260,377)]),Color("#5A6670"),3.0,true)
 	if stage>=3:
-		for survivor in 5:draw_circle(Vector2(165+survivor*52,565+sin(_time+survivor)*3),5,Color(VisualTheme.TEXT,0.6))
+		var banner_colors:=[Color("#24B8C7"),Color("#FF7759"),Color("#F3BE45"),Color("#8369D8")]
+		for banner in 4:
+			var banner_x:=174.0+banner*64.0
+			draw_line(Vector2(banner_x,237),Vector2(banner_x+32,237),Color("#B97832"),3.0,true)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(banner_x+2,239),Vector2(banner_x+30,239),Vector2(banner_x+25,262),
+				Vector2(banner_x+16,255),Vector2(banner_x+7,262)
+			]),banner_colors[banner])
+
+func _draw_temple_column(base:Vector2,height:float,restored:bool)->void:
+	var column_color:=Color("#F7F0D8") if restored else Color("#C4C8BB")
+	draw_rect(Rect2(base+Vector2(-12,-height),Vector2(24,height)),Color("#173B55"))
+	draw_rect(Rect2(base+Vector2(-9,-height+2),Vector2(18,height-4)),column_color)
+	for groove in 3:
+		draw_line(base+Vector2(-5+groove*5,-height+6),base+Vector2(-5+groove*5,-6),Color("#AFC4BB",0.72),1.5)
+	draw_rect(Rect2(base+Vector2(-16,-height-7),Vector2(32,10)),Color("#173B55"))
+	draw_rect(Rect2(base+Vector2(-13,-height-5),Vector2(26,6)),Color("#D99B46" if restored else "#A9ADA3"))
+	draw_rect(Rect2(base+Vector2(-15,-5),Vector2(30,8)),Color("#E7DABF"))
+
+func _draw_divine_paths(stage:int)->void:
+	var altar:=Vector2(270,371)
+	for facility_value in FACILITIES:
+		var facility:Dictionary=facility_value
+		var unlocked:=stage>=int(facility.stage)
+		if String(facility.id)=="core" and bool(SaveManager.profile.get("abyss_unlocked",false)):
+			unlocked=true
+		var target:=Vector2(facility.position)
+		var control:=Vector2((altar.x+target.x)*0.5,altar.y+(target.y-altar.y)*0.22)
+		var path:=_quadratic_curve(altar,control,target,18)
+		draw_polyline(path,Color("#F8F1D8",0.88),12.0,true)
+		draw_polyline(path,Color("#B97832",0.68 if unlocked else 0.22),3.0,true)
+		if unlocked and stage>0:
+			var flow:=fposmod(_time*0.18+float(String(facility.id).hash()%17)/17.0,1.0)
+			var light_position:=_quadratic_point(altar,control,target,flow)
+			draw_circle(light_position,5.0,Color("#FFFFFF",0.8))
+			draw_circle(light_position,3.0,Color("#38D5D5"))
+
+func _draw_sanctuary_growth(stage:int)->void:
+	_draw_aether_altar(stage)
+	if stage>=2:
+		for workshop in 3:
+			var x:=92.0+workshop*178.0
+			var y:=526.0-workshop%2*7.0
+			draw_circle(Vector2(x,y),15.0,Color("#173B55"))
+			draw_circle(Vector2(x,y),11.0,Color("#D99B46"))
+			for tooth in 6:
+				var angle:=tooth*TAU/6.0+_time*0.12
+				draw_line(Vector2(x,y)+Vector2.from_angle(angle)*10.0,Vector2(x,y)+Vector2.from_angle(angle)*16.0,Color("#B97832"),4.0,true)
+	if stage>=3:
+		for keeper in 4:
+			var keeper_x:=115.0+keeper*104.0
+			var keeper_y:=552.0-(keeper%2)*5.0
+			var sway:=sin(_time*0.7+keeper)*1.5
+			draw_circle(Vector2(keeper_x+sway,keeper_y-12),5.0,Color("#F1C49D"))
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(keeper_x-6+sway,keeper_y-6),Vector2(keeper_x+6+sway,keeper_y-6),
+				Vector2(keeper_x+10+sway,keeper_y+10),Vector2(keeper_x-10+sway,keeper_y+10)
+			]),Color("#39B9C4") if keeper%2==0 else Color("#FF7759"))
 	if stage>=4:
-		for plant in 7:
-			var p:=Vector2(90+plant*60,585);draw_line(p,p+Vector2(sin(_time*0.5+plant)*8,-22),VisualTheme.BIO,3);draw_circle(p+Vector2(sin(_time*0.5+plant)*8,-22),4,VisualTheme.BIO)
+		for laurel in 9:
+			var root:=Vector2(42+laurel*57,508+laurel%2*12)
+			var lean:=sin(_time*0.35+laurel)*4.0
+			draw_line(root,root+Vector2(lean,-24),Color("#2D845B"),3.0,true)
+			draw_circle(root+Vector2(lean-5,-14),5.0,Color("#77D47C"))
+			draw_circle(root+Vector2(lean+5,-20),5.0,Color("#9BE38C"))
+		for star in 7:
+			var angle:=star*TAU/7.0+_time*0.08
+			var star_position:=Vector2(270,211)+Vector2.from_angle(angle)*Vector2(55,25)
+			draw_circle(star_position,2.6,Color("#FFF3A6",0.9))
+
+func _draw_aether_altar(stage:int)->void:
+	var center:=Vector2(270,371)
+	draw_circle(center+Vector2(0,4),44.0,Color("#173B55"))
+	draw_circle(center,40.0,Color("#F8F1D8"))
+	draw_arc(center,34.0,0,TAU,36,Color("#B97832"),5.0,true)
+	for spoke in 8:
+		var angle:=spoke*TAU/8.0
+		draw_line(center+Vector2.from_angle(angle)*21.0,center+Vector2.from_angle(angle)*32.0,Color("#D99B46"),4.0,true)
+	if stage==0:
+		draw_circle(center,16.0,Color("#9BA8A7"))
+		draw_polyline(PackedVector2Array([center+Vector2(-11,-7),center+Vector2(1,0),center+Vector2(-5,15)]),Color("#556A77"),3.0,true)
+		return
+	var breath:=1.0+sin(_time*1.2)*0.055
+	draw_circle(center,28.0*breath,Color("#45D7D2",0.24+stage*0.035))
+	draw_circle(center,19.0*breath,Color("#173B55"))
+	draw_colored_polygon(PackedVector2Array([
+		center+Vector2(0,-24),center+Vector2(10,-3),center+Vector2(4,15),
+		center+Vector2(-4,15),center+Vector2(-10,-3)
+	]),Color("#47E2DE"))
+	draw_line(center+Vector2(0,-19),center+Vector2(0,10),Color("#F4FFFF",0.84),2.0,true)
+	for halo in stage:
+		var radius:=48.0+halo*7.0
+		var phase:=_time*(0.13+halo*0.025)*(-1.0 if halo%2 else 1.0)
+		draw_arc(center,radius,phase,phase+PI*1.4,32,Color("#F2BE4D",0.35+halo*0.035),3.0,true)
+
+func _quadratic_curve(start:Vector2,control:Vector2,end:Vector2,segments:int)->PackedVector2Array:
+	var points:=PackedVector2Array()
+	for segment in segments+1:
+		points.append(_quadratic_point(start,control,end,float(segment)/float(segments)))
+	return points
+
+func _quadratic_point(start:Vector2,control:Vector2,end:Vector2,amount:float)->Vector2:
+	var inverse:=1.0-amount
+	return start*inverse*inverse+control*2.0*inverse*amount+end*amount*amount
+
+func _facility_color(id:String)->Color:
+	match id:
+		"hangar":return Color("#24B8C7")
+		"forge":return Color("#FF7759")
+		"research":return Color("#4DCB88")
+		"rift":return Color("#8369D8")
+		"trophies":return Color("#F3BE45")
+		"core":return Color("#E84D83")
+	return Color("#24B8C7")
+
+func _draw_facility(facility:Dictionary,unlocked:bool,stage:int)->void:
+	var id:=String(facility.id)
+	var center:=Vector2(facility.position)
+	var accent:=_facility_color(id)
+	var energy:=accent.lightened(0.1) if unlocked else Color("#91A5A5")
+	var plinth:=PackedVector2Array([
+		center+Vector2(-42,15),center+Vector2(-32,-25),center+Vector2(31,-25),
+		center+Vector2(42,15),center+Vector2(35,28),center+Vector2(-35,28)
+	])
+	var shadow:=PackedVector2Array()
+	for point in plinth:
+		shadow.append(point+Vector2(0,5))
+	draw_colored_polygon(shadow,Color("#173B55",0.48))
+	draw_colored_polygon(plinth,Color("#F7F0D8") if unlocked else Color("#C8CFCA"))
+	draw_polyline(_closed_polygon(plinth),Color("#173B55"),6.0,true)
+	draw_polyline(_closed_polygon(plinth),Color("#B97832" if unlocked else "#829096"),3.0,true)
+	if unlocked:
+		draw_circle(center-Vector2(0,5),34.0+sin(_time*0.8+float(id.hash()%7))*1.2,Color(accent,0.12+stage*0.012))
+	match id:
+		"hangar":_draw_hangar_facility(center,energy,unlocked)
+		"forge":_draw_forge_facility(center,energy,unlocked)
+		"research":_draw_research_facility(center,energy,unlocked)
+		"rift":_draw_rift_facility(center,energy,unlocked)
+		"trophies":_draw_trophy_facility(center,energy,unlocked)
+		"core":_draw_core_facility(center,energy,unlocked)
+
+func _draw_hangar_facility(center:Vector2,color:Color,unlocked:bool)->void:
+	# Winged launch gate: a mythic-tech dock for the Diver craft.
+	draw_arc(center+Vector2(0,-5),24.0,PI,TAU,22,Color("#173B55"),8.0,true)
+	draw_arc(center+Vector2(0,-5),24.0,PI,TAU,22,Color(color,0.95 if unlocked else 0.34),4.0,true)
+	for side in [-1,1]:
+		var wing:=PackedVector2Array([
+			center+Vector2(side*7,-10),center+Vector2(side*25,-23),
+			center+Vector2(side*20,-8),center+Vector2(side*31,-5),
+			center+Vector2(side*9,2)
+		])
+		draw_colored_polygon(wing,Color(color,0.9 if unlocked else 0.25))
+		draw_polyline(_closed_polygon(wing),Color("#173B55"),3.0,true)
+	var craft:=PackedVector2Array([center+Vector2(0,-19),center+Vector2(8,5),center+Vector2(0,11),center+Vector2(-8,5)])
+	draw_colored_polygon(craft,Color("#FFF5D8") if unlocked else Color("#9BA9A8"))
+	draw_polyline(_closed_polygon(craft),Color("#173B55"),3.0,true)
+
+func _draw_forge_facility(center:Vector2,color:Color,unlocked:bool)->void:
+	# Hephaestian brazier and anvil, readable even at phone scale.
+	var bowl:=PackedVector2Array([center+Vector2(-22,2),center+Vector2(22,2),center+Vector2(13,15),center+Vector2(-13,15)])
+	draw_colored_polygon(bowl,Color("#B97832") if unlocked else Color("#879493"))
+	draw_polyline(_closed_polygon(bowl),Color("#173B55"),4.0,true)
+	var flame_height:=sin(_time*1.6)*2.0
+	var flame:=PackedVector2Array([
+		center+Vector2(-10,1),center+Vector2(-4,-18-flame_height),center+Vector2(1,-10),
+		center+Vector2(8,-27+flame_height),center+Vector2(12,0)
+	])
+	draw_colored_polygon(flame,Color(color,0.95 if unlocked else 0.25))
+	draw_polyline(flame,Color("#FFD66E",0.8 if unlocked else 0.16),2.0,true)
+	draw_line(center+Vector2(-13,-23),center+Vector2(14,-23),Color("#173B55"),6.0,true)
+	draw_line(center+Vector2(7,-30),center+Vector2(7,-14),Color("#D99B46" if unlocked else "#879493"),4.0,true)
+
+func _draw_research_facility(center:Vector2,color:Color,unlocked:bool)->void:
+	# Oracle basin with a floating constellation sphere.
+	draw_colored_polygon(PackedVector2Array([center+Vector2(-23,7),center+Vector2(23,7),center+Vector2(14,17),center+Vector2(-14,17)]),Color("#B97832" if unlocked else "#889493"))
+	draw_arc(center+Vector2(0,5),22.0,0,PI,24,Color("#173B55"),6.0,true)
+	draw_arc(center+Vector2(0,5),19.0,0,PI,24,Color(color,0.94 if unlocked else 0.25),4.0,true)
+	draw_circle(center+Vector2(0,-13),12.0,Color("#173B55"))
+	draw_circle(center+Vector2(0,-13),9.0,Color(color,0.72 if unlocked else 0.18))
+	for star in 3:
+		var angle:=_time*0.35+star*TAU/3.0
+		draw_circle(center+Vector2(0,-13)+Vector2.from_angle(angle)*6.0,1.7,Color("#FFF7CE",0.9 if unlocked else 0.2))
+
+func _draw_rift_facility(center:Vector2,color:Color,unlocked:bool)->void:
+	for ring in 3:
+		var offset:=_time*(0.35+ring*0.08)*(-1.0 if ring%2 else 1.0)
+		draw_arc(center+Vector2(0,-5),13.0+ring*7.0,offset,offset+PI*1.55,24,Color("#173B55"),6.0-ring*0.35,true)
+		draw_arc(center+Vector2(0,-5),13.0+ring*7.0,offset,offset+PI*1.55,24,Color(color,(0.94-ring*0.14) if unlocked else 0.22),3.0-ring*0.45,true)
+	if unlocked:
+		draw_colored_polygon(PackedVector2Array([center+Vector2(0,-20),center+Vector2(8,-5),center+Vector2(0,10),center+Vector2(-8,-5)]),Color("#E9DFFF",0.72))
+	for foot in [-1,1]:
+		draw_line(center+Vector2(foot*20,9),center+Vector2(foot*26,20),Color("#B97832" if unlocked else "#879493"),5.0,true)
+
+func _draw_trophy_facility(center:Vector2,color:Color,unlocked:bool)->void:
+	# Victory shrine: shield, spear and paired laurel branches.
+	draw_circle(center+Vector2(0,-6),17.0,Color("#173B55"))
+	draw_circle(center+Vector2(0,-6),13.0,Color(color,0.86 if unlocked else 0.2))
+	draw_colored_polygon(PackedVector2Array([center+Vector2(-8,-11),center+Vector2(8,-11),center+Vector2(6,2),center+Vector2(0,9),center+Vector2(-6,2)]),Color("#FFF3CB" if unlocked else "#9AA5A2"))
+	for side in [-1,1]:
+		draw_arc(center+Vector2(side*9,-4),20.0,-PI*0.65 if side<0 else PI*0.65,PI*0.05 if side<0 else PI*1.35,18,Color("#4FAE69" if unlocked else "#879493"),3.0,true)
+	draw_line(center+Vector2(-23,-25),center+Vector2(20,17),Color("#B97832" if unlocked else "#879493"),4.0,true)
+
+func _draw_core_facility(center:Vector2,color:Color,unlocked:bool)->void:
+	for ring in 2:
+		var phase:=_time*(0.2+ring*0.08)*(-1.0 if ring else 1.0)
+		draw_arc(center+Vector2(0,-4),25.0-ring*8.0,phase,phase+PI*1.45,26,Color("#173B55"),7.0-ring,true)
+		draw_arc(center+Vector2(0,-4),25.0-ring*8.0,phase,phase+PI*1.45,26,Color(color,(0.88-ring*0.15) if unlocked else 0.18),3.5,true)
+	var crystal:=PackedVector2Array([center+Vector2(0,-27),center+Vector2(11,-5),center+Vector2(4,17),center+Vector2(-4,17),center+Vector2(-11,-5)])
+	draw_colored_polygon(crystal,Color(color,0.8 if unlocked else 0.16))
+	draw_polyline(_closed_polygon(crystal),Color("#173B55"),3.0,true)
+	draw_line(center+Vector2(0,-23),center+Vector2(0,13),Color(1,1,1,0.72 if unlocked else 0.08),2.0,true)
+
+func _draw_island_edge(stage:int)->void:
+	_draw_cloud(Vector2(42,585+sin(_time*0.17)*2.0),1.15,0.76)
+	_draw_cloud(Vector2(498,588+sin(_time*0.17+2.0)*2.0),1.18,0.76)
+	draw_line(Vector2(0,602),Vector2(540,602),Color("#EAFBFA",0.72),4.0,true)
+	draw_line(Vector2(68,597),Vector2(472,597),Color("#D99B46",0.34+stage*0.035),2.0,true)
+
+func _closed_polygon(points:PackedVector2Array)->PackedVector2Array:
+	var closed:=PackedVector2Array(points)
+	if not points.is_empty():
+		closed.append(points[0])
+	return closed

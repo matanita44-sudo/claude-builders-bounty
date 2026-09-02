@@ -56,9 +56,11 @@ Projectiles use segment-to-circle collision, lifetime expiry and dictionary reus
 
 Theoretical primary DPS assumes continuous fire and all listed projectiles hit one legal target. It excludes travel time, mutations, permanent upgrades and target access.
 
+Displayed names follow the current mythology pivot. Stable gameplay/save IDs are unchanged: AION SPARK is `pulse_needle`; the other weapon IDs remain `scatter_maw`, `rail_spine`, `arc_swarm`, and `void_orbitals`.
+
 | Weapon | Damage | Interval | Count | Approx. primary DPS | Runtime notes |
 |---|---:|---:|---:|---:|---|
-| Pulse Needle | 30 | 0.18s | 1 | 166.67 | Straight, no pierce |
+| AION SPARK (`pulse_needle`) | 30 | 0.18s | 1 | 166.67 | Straight, no pierce |
 | Scatter Maw | 18 | 0.46s | 5 | 195.65 | 0.19-radian spread; linear falloff begins at 110px and reaches 55% at 360px |
 | Rail Spine | 128 | 0.86s | 1 | 148.84 | Four pierces; damage falls to 90% after each pierce |
 | Arc Swarm | 22 | 0.28s | 1 | 78.57 primary | Homing value 1.2; up to three nearest unique targets inside the configured range receive reduced chained damage |
@@ -68,7 +70,7 @@ Void Orbitals currently fires its regular projectile in addition to orbital cont
 
 | Weapon | Core Shard unlock cost |
 |---|---:|
-| Pulse Needle | 0 |
+| AION SPARK (`pulse_needle`) | 0 |
 | Scatter Maw | 2 |
 | Rail Spine | 4 |
 | Arc Swarm | 6 |
@@ -104,12 +106,14 @@ Organ chamber HP = catalog organ HP × 1.65.
 
 Deep reference totals:
 
+The Titan display names below map to the stable internal boss IDs used by saves, challenges, rooms, and analytics; those IDs remain intentionally unchanged.
+
 | Boss | Phase armor 1 / 2 / 3 | Organ HP in catalog order | Core | Approx. total target HP |
 |---|---|---|---:|---:|
-| GRAVEMAW | 5,250 / 6,125 / 7,175 | 2,393 / 2,723 / 3,053 | 3,600 | 30,318 |
-| SERAPH-9 | 6,450 / 7,525 / 8,815 | 3,135 / 3,383 / 3,630 | 4,400 | 37,338 |
-| ABYSS LEVIATHAN | 7,350 / 8,575 / 10,045 | 3,713 / 3,878 / 4,125 | 5,000 | 42,685 |
-| NULL TWIN | 8,550 / 9,975 / 11,685 | 4,455 / 4,703 / 5,033 | 6,200 | 50,600 |
+| CRONUS (`gravemaw`) | 5,250 / 6,125 / 7,175 | 2,393 / 2,723 / 3,053 | 3,600 | 30,318 |
+| HYPERION (`seraph_9`) | 6,450 / 7,525 / 8,815 | 3,135 / 3,383 / 3,630 | 4,400 | 37,338 |
+| OCEANUS (`abyss_leviathan`) | 7,350 / 8,575 / 10,045 | 3,713 / 3,878 / 4,125 | 5,000 | 42,685 |
+| MNEMOSYNE (`null_twin`) | 8,550 / 9,975 / 11,685 | 4,455 / 4,703 / 5,033 | 6,200 | 50,600 |
 
 The total excludes internal defenders and assumes exactly one pass through each armor phase and organ.
 
@@ -153,7 +157,7 @@ Ten defender archetypes appear across twelve defender-producing spawn profiles. 
 | Armored | 133.2 | 19px | 4.00s |
 | Decoy | 61.2 | 14px | 3.20s |
 
-The minimum-TTK audit is deliberately optimistic—stationary target, perfect aim, first shot ready, and projectile travel included—so it is a feasibility guard rather than a difficulty result. The worst event-level best-weapon value was 0.719s for `cover_drone` against its 4.00s window; Pulse Needle's worst audited value was 0.943s against the same window. No defender profile exceeded its actor window.
+The minimum-TTK audit is deliberately optimistic—stationary target, perfect aim, first shot ready, and projectile travel included—so it is a feasibility guard rather than a difficulty result. The worst event-level best-weapon value was 0.719s for `cover_drone` against its 4.00s window; AION SPARK (`pulse_needle`) had a worst audited value of 0.943s against the same window. No defender profile exceeded its actor window.
 
 Killing a defender can create bounded tactical effects tied to its archetype: interrupt/cancel an owned volley, mark its paired target, create temporary projectile cover, disable tracking, silence an emitter, break a link, suppress a hatch, disrupt an echo, or reveal/remove false targets. Immediate operations remain compiler-signed source-wave scoped; effects intended to influence a successor pulse remain confined to the same room/cycle/archetype lineage. Tracking suppression clears already-live owned projectiles whose actual homing value is positive and suppresses matching pending/future homing emissions. It deliberately does not straighten them, because replacing a previewed curve with a new line could create a different untelegraphed hazard; non-homing projectiles and foreign-owned homing projectiles survive.
 
@@ -186,10 +190,10 @@ The three guaranteed breach awards total 285. The three guaranteed organ awards 
 
 | Boss | Victory Bio bonus | Story Core Shards |
 |---|---:|---:|
-| GRAVEMAW | 320 | 1 |
-| SERAPH-9 | 430 | 1 |
-| ABYSS LEVIATHAN | 560 | 2 |
-| NULL TWIN | 750 | 3 |
+| CRONUS (`gravemaw`) | 320 | 1 |
+| HYPERION (`seraph_9`) | 430 | 1 |
+| OCEANUS (`abyss_leviathan`) | 560 | 2 |
+| MNEMOSYNE (`null_twin`) | 750 | 3 |
 
 ### Score
 

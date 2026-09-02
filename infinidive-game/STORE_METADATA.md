@@ -10,12 +10,12 @@ This file contains candidate English and Hebrew listing copy plus current offici
 ## Submission blockers and truth constraints
 
 - Privacy and support pages are available as public pre-release pages at the HTTPS URLs listed below. Final legal review is still required before store submission.
-- Original brand sources and verified raster exports exist for the icon, wordmark, Google feature graphic, and social card. Five 1080×1920 real-runtime stills and two 17.2-second development trailers also exist. The five stills are invalid for Apple's 6.9-inch submission sizes. App Preview is optional; the current Linux/Xvfb technical candidate can be omitted, or recaptured from the RC through Xcode Device Hub if used.
+- Original brand sources and raster exports exist for the icon, wordmark, Google feature graphic, and social card; their current-pivot derivatives must be revalidated before release. Five 1080×1920 real-runtime stills and two 17.2-second development trailers also exist, but they show the pre-pivot dark GRAVEMAW identity. They are historical development evidence only, not current store or marketing assets. The stills also miss Apple's 6.9-inch submission sizes. If App Preview is used, recapture it from the frozen bright Greek-mythic release candidate through a supported Apple workflow.
 - Android presets target `com.matan.infinidive`, include a separate Gradle/AAB preset, and request only normal `android.permission.VIBRATE` for optional haptics. The verified template-install path creates `android/build`, but no compiled/signed AAB or internal-test upload is evidenced.
 - The iOS preset uses `com.matan.infinidive`, targets iPhone, and wires exact-size RGB/no-alpha icons plus custom portrait launch assets. A fresh local unsigned scaffold passes strict plist/privacy/launch/Bundle ID/version/empty-entitlement checks and scrubs its fake export-only Team ID. Remote committed evidence is pending; no macOS/Xcode 26 compile/archive, signed install, or TestFlight upload is evidenced.
 - There is no backend, cloud save, remote leaderboard, account, advertising, or purchase flow. Listing copy must not imply otherwise.
 - Daily Rift and Friend Rift are local deterministic modes. Friend challenges are exchanged as codes through a player-directed clipboard action.
-- English and Hebrew metadata drafts are complete here. The current code has matching non-empty English/Hebrew UI keys, translated launch catalogs, and headless RTL widget coverage; do not publish a Hebrew store localization until text fit, visual order, screenshots, and live language switching pass final device QA.
+- English is the game default. Hebrew remains an optional language selected manually in Settings and is never selected automatically for a fresh profile. English and Hebrew metadata drafts are retained here, but do not publish a Hebrew store localization until text fit, visual order, screenshots, and live language switching pass final device QA.
 - The INFINIDIVE name, package ID, trademarks, and territory availability have not received legal clearance. Run naming and trademark checks before creating irreversible store records.
 - Screenshots and video must be captured from the final reviewed binary and may show only functionality actually present in that build.
 
@@ -32,7 +32,8 @@ Factual product claims supported by the reviewed code:
 
 - Touch-led portrait action with automatic fire and a rechargeable dash
 - Exterior armor combat, breach opening, organ selection, an internal route, organ destruction, and return to an altered exterior attack set
-- Four boss definitions with three organs each
+- Four named Greek-inspired Titan definitions with three linked cursed organs each
+- A skippable English-first AION prologue and a first-movement AION SPARK awakening while the hero is visibly unarmed
 - Five weapon behaviors and data-driven temporary mutation choices
 - Local permanent progression and five Last Nest visual stages
 - Local Story Descent, deterministic Daily Rift, Friend Rift codes, and an early endless Abyss Loop
@@ -49,11 +50,11 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 | `assets/brand/feature_graphic.svg` and `assets/store/google-play-feature-1024x500.png` | Original composition plus verified 1024×500 8-bit/color RGB raster with no alpha | Dimension/channel requirement is met; retain final composition and console-upload review |
 | `assets/brand/social_card.svg` and `assets/store/social-card-1200x630.png` | Original 1200×630 RGBA social key art with recorded SHA-256 | It is illustrative key art, not gameplay; do not use it as a screenshot |
 | `assets/platform/ios/launch_screen.svg`, `launch_screen@2x.png`, and `launch_screen.png` | Original portrait launch composition; local validation confirms exact 780×1688/1170×2532 RGB dimensions and exported pixel parity | Record committed remote evidence and inspect the final archived storyboard on Xcode/Device Hub |
-| `assets/store/gameplay/*.png` | Five direct runtime captures at 1080×1920: Nest, exterior combat, breach, organ choice, and internal zone | Development/virtual-display evidence only; capture final RC, organ destruction/changed exterior/mutations/developed Nest/Friend/Abyss scenes, and Apple-accepted sizes |
-| `assets/store/gameplay/trailer-runtime-dev-17s.mp4` | 17.2 seconds, H.264, 1080×1920, 30 fps, 516 frames, hard cuts from real runtime | Silent because capture used Dummy audio; not at Apple's accepted 6.9-inch preview resolution; not uploaded to an ad-free public/unlisted YouTube URL for Google |
-| `assets/store/gameplay/trailer-runtime-social-17s.mp4` | 17.2 seconds, 1080×1920 H.264/30 fps plus 48 kHz stereo AAC rendered only from shipped procedural-audio code; SHA-256 `3950107d8ef89abffd42fec303f96ef5931a1c4139dcc771d91c17c7fa9c7103` | Virtual-display development capture; requires final listening/caption review and compliant YouTube publication before Google listing use |
-| `assets/store/gameplay/trailer-runtime-apple-candidate-886x1920-17s.mp4` and poster | 17.2 seconds, 886×1920 H.264/30 fps plus 48 kHz stereo AAC; video SHA-256 `7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8`; poster is 886×1920 RGB JPEG | Optional technical candidate only. Omit for 1.0, or recapture the RC through Xcode Device Hub and pass App Store Connect processing. |
-| `assets/store/gameplay/capture-manifest.json` | Records capture method, limitations, segment ranges, sizes, and SHA-256 hashes | Preserve and regenerate against the final committed release candidate |
+| `assets/store/gameplay/*.png` | Five truthful 1080×1920 runtime captures from the earlier dark GRAVEMAW build | Legacy pre-pivot evidence only. Do not submit or market with them; recapture CRONUS, the unarmed Keeper/AION SPARK, organ destruction, changed exterior, mutations, developed Nest, Friend Rift, and Abyss scenes from the final RC at accepted sizes. |
+| `assets/store/gameplay/trailer-runtime-dev-17s.mp4` | 17.2 seconds, H.264, 1080×1920, 30 fps, 516 frames, hard cuts from the earlier real runtime | Legacy pre-pivot development evidence; silent because capture used Dummy audio; not a current trailer or App Preview. |
+| `assets/store/gameplay/trailer-runtime-social-17s.mp4` | Historical 17.2-second 1080×1920 H.264/30 fps edit with shipped procedural audio; SHA-256 `3950107d8ef89abffd42fec303f96ef5931a1c4139dcc771d91c17c7fa9c7103` | Shows the superseded dark identity. Do not publish it as current marketing; create and review a new bright Greek-mythic RC edit before any YouTube/store use. |
+| `assets/store/gameplay/trailer-runtime-apple-candidate-886x1920-17s.mp4` and poster | Historical 17.2-second 886×1920 H.264/30 fps format experiment; video SHA-256 `7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8`; poster is 886×1920 RGB JPEG | No longer a current candidate because it predates the pivot. Omit it; if App Preview is used, recapture the frozen RC through a supported Apple path and pass App Store Connect processing. |
+| `assets/store/gameplay/capture-manifest.json` | Records the historical capture method, pre-pivot identity, limitations, segment ranges, sizes, and SHA-256 hashes | Preserve as provenance; create a new source-bound manifest for final release-candidate media. |
 
 `assets/store/gameplay/README.md` and `ASSET_LICENSES.md` are the provenance sources. None of this media is evidence of a physical-phone test or store acceptance.
 
@@ -73,23 +74,27 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 **Promotional text**
 
-> Break through colossal armor, dive into living anatomy, and destroy the organs powering each boss. Every choice reshapes the battle outside.
+> Awaken Aion's Spark, break into four cursed Titans, and destroy the organs powering their attacks. Every victory restores the Last Nest.
 
 **Description**
 
-> Every boss is also a world.
+> Every Titan is also a world.
 >
-> INFINIDIVE is a portrait action roguelite built around one brutal idea: fight a colossal organism from the outside, tear open a breach, dive into its anatomy, and destroy the organs powering its deadliest attacks.
+> Four Titans devoured Aion, god of eternity, to steal his immortality. His final curse gave them what they wanted—and a hunger that never ends.
 >
-> Break rotating armor while dodging readable projectile patterns. Choose the organ causing the most trouble. Survive a short route through hostile tissue, destroy your target, then return outside and face a boss changed by what you removed.
+> You are the youngest Keeper of the Last Nest. Begin unarmed, move to awaken the AION SPARK in your hands, then face CRONUS, HYPERION, OCEANUS, and MNEMOSYNE across bright mythic sky-worlds.
 >
-> Shape each run with distinct weapons and temporary mutations. Bring Bio-Matter and Core Shards back to the Last Nest, improve permanent systems, unlock new tools, and watch your damaged refuge come alive.
+> Break a Titan's armor, open a breach, dive through its living anatomy, and purify the cursed organ powering one of its attacks. Return outside and see that power weakened or destroyed because of your choice.
+>
+> Shape each run with five distinct combat styles and temporary mutations. Bring Bio-Matter and Core Shards back to the Last Nest, improve permanent systems, and watch your damaged sanctuary come alive.
 >
 > FEATURES
 >
-> • Fight four distinct colossi, each with three linked organs.
+> • Challenge four named Titans, each with three linked cursed organs.
 >
-> • Wield five weapons with different firing behavior and tactical range.
+> • Start unarmed and awaken Aion's hand-cast Spark through movement.
+>
+> • Unlock five combat styles with different firing behavior and tactical range.
 >
 > • Choose temporary mutations and permanent upgrades that change your approach.
 >
@@ -101,11 +106,11 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 **Keywords**
 
-`action,roguelite,boss,space,shooter,offline,portrait,challenge,endless,arcade`
+`action,roguelite,titan,myth,boss,offline,portrait,challenge,endless,arcade`
 
 **What's New / initial release notes draft**
 
-> Initial pre-release content: four colossi, five weapon styles, the outside-to-inside organ combat loop, permanent Nest progression, local Daily and Friend Rifts, and Abyss Loop. This text must be updated from the final release candidate before submission.
+> Initial pre-release content: four cursed Titans, Aion's opening story, five combat styles, organ dives, permanent Nest progression, local Daily and Friend Rifts, and Abyss Loop. Replace this draft with facts from the final release candidate before submission.
 
 **Required URLs**
 
@@ -131,23 +136,27 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 **טקסט קידומי**
 
-> פרצו דרך השריון של יצורי־ענק, צללו אל האנטומיה החיה שלהם והשמידו את האיברים שמפעילים את מתקפותיהם. כל בחירה משנה את הקרב בחוץ.
+> העירו את הניצוץ של איון, פרצו אל ארבעה טיטאנים מקוללים וטהרו את האיברים שמפעילים את מתקפותיהם. כל ניצחון משקם את הקן האחרון.
 
 **תיאור**
 
-> כל בוס הוא גם עולם.
+> כל טיטאן הוא גם עולם.
 >
-> INFINIDIVE הוא משחק פעולה רוגלייט אנכי שבנוי סביב רעיון אחד: להילחם ביצור עצום מבחוץ, לקרוע פתח בשריון, לצלול לתוך האנטומיה שלו ולהשמיד את האיברים שמפעילים את המתקפות הקטלניות ביותר שלו.
+> ארבעה טיטאנים טרפו את איון, אל הנצח, כדי לגנוב את חיי האלמוות שלו. הקללה האחרונה שלו נתנה להם את מבוקשם — ורעב שלעולם אינו נגמר.
 >
-> שברו שכבות שריון מסתובבות והתחמקו מדפוסי קליעים קריאים. בחרו באיבר שמסכן אתכם, שרדו מסלול קצר בתוך רקמה עוינת, השמידו את המטרה וחזרו החוצה אל בוס שהשתנה בגלל מה שהסרתם ממנו.
+> אתם השומרים הצעירים ביותר של הקן האחרון. התחילו ללא נשק, נועו כדי להעיר את AION SPARK בידיכם, והתמודדו עם CRONUS, HYPERION, OCEANUS ו־MNEMOSYNE בעולמות שמיים מיתיים ובהירים.
 >
-> עצבו כל ריצה בעזרת כלי נשק שונים ומוטציות זמניות. החזירו חומר ביולוגי ושברי ליבה אל הקן האחרון, שפרו מערכות קבועות, פתחו כלים חדשים וצפו במקלט ההרוס חוזר לחיים.
+> שברו את שריון הטיטאן, פתחו פרצה, צללו לתוך האנטומיה החיה שלו וטהרו את האיבר המקולל שמפעיל אחת ממתקפותיו. חזרו החוצה וראו כיצד הבחירה שלכם החלישה או השמידה את הכוח הזה.
+>
+> עצבו כל ריצה בעזרת חמישה סגנונות לחימה ומוטציות זמניות. החזירו חומר ביולוגי ושברי ליבה אל הקן האחרון, שפרו מערכות קבועות וצפו במקדש ההרוס חוזר לחיים.
 >
 > תכונות
 >
-> • הילחמו בארבעה יצורי־ענק שונים, שלכל אחד מהם שלושה איברים מקושרים.
+> • התמודדו עם ארבעה טיטאנים בעלי שם, שלכל אחד מהם שלושה איברים מקוללים ומקושרים.
 >
-> • הפעילו חמישה כלי נשק בעלי התנהגות ירי וטווח טקטי שונים.
+> • התחילו ללא נשק והעירו בתנועה את הניצוץ שאיון מטיל דרך הידיים.
+>
+> • פתחו חמישה סגנונות לחימה בעלי התנהגות ירי וטווח טקטי שונים.
 >
 > • בחרו מוטציות זמניות ושדרוגים קבועים שמשנים את סגנון המשחק.
 >
@@ -159,11 +168,11 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 **מילות מפתח**
 
-`אקשן,רוגלייט,בוסים,חלל,ירי,אתגר,אופליין`
+`אקשן,רוגלייט,טיטאנים,מיתולוגיה,בוסים,אתגר,אופליין`
 
 **מה חדש / טיוטת הערות לגרסה הראשונה**
 
-> תוכן טרום־השקה ראשוני: ארבעה יצורי־ענק, חמישה סגנונות נשק, לולאת הקרב מבחוץ אל תוך האיברים, התקדמות קבועה בקן, אתגרי Daily ו־Friend מקומיים ו־Abyss Loop. יש לעדכן את הטקסט לפי גרסת המועמד הסופית לפני הגשה.
+> תוכן טרום־השקה ראשוני: ארבעה טיטאנים מקוללים, סיפור הפתיחה של איון, חמישה סגנונות לחימה, צלילות לאיברים, התקדמות בקן, אתגרי Daily ו־Friend מקומיים ו־Abyss Loop. יש להחליף את הטיוטה בעובדות מגרסת המועמד הסופית לפני הגשה.
 
 **כתובות נדרשות**
 
@@ -178,21 +187,24 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 | Field | Draft |
 |---|---|
 | App name | `INFINIDIVE` |
-| Short description | `Fight colossal bosses outside. Dive within and destroy their organs.` |
+| Short description | `Fight cursed Titans outside. Dive within and purify their organs.` |
 | Category | Game / Action |
 | Contains ads | No — no ad SDK or ad placement exists in the reviewed code |
 
 **Full description**
 
-> Every boss is also a world.
+> Every Titan is also a world.
 >
-> Fight a colossal organism from the outside, break its armor, open a breach, and dive into the anatomy powering its attacks. Destroy an organ, choose a temporary mutation, and return to an exterior battle changed by what you removed.
+> Four Titans devoured Aion, god of eternity, and inherited his final curse: immortality joined to endless hunger. As the youngest Keeper of the Last Nest, you begin unarmed and awaken the AION SPARK through your first movement.
 >
-> Read the telegraphs, weave through projectile patterns, and use a rechargeable Phase Dash to cross danger. Five weapons offer different firing behavior, from rapid needles and close bursts to piercing shots, arcs, and orbitals.
+> Fight CRONUS, HYPERION, OCEANUS, and MNEMOSYNE outside, break their armor, then dive into the living worlds within them. Purify a cursed organ and return to an exterior battle changed by what you removed.
 >
-> Bring Bio-Matter and Core Shards back to the Last Nest. Unlock weapons, improve permanent systems, and watch the damaged refuge rebuild through five visual stages.
+> Read clear telegraphs, weave through projectile patterns, and use a rechargeable Phase Dash to cross danger. Five combat styles range from rapid divine bolts and close bursts to piercing shots, arcs, and orbitals.
 >
-> • Four colossi with three linked organs each
+> Bring Bio-Matter and Core Shards back to the Last Nest. Unlock new styles, improve permanent systems, and watch the damaged sanctuary rebuild through five visual stages.
+>
+> • Four named Titans with three linked cursed organs each
+> • An unarmed opening and first-movement AION SPARK awakening
 > • Outside, inside, and changed-outside boss combat
 > • Temporary mutation builds and permanent progression
 > • Story Descent and local deterministic Daily Rifts
@@ -203,28 +215,31 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 **What's new draft**
 
-> Initial pre-release content includes four bosses, five weapon styles, organ dives, Nest progression, local deterministic challenges, and Abyss Loop. Replace this note with release-candidate facts before upload.
+> Initial pre-release content includes four cursed Titans, Aion's opening story, five combat styles, organ dives, Nest progression, local deterministic challenges, and Abyss Loop. Replace this note with release-candidate facts before upload.
 
 ## Google Play — Hebrew (Israel)
 
 | שדה | טיוטה |
 |---|---|
 | שם האפליקציה | `INFINIDIVE` |
-| תיאור קצר | `הילחמו בבוסים ענקיים מבחוץ, צללו פנימה והשמידו את איבריהם.` |
+| תיאור קצר | `הילחמו בטיטאנים מקוללים, צללו פנימה וטהרו את איבריהם.` |
 | קטגוריה | משחק / פעולה |
 | כולל פרסומות | לא — בקוד שנבדק אין SDK או מיקום לפרסומות |
 
 **תיאור מלא**
 
-> כל בוס הוא גם עולם.
+> כל טיטאן הוא גם עולם.
 >
-> הילחמו ביצור עצום מבחוץ, שברו את השריון שלו, פתחו פרצה וצללו אל האנטומיה שמפעילה את מתקפותיו. השמידו איבר, בחרו מוטציה זמנית וחזרו לקרב חיצוני שהשתנה בגלל מה שהסרתם.
+> ארבעה טיטאנים טרפו את איון, אל הנצח, וירשו את קללתו האחרונה: חיי אלמוות לצד רעב נצחי. בתור השומרים הצעירים ביותר של הקן האחרון, אתם מתחילים ללא נשק ומעירים את AION SPARK בתנועה הראשונה.
 >
-> קראו את סימני האזהרה, השתחלו בין דפוסי קליעים והשתמשו ב־Phase Dash נטען כדי לחצות סכנה. חמישה כלי נשק מציעים התנהגויות ירי שונות: ממחטים מהירות ומטחי טווח קצר ועד יריות חודרות, קשתות וכלי נשק מסלוליים.
+> הילחמו ב־CRONUS, HYPERION, OCEANUS ו־MNEMOSYNE מבחוץ, שברו את השריון שלהם וצללו אל העולמות החיים שבתוכם. טהרו איבר מקולל וחזרו לקרב חיצוני שהשתנה בגלל מה שהסרתם.
 >
-> החזירו חומר ביולוגי ושברי ליבה אל הקן האחרון. פתחו כלי נשק, שפרו מערכות קבועות וצפו במקלט ההרוס נבנה מחדש בחמישה שלבים חזותיים.
+> קראו סימני אזהרה ברורים, השתחלו בין דפוסי קליעים והשתמשו ב־Phase Dash נטען כדי לחצות סכנה. חמישה סגנונות לחימה נעים מברקים אלוהיים מהירים ומטחי טווח קצר ועד יריות חודרות, קשתות וכלים מסלוליים.
 >
-> • ארבעה יצורי־ענק עם שלושה איברים מקושרים לכל אחד
+> החזירו חומר ביולוגי ושברי ליבה אל הקן האחרון. פתחו סגנונות חדשים, שפרו מערכות קבועות וצפו במקדש ההרוס נבנה מחדש בחמישה שלבים חזותיים.
+>
+> • ארבעה טיטאנים בעלי שם עם שלושה איברים מקוללים ומקושרים לכל אחד
+> • פתיחה ללא נשק והתעוררות AION SPARK בתנועה הראשונה
 > • קרבות בוס מבחוץ, מבפנים ושוב מבחוץ לאחר שינוי ממשי
 > • שילובי מוטציות זמניות והתקדמות קבועה
 > • Story Descent ואתגרי Daily Rift מקומיים ודטרמיניסטיים
@@ -235,7 +250,7 @@ Avoid claiming online leaderboards, cloud sync, multiplayer, video replay export
 
 **טיוטת מה חדש**
 
-> תוכן טרום־השקה ראשוני כולל ארבעה בוסים, חמישה סגנונות נשק, צלילות לאיברים, התקדמות בקן, אתגרים מקומיים דטרמיניסטיים ו־Abyss Loop. יש להחליף את הטקסט בעובדות מגרסת המועמד הסופית לפני העלאה.
+> תוכן טרום־השקה ראשוני כולל ארבעה טיטאנים מקוללים, סיפור הפתיחה של איון, חמישה סגנונות לחימה, צלילות לאיברים, התקדמות בקן, אתגרים מקומיים דטרמיניסטיים ו־Abyss Loop. יש להחליף את הטקסט בעובדות מגרסת המועמד הסופית לפני העלאה.
 
 ## Draft field counts
 
@@ -243,10 +258,10 @@ Counts below were measured from the copy in this file on 2026-09-01. Re-count af
 
 | Store/localization | Name | Subtitle / short description | Promotional text | Full description | Keywords |
 |---|---:|---:|---:|---:|---:|
-| App Store English | 10 characters | 26 characters | 140 characters | 1,158 characters | 77 bytes |
-| App Store Hebrew | 10 characters | 19 characters | 126 characters | 950 characters | 72 bytes |
-| Google Play English | 10 characters | 68 characters | n/a | 1,053 characters | n/a |
-| Google Play Hebrew | 10 characters | 58 characters | n/a | 887 characters | n/a |
+| App Store English | 10 characters | 26 characters | 136 characters | 1,326 characters | 74 bytes |
+| App Store Hebrew | 10 characters | 19 characters | 124 characters | 1,133 characters | 92 bytes |
+| Google Play English | 10 characters | 65 characters | n/a | 1,319 characters | n/a |
+| Google Play Hebrew | 10 characters | 53 characters | n/a | 1,136 characters | n/a |
 
 ## Screenshot narrative and captions
 
@@ -254,7 +269,7 @@ Capture these only after the corresponding feature is visually complete in the r
 
 | Order | Required scene | English caption | Hebrew caption |
 |---:|---|---|---|
-| 1 | Readable exterior boss combat | Fight a living giant | הילחמו בענק חי |
+| 1 | Readable exterior Titan combat | Fight a cursed Titan | הילחמו בטיטאן מקולל |
 | 2 | Breach and dive transition | Break through. Dive within. | פרצו פנימה. צללו לעומק. |
 | 3 | Organ chamber and organ destruction | Destroy the organ powering its attack | השמידו את האיבר שמפעיל את המתקפה |
 | 4 | Exterior attack removed after return | Return to a boss you changed | חזרו אל בוס שכבר שיניתם |
@@ -290,8 +305,8 @@ No final numeric age rating is claimed. Apple generates a rating from its App St
 
 Review the final build for:
 
-- Stylized fantasy violence against non-human colossal organisms
-- Biopunk body/anatomy and potentially frightening horror imagery
+- Stylized fantasy violence against non-human cursed Titans
+- Bright stylized Titan anatomy, cursed organs and potentially intense giant-scale imagery
 - Organ destruction and combat intensity, including frequency and visual detail
 - No sexual content, nudity, profanity, drugs, gambling, or realistic human violence in the reviewed code
 - No ads or purchases in the reviewed code

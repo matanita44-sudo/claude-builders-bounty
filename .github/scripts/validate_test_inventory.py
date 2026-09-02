@@ -138,8 +138,8 @@ def main() -> None:
             fail(f"{scene} must be marked {expected_role}")
 
     suite_count = sum(role == "suite" for role in manifested.values())
-    if suite_count != 13:
-        fail(f"expected 13 standalone suites, found {suite_count}")
+    if suite_count != 15:
+        fail(f"expected 15 standalone suites, found {suite_count}")
 
     workflow = (root / ".github/workflows/infinidive-ci.yml").read_text(encoding="utf-8")
     workflow_calls = workflow_suite_calls(workflow)

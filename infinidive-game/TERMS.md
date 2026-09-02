@@ -35,7 +35,7 @@ The reviewed Game stores progress, settings, and unverified run summaries locall
 
 ### 6. Age and safety
 
-The Game is not specifically directed to young children. Its final store age rating will depend on the released biopunk horror and fantasy-violence content. A parent or guardian should review the final store rating and device controls where required by law.
+The Game is not specifically directed to young children. Its final store age rating will depend on the released stylized mythic-fantasy violence, giant anatomy and organ-destruction content. A parent or guardian should review the final store rating and device controls where required by law.
 
 ### 7. Disclaimers
 

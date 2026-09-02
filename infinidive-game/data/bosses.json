@@ -1,66 +1,66 @@
 [
   {
     "id": "gravemaw",
-    "name": "GRAVEMAW",
-    "subtitle": "THE ORBITAL DEVOURER",
-    "fantasy": "A living asteroid that turns swallowed fleets into bone armor.",
-    "palette": ["#D7D0BD", "#F32D83", "#FFC857"],
+    "name": "CRONUS",
+    "subtitle": "THE GILDED HARVESTER",
+    "fantasy": "The cunning youngest Titan raises an adamant sickle and gathers the sky into one impossible harvest.",
+    "palette": ["#FFF0B5", "#FF765F", "#27D6D1"],
     "base_armor": 1750,
     "core_health": 3600,
     "reward_bio": 320,
     "reward_shards": 1,
     "organs": [
-      {"id":"hunter_eye","name":"HUNTER EYE","ability":"homing_eye","effect":"Homing salvos lose their lock and become straight shots.","hp":1450,"hazard":"seeking_cells","icon":"eye","loss":{"mode":"transform","variant":"straight_salvo","visual_token":"blinded_hunter_eye","strength":0.58,"telegraph_multiplier":1.15,"pattern":{"family":"aimed_fan","count":3,"spread_radians":0.18,"speed":225.0,"damage":8.0,"homing":0.0}}},
-      {"id":"gravity_lung","name":"GRAVITY LUNG","ability":"gravity_ring","effect":"Gravity rings slow down and their safe gap widens.","hp":1650,"hazard":"suction","icon":"rings","loss":{"mode":"transform","variant":"weak_gravity_ring","visual_token":"collapsed_gravity_lung","strength":0.52,"telegraph_multiplier":1.12,"pattern":{"family":"ring","count":16,"safe_arc_radians":0.86,"speed":132.0,"damage":9.0}}},
-      {"id":"bone_forge","name":"BONE FORGE","ability":"bone_missiles","effect":"Bone missile vents crack shut for the rest of the fight.","hp":1850,"hazard":"bone_spikes","icon":"forge","loss":{"mode":"disable","variant":"sealed_bone_vents","visual_token":"sealed_bone_forge","strength":0.0,"telegraph_multiplier":1.0}}
+      {"id":"hunter_eye","name":"FATE EYE","ability":"homing_eye","effect":"The sickle stars lose their lock and fly in readable straight arcs.","hp":1450,"hazard":"seeking_cells","icon":"eye","loss":{"mode":"transform","variant":"straight_salvo","visual_token":"blinded_hunter_eye","strength":0.58,"telegraph_multiplier":1.15,"pattern":{"family":"aimed_fan","count":3,"spread_radians":0.18,"speed":225.0,"damage":8.0,"homing":0.0}}},
+      {"id":"gravity_lung","name":"GAIA BREATH","ability":"gravity_ring","effect":"The harvest rings slow down and their safe opening grows wider.","hp":1650,"hazard":"suction","icon":"rings","loss":{"mode":"transform","variant":"weak_gravity_ring","visual_token":"collapsed_gravity_lung","strength":0.52,"telegraph_multiplier":1.12,"pattern":{"family":"ring","count":16,"safe_arc_radians":0.86,"speed":132.0,"damage":9.0}}},
+      {"id":"bone_forge","name":"ADAMANT FORGE","ability":"bone_missiles","effect":"The golden sickle vents seal and stop launching blade shards.","hp":1850,"hazard":"bone_spikes","icon":"forge","loss":{"mode":"disable","variant":"sealed_bone_vents","visual_token":"sealed_bone_forge","strength":0.0,"telegraph_multiplier":1.0}}
     ]
   },
   {
     "id": "seraph_9",
-    "name": "SERAPH-9",
-    "subtitle": "THE DEAD GOD ENGINE",
-    "fantasy": "A biomechanical angel-machine whose worship became executable code.",
-    "palette": ["#F4F1E8", "#A78BFA", "#54F2E7"],
+    "name": "HYPERION",
+    "subtitle": "LORD OF FIRST LIGHT",
+    "fantasy": "The Titan father of Sun, Moon and Dawn bends the first light into playful but punishing patterns.",
+    "palette": ["#FFD95A", "#FF7468", "#46DFF2"],
     "base_armor": 2150,
     "core_health": 4400,
     "reward_bio": 430,
     "reward_shards": 1,
     "organs": [
-      {"id":"prism_cortex","name":"PRISM CORTEX","ability":"prism_lances","effect":"Prism lances lose one reflected beam and telegraph longer.","hp":1900,"hazard":"prism_grid","icon":"prism","loss":{"mode":"transform","variant":"split_prism_lance","visual_token":"cracked_prism_cortex","strength":0.64,"telegraph_multiplier":1.42,"pattern":{"family":"aimed_fan","count":2,"spread_radians":0.18,"speed":365.0,"damage":10.0,"homing":0.0}}},
-      {"id":"wing_reactor","name":"WING REACTOR","ability":"laser_wings","effect":"One laser wing collapses and leaves a permanent safe flank.","hp":2050,"hazard":"laser_sweep","icon":"wing","loss":{"mode":"transform","variant":"single_wing_sweep","visual_token":"collapsed_laser_wing","strength":0.48,"telegraph_multiplier":1.18,"pattern":{"family":"lane","step":38,"gap_half_width":112.0,"safe_flank":1,"speed":275.0,"damage":10.0}}},
-      {"id":"halo_choir","name":"HALO CHOIR","ability":"halo_barrier","effect":"The halo barrier fractures and no longer closes completely.","hp":2200,"hazard":"choir_pulse","icon":"halo","loss":{"mode":"transform","variant":"fractured_halo","visual_token":"fractured_halo_choir","strength":0.55,"telegraph_multiplier":1.2,"pattern":{"family":"ring","count":13,"safe_arc_radians":1.02,"speed":182.0,"damage":8.0}}}
+      {"id":"prism_cortex","name":"DAWN MIND","ability":"prism_lances","effect":"Dawn lances lose one reflected ray and shine a longer warning.","hp":1900,"hazard":"prism_grid","icon":"prism","loss":{"mode":"transform","variant":"split_prism_lance","visual_token":"cracked_prism_cortex","strength":0.64,"telegraph_multiplier":1.42,"pattern":{"family":"aimed_fan","count":2,"spread_radians":0.18,"speed":365.0,"damage":10.0,"homing":0.0}}},
+      {"id":"wing_reactor","name":"SOLAR MANTLE","ability":"laser_wings","effect":"One sun-ray mantle folds away and leaves a permanent safe flank.","hp":2050,"hazard":"laser_sweep","icon":"wing","loss":{"mode":"transform","variant":"single_wing_sweep","visual_token":"collapsed_laser_wing","strength":0.48,"telegraph_multiplier":1.18,"pattern":{"family":"lane","step":38,"gap_half_width":112.0,"safe_flank":1,"speed":275.0,"damage":10.0}}},
+      {"id":"halo_choir","name":"SUN CROWN","ability":"halo_barrier","effect":"The sun crown fractures and its radiant barrier can no longer close completely.","hp":2200,"hazard":"choir_pulse","icon":"halo","loss":{"mode":"transform","variant":"fractured_halo","visual_token":"fractured_halo_choir","strength":0.55,"telegraph_multiplier":1.2,"pattern":{"family":"ring","count":13,"safe_arc_radians":1.02,"speed":182.0,"damage":8.0}}}
     ]
   },
   {
     "id": "abyss_leviathan",
-    "name": "ABYSS LEVIATHAN",
-    "subtitle": "THE RIFT EEL",
-    "fantasy": "A cosmic eel that swims through ruptures in distance itself.",
-    "palette": ["#54F2E7", "#92E65D", "#4A7DFF"],
+    "name": "OCEANUS",
+    "subtitle": "THE WORLDSTREAM",
+    "fantasy": "The calm Titan of the earth-encircling river turns the sky into a rolling current of tides and storms.",
+    "palette": ["#42DBF5", "#4B7EFF", "#FF8B66"],
     "base_armor": 2450,
     "core_health": 5000,
     "reward_bio": 560,
     "reward_shards": 2,
     "organs": [
-      {"id":"vortex_stomach","name":"VORTEX STOMACH","ability":"suction_waves","effect":"Suction waves weaken and leave a larger calm channel.","hp":2250,"hazard":"vortex_lane","icon":"vortex","loss":{"mode":"transform","variant":"weak_suction_wave","visual_token":"ruptured_vortex_stomach","strength":0.46,"telegraph_multiplier":1.16,"pattern":{"family":"ring","count":15,"safe_arc_radians":1.08,"speed":122.0,"damage":8.0}}},
-      {"id":"shock_gland","name":"SHOCK GLAND","ability":"chain_lightning","effect":"Electrical arcs stop chaining through nearby hazards.","hp":2350,"hazard":"shock_nodes","icon":"shock","loss":{"mode":"transform","variant":"unchained_arc","visual_token":"grounded_shock_gland","strength":0.44,"telegraph_multiplier":1.2,"pattern":{"family":"aimed_fan","count":1,"spread_radians":0.0,"speed":350.0,"damage":9.0,"homing":0.0}}},
-      {"id":"brood_sac","name":"BROOD SAC","ability":"parasite_swarm","effect":"Parasite vents seal and no new exterior swarms can spawn.","hp":2500,"hazard":"brood_rush","icon":"brood","loss":{"mode":"disable","variant":"sealed_brood_vents","visual_token":"sealed_brood_sac","strength":0.0,"telegraph_multiplier":1.0}}
+      {"id":"vortex_stomach","name":"WORLDSTREAM HEART","ability":"suction_waves","effect":"The tide pull weakens and leaves a broad calm channel through every wave.","hp":2250,"hazard":"vortex_lane","icon":"vortex","loss":{"mode":"transform","variant":"weak_suction_wave","visual_token":"ruptured_vortex_stomach","strength":0.46,"telegraph_multiplier":1.16,"pattern":{"family":"ring","count":15,"safe_arc_radians":1.08,"speed":122.0,"damage":8.0}}},
+      {"id":"shock_gland","name":"STORM PALM","ability":"chain_lightning","effect":"Storm arcs stop chaining through nearby tide markers.","hp":2350,"hazard":"shock_nodes","icon":"shock","loss":{"mode":"transform","variant":"unchained_arc","visual_token":"grounded_shock_gland","strength":0.44,"telegraph_multiplier":1.2,"pattern":{"family":"aimed_fan","count":1,"spread_radians":0.0,"speed":350.0,"damage":9.0,"homing":0.0}}},
+      {"id":"brood_sac","name":"RIVER SPRINGS","ability":"parasite_swarm","effect":"The river springs close and no new wave sprites can join the battle.","hp":2500,"hazard":"brood_rush","icon":"brood","loss":{"mode":"disable","variant":"sealed_brood_vents","visual_token":"sealed_brood_sac","strength":0.0,"telegraph_multiplier":1.0}}
     ]
   },
   {
     "id": "null_twin",
-    "name": "NULL TWIN",
-    "subtitle": "THE MIRROR ORGANISM",
-    "fantasy": "A paired lifeform that learns the Diver and grows a weaponized reflection.",
-    "palette": ["#A78BFA", "#F32D83", "#F4F1E8"],
+    "name": "MNEMOSYNE",
+    "subtitle": "MOTHER OF ECHOES",
+    "fantasy": "The Titaness of memory, words and language remembers every move and turns the Diver's own story into a final test.",
+    "palette": ["#9B7BFF", "#4EDDE5", "#FFD568"],
     "base_armor": 2850,
     "core_health": 6200,
     "reward_bio": 750,
     "reward_shards": 3,
     "organs": [
-      {"id":"memory_cortex","name":"MEMORY CORTEX","ability":"weapon_copy","effect":"The Twin forgets the equipped weapon and stops copying its shots.","hp":2700,"hazard":"memory_echo","icon":"memory","loss":{"mode":"disable","variant":"forgotten_weapon","visual_token":"erased_memory_cortex","strength":0.0,"telegraph_multiplier":1.0}},
-      {"id":"echo_heart","name":"ECHO HEART","ability":"echo_dash","effect":"Echo paths fade; the Twin can no longer replay the last dash.","hp":2850,"hazard":"echo_paths","icon":"heart","loss":{"mode":"disable","variant":"silent_echo","visual_token":"stilled_echo_heart","strength":0.0,"telegraph_multiplier":1.0}},
-      {"id":"reflection_lattice","name":"REFLECTION LATTICE","ability":"false_weakpoints","effect":"False wounds collapse and the true vulnerable tissue stays visible.","hp":3050,"hazard":"mirror_walls","icon":"lattice","loss":{"mode":"disable","variant":"true_wound_exposed","visual_token":"shattered_reflection_lattice","strength":0.0,"telegraph_multiplier":1.0}}
+      {"id":"memory_cortex","name":"MEMORY CROWN","ability":"weapon_copy","effect":"Mnemosyne forgets the equipped weapon and stops copying its shots.","hp":2700,"hazard":"memory_echo","icon":"memory","loss":{"mode":"disable","variant":"forgotten_weapon","visual_token":"erased_memory_cortex","strength":0.0,"telegraph_multiplier":1.0}},
+      {"id":"echo_heart","name":"ECHO HEART","ability":"echo_dash","effect":"Echo paths fade; Mnemosyne can no longer replay the last dash.","hp":2850,"hazard":"echo_paths","icon":"heart","loss":{"mode":"disable","variant":"silent_echo","visual_token":"stilled_echo_heart","strength":0.0,"telegraph_multiplier":1.0}},
+      {"id":"reflection_lattice","name":"MUSE VEIL","ability":"false_weakpoints","effect":"False verses vanish and the true divine weak point stays visible.","hp":3050,"hazard":"mirror_walls","icon":"lattice","loss":{"mode":"disable","variant":"true_wound_exposed","visual_token":"shattered_reflection_lattice","strength":0.0,"telegraph_multiplier":1.0}}
     ]
   }
 ]

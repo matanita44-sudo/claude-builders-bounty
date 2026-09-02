@@ -2,7 +2,7 @@
 
 This checklist is evidence-based. Check an item only after the artifact or test exists. A configured preset, authored data row, or code path is not equivalent to a validated build or feature.
 
-> Deployed commit `73a3f4a` remains the last completed public evidence candidate. Newer committed candidate `8f123f4` has passed Validate, Android debug, and exported-Web whole-path/reload semantics in run `33579010786`; its long soak/deploy is still pending. The present working tree passes local strict editor and main `2,714/0` with iOS, lifecycle, save-failure, privacy, and accessibility hardening, but it is not yet a pushed or remotely validated candidate.
+> Deployed commit `73a3f4a` remains the last completed public evidence candidate. Newer committed candidate `8f123f4` has passed Validate, Android debug, and exported-Web whole-path/reload semantics in run `33579010786`; its long soak/deploy is still pending. The present bright Greek-mythic/Aion working tree passes local strict editor, main `2,726/0`, and the 15-suite `28,949/0` matrix, but it is not yet a pushed or remotely validated candidate.
 
 ## 0. Source and version control
 
@@ -151,8 +151,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 7. Automated QA and CI
 
-- [x] Latest local JUnit-style artifact reports main `2,714/0`; wall time is intentionally omitted because the artifact is regenerated on reruns.
-- [x] Current working-tree local matrix passes `28,493/0` across 13 suites: main 2,714; backend 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta 111; audio 505. The six room suites total `24,438/0`. Remote evidence for this uncommitted tree is pending.
+- [x] Latest local JUnit-style artifact reports main `2,726/0`; wall time is intentionally omitted because the artifact is regenerated on reruns.
+- [x] Current working-tree local matrix passes `28,949/0` across 15 suites: main 2,726; backend 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta 111; audio 505; story 164; story presentation 280. The six room suites total `24,438/0`. Remote evidence for this uncommitted tree is pending.
 - [x] Editor import and every suite pass the isolated strict wrapper with exact sentinel/count validation and zero engine `ERROR`, script-error, or parse-error lines.
 - [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.

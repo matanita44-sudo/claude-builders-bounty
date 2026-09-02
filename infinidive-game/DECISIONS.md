@@ -1,6 +1,6 @@
 # INFINIDIVE — Implementation Decisions
 
-> This file records decisions visible in the current 0.1.0 source as of 2026-09-01. It does not retroactively claim stakeholder approval or production validation.
+> This file records decisions visible in the current 0.1.0 source as of 2026-09-02. It does not retroactively claim stakeholder approval or production validation.
 
 ## D-001 — Godot 4.7.2 and GDScript
 
@@ -236,7 +236,7 @@ The project contains no ad SDK, billing SDK, login, cloud save, networked leader
 
 **Status:** Implemented for the current headless suite
 
-The repository includes data, organ-order/loss-transformation, challenge-code, mutation, permanent-upgrade, tutorial, localization/settings, analytics-contract, local-backend, room-contract/compiler/live-integration/defender-effect, projectile-travel, meta-goal, project-configuration, safe-area, projectile, movement, dash/damage, save-recovery/migration/banking/reset, combined UI progression/relaunch, live combat-audio, and first-core-hook tests. The current candidate local matrix is 28,410 assertions with zero failures across 13 invocations: main 2,631; backend/offline 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta goals 111; and audio 505. The six room-runtime invocations contribute 24,438/0. Editor import and every suite passed the strict wrapper with zero error lines; canonical candidate production/tracked-tests-CI fingerprints are `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e` and `ff2530d3aad779a21a3b775e8d973ba1b3e3c37a86b5b97cea133801c954dc59`. The production fingerprint excludes the intentional local-only, untracked raw gameplay capture, which is absent from exports. The main suite is fail-closed unless it receives `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`.
+The repository includes data, organ-order/loss-transformation, challenge-code, mutation, permanent-upgrade, tutorial, story-service, story-presentation/first-clear decisions, localization/settings, analytics-contract, local-backend, room-contract/compiler/live-integration/defender-effect, projectile-travel, meta-goal, project-configuration, safe-area, projectile, movement, dash/damage, save-recovery/migration/banking/reset, combined UI progression/relaunch, live combat-audio, and first-core-hook tests. Recorded current working-tree results total 28,949 assertions with zero failures across 15 suites: main 2,726; backend/offline 82; upgrades 120; tutorial 198; mechanics 3,541; compiler 15,515; pure/live defender effects 354/212; projectile travel 685; live integration 4,131; organs 325; meta goals 111; audio 505; story 164; and story presentation 280. The six room-runtime invocations contribute 24,438/0. Separate isolated presentation evidence records visual regression 309/0, story canon acceptance 476/0/0, Story Overlay 34/0, and Player Presentation 17/0. The pivot has passed a fresh local full-wrapper matrix; it still requires a frozen commit, remote CI, source-bound export/deploy and public smoke. The last frozen pre-pivot candidate's canonical production/tracked-tests-CI fingerprints remain `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e` and `ff2530d3aad779a21a3b775e8d973ba1b3e3c37a86b5b97cea133801c954dc59`. The production fingerprint excludes the intentional local-only, untracked raw gameplay capture, which is absent from exports. The main suite is fail-closed unless it receives `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`.
 
 **Consequences**
 
@@ -282,7 +282,7 @@ The project version remains 0.1.0 because the current source is a playable devel
 
 **Status:** Implemented in the current workflow
 
-Every Godot test scene is discovered and reconciled with a version-controlled manifest. The manifest classifies 13 standalone suites, the process-relaunch scene as a nested probe, and the structural soak separately. Each runnable scene uses an isolated data root and an exact expected sentinel/assertion count.
+Every Godot test scene is discovered and reconciled with a version-controlled manifest. The current inventory contains 21 Godot scenes: 15 standalone suites, four isolated/imported presentation probes, the process-relaunch scene as a nested probe, and the structural soak. Each standalone suite uses an isolated data root and an exact expected sentinel/assertion count.
 
 **Why**
 
@@ -299,7 +299,7 @@ Every Godot test scene is discovered and reconciled with a version-controlled ma
 
 ## D-020 — Query-gated read-only Web QA boundary
 
-**Status:** Movement/Dash v1 deployed; deep-projected core-path v2 implemented locally and awaiting remote evidence
+**Status:** Movement/Dash v1 deployed and evidence-bound; deeper core-path and current presentation changes require a fresh candidate
 
 The Web build publishes a fixed semantic snapshot only when the exact query parameter `infinidive_qa=1` is present. Normal Web sessions and every non-Web platform leave the publisher disabled. JavaScript can read the snapshot but receives no callback or mutator into Godot.
 
@@ -315,4 +315,41 @@ The Web build publishes a fixed semantic snapshot only when the exact query para
 - Raw run ID, deterministic seed, currencies, challenge codes, account/player identifiers, analytics payloads, arbitrary profile fields, and arbitrary save contents remain excluded. Diagnostic URLs strip credentials, fragments, and non-QA query strings; diagnostic lists and text are bounded.
 - CI requires the same generation throughout, monotonic revision/elapsed, valid finite numeric state, movement of at least 12 logical pixels while Dash count remains unchanged, then an exact Dash-count increment and charge decrease from the dedicated button. The v2 candidate additionally drives the rendered controls through breach, Hunter Eye selection, internal rooms, organ destruction, mutation selection, exterior return, `homing_eye` degradation, `blinded_hunter_eye` rendering, stable post-return state, and a same-context reload with exact persisted aggregate counts.
 - Actions run `33572931398` passed the contract against both the CI-served export and the deployed public host; deployment job `100078099551` and public-smoke job `100078147875` bind that evidence to source commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a`.
-- The v2 candidate has local syntax/import/unit/export/soak evidence only until its CI-served and deployed-public jobs pass. Even after that, this remains automated semantic proof rather than human control-feel, mobile Safari/Chrome compatibility, simulator, native-install, or physical-device evidence.
+- Run `33572931398` closes the previously pending CI-served and deployed-public evidence for the Movement/Dash v1 boundary. It does not prove the deeper v2 whole path or the current visual/narrative pivot; those changes require a fresh source-bound candidate, export, deployment, and public smoke. Even then, automated semantic proof is not human control-feel, mobile Safari/Chrome compatibility, simulator, native-install, or physical-device evidence.
+
+## D-021 — Bright Greek-mythic presentation pivot
+
+**Status:** Implemented in the current uncommitted working tree; not publicly deployed
+
+The code-drawn production pipeline remains original, while the presentation direction changes from dark biopunk to a bright mythic sky world: colossal Greek-inspired Titans, open light, marble and bronze structure, aqua/coral accents, chunky touch targets, and high-contrast attack language. The direction is original and does not reproduce another game's interface or assets.
+
+**Why**
+
+- The earlier black-on-black presentation obscured hierarchy, threat readability, and giant-boss scale on a phone.
+- A brighter sky-and-temple setting gives the game a clearer identity while preserving the outside–inside–outside combat hook.
+- Marble/bronze structure and aqua/coral state colors provide a reusable visual grammar across the HUD, Last Nest, bosses, telegraphs, and selection panels.
+
+**Consequences**
+
+- The current source applies the direction to the boss, Last Nest, and run-HUD presentation while retaining touch safe areas, Hebrew/RTL support, projectile contrast, and Reduced Motion behavior.
+- Recorded local evidence is main `2,726/0` and visual regression `309/0`; it validates contracts and regressions, not taste, readability in human play, mobile rendering, or commercial art quality.
+- The public Pages build remains commit `73a3f4a` from run `33572931398` and predates this pivot. No public-playable claim may include the new look until a new source-bound CI/export/deploy/public-smoke chain passes.
+
+## D-022 — Canonical Aion prologue through a decoupled story layer
+
+**Status:** Story data/service, English-first overlay, prologue, chapter-intro, and first-clear victory integration implemented locally; public/device validation pending
+
+The opening canon is concise: Aion is devoured; his final curse is “רציתם נצח — תרעבו לנצח”; the hero begins without a weapon; and Aion's spark awakens. Narrative beats are supplied from data rather than embedded in gameplay controllers.
+
+**Why**
+
+- The first-session story must establish motive without delaying first input or requiring a dialogue-heavy campaign.
+- A reusable overlay keeps narrative presentation out of `RunScene`, player control code, and content-specific UI conditionals.
+- External beat data allows short English/Hebrew sequences and future chapters to share the same presentation contract.
+
+**Consequences**
+
+- The reusable `StoryOverlay` supports touch-safe skip, English-first copy, optional Hebrew/RTL, external beat data, and a Reduced Motion path.
+- Main now presents the four-beat Aion prologue before the first Cronus tutorial run, one focused intro before a fresh Story chapter, and one restored-shard beat after the first Story clear. The initial run remains unarmed until movement awakens Aion Spark.
+- Story eligibility is based on Story difficulty progress and an explicit run-result first-clear marker, so a Daily/Friend/Abyss win cannot suppress a chapter beat. Intro-seen state remains config-scoped across immediate retry rather than separately persisted.
+- Recorded local evidence is Story Service `164/0`, Story Presentation/first-clear decisions `280/0`, story canon acceptance `476/0/0`, Story Overlay `34/0`, and Player Presentation `17/0`. It does not establish player comprehension, pacing, public deployment, browser/device rendering, or localization fit.

@@ -1,34 +1,38 @@
 # INFINIDIVE — Game Bible
 
-> Truth status: pre-alpha development snapshot 0.1.0, recorded 2026-09-01. This document describes the game present in the repository now. It is not a claim that INFINIDIVE 1.0, a signed store build, public deployment, or device-validated release exists.
+> Truth status: pre-alpha development snapshot 0.1.0, recorded 2026-09-02. This document describes the game present in the repository now. It is not a claim that INFINIDIVE 1.0, a signed store build, public deployment, or device-validated release exists.
 
 ## Product identity
 
-**Tagline:** Fight giants outside. Destroy them within.
+**Current in-game tagline:** Fight giants outside. Destroy them within.
 
-INFINIDIVE is a portrait, touch-first 2D action roguelite. The implemented hook is a repeatable outside–inside–outside fight:
+INFINIDIVE is a portrait, touch-first 2D action roguelite set across a bright mythic sky-world. AION, god of eternity, was broken into four living shards and devoured at a forbidden feast by CRONUS, HYPERION, OCEANUS and MNEMOSYNE. AION's final curse condemned the Titans to eternal hunger: they now consume one sky-world after another without ever becoming full. At the Last Nest, an unarmed young Keeper hears AION's final heartbeat and becomes the first Diver.
 
-1. Break a colossal boss's exterior armor.
-2. Open a breach.
-3. Choose one of its remaining organs.
-4. Traverse a seeded internal route.
-5. Destroy the organ.
+The implemented gameplay hook is framed as **outside → Dive → purify → return**:
+
+1. Face a colossal Titan in an exterior sky battle.
+2. Break its exterior armor and open a breach in its divine seal.
+3. Choose one of its remaining fractured organs.
+4. Dive through a seeded internal route.
+5. Purify the chosen organ by defeating its defenders and exhausting its HP.
 6. Choose a temporary mutation.
-7. Return outside with the organ's linked attack disabled.
+7. Return outside and see the organ's linked attack transformed or disabled.
 8. Repeat for all three organs.
-9. Destroy the exposed core or die.
-10. Bank rewards and return to the Last Nest.
+9. Defeat the exposed core or die.
+10. Bank rewards and return to the Last Nest sky sanctuary.
+
+“Purify” is the current fiction and presentation direction. The runtime still names the completion event `organ_destroyed`, resolves it through damage and HP, and stores the organ ID in the destroyed-organ list. This document does not imply that those internal contracts have been renamed.
 
 The current project is built in Godot 4.7.2 with GDScript and the GL Compatibility renderer. Its logical viewport is 540 × 960 and its project version is 0.1.0. The Nest and combat HUD are fitted into native safe-area rectangles or Web CSS safe-area insets; this math is headless-tested but not verified on physical phones.
 
 ## Design pillars represented in the current build
 
 - **Immediate movement:** dragging moves the Diver and firing is automatic.
-- **Boss anatomy:** every boss has exactly three organs, each mapped to one exterior ability.
+- **Titan anatomy:** every Titan has exactly three fractured organs, each mapped to one exterior ability.
 - **Player-selected organ order:** every breach presents all surviving organs.
 - **Skill plus build:** movement, dash timing, weapon behavior and up to three selected mutations affect a run.
 - **Retained progress:** failed runs bank part of their Bio-Matter; victories grant full run rewards and boss rewards.
-- **Visible Nest progress:** the Last Nest has five drawn stages and facilities unlock by stage.
+- **Visible Nest progress:** the Last Nest has five drawn stages, evolving from a broken floating shrine into a populated celestial haven; facilities unlock by stage.
 - **Offline core:** story runs, Daily Rift seeds, Friend Rift codes, save data and Abyss Loop do not require a server.
 
 These pillars describe implemented systems, not validated player-retention or fun metrics.
@@ -79,46 +83,46 @@ For a chosen organ, RoomGenerator creates a deterministic five-entry route:
 
 The catalog contains 30 non-chamber modules: eight traversal, ten combat and twelve hazard records, plus 12 organ chambers. `RoomMechanics` provides an explicit deterministic contract for each of the 42 hazard IDs, including schedule, telegraph, normalized safe positions, active windows, spawn caps and cleanup identity. The pure runtime compiler expands those contracts into eight runtime categories, six movement models, 42 spawn profiles, 25 projectile profiles, and ten defender archetypes. Runtime consumes the compiled geometry, travel, movement, actors, warning/safe-pocket data, frozen preview/digest, compiler-signed owner/cycle identity, caps, and cleanup. Focused playback verifies normal/hitch schedules, collision/drawing parity, 30/60 Hz travel, tracking suppression, first-arena-exit terminal behavior, and owned cleanup. This is meaningful code-drawn differentiation, not 42 bespoke art scenes, and automated playerless playback is not proof of human readability, reachability, or enjoyment.
 
-### Organ chamber and return
+### Purification chamber and return
 
 - Organ health is its catalog HP multiplied by 1.65 and the selected difficulty's HP multiplier.
 - Internal defenders accompany the chamber.
-- Destroying the organ awards run Bio-Matter and score, removes the intact linked ability, applies its degraded-or-disabled loss contract, and offers three deterministic non-duplicate mutations.
+- Completing the purification by reducing the organ to zero HP awards run Bio-Matter and score, removes the intact linked ability, applies its transformed-or-disabled loss contract, and offers three deterministic non-duplicate mutations.
 - Selecting a mutation returns the player to exterior combat.
 - After the third organ, the core becomes the final target.
 
 ## Boss roster
 
-All four boss records, their portraits and their organ maps are loaded by the current game. Bosses have different health, palettes, silhouettes and organ ability sets. Several abilities share projectile-pattern controllers, so this is not yet four wholly unique production encounters.
+All four Titan records, their authored textures and their organ maps are loaded by the current game. The stable mechanical IDs remain unchanged for save, challenge-code and service compatibility. The Titans have different health, palettes, silhouettes and organ ability sets. Several abilities share projectile-pattern controllers, so this is not yet four wholly unique production encounters.
 
-| Boss | Base armor | Core HP | Organ → exterior ability |
-|---|---:|---:|---|
-| GRAVEMAW | 1,750 | 3,600 | Hunter Eye → Homing Eye |
-|  |  |  | Gravity Lung → Gravity Ring |
-|  |  |  | Bone Forge → Bone Missiles |
-| SERAPH-9 | 2,150 | 4,400 | Prism Cortex → Prism Lances |
-|  |  |  | Wing Reactor → Laser Wings |
-|  |  |  | Halo Choir → Halo Barrier |
-| ABYSS LEVIATHAN | 2,450 | 5,000 | Vortex Stomach → Suction Waves |
-|  |  |  | Shock Gland → Chain Lightning |
-|  |  |  | Brood Sac → Parasite Swarm |
-| NULL TWIN | 2,850 | 6,200 | Memory Cortex → Weapon Copy |
-|  |  |  | Echo Heart → Echo Dash |
-|  |  |  | Reflection Lattice → False Weakpoints |
+| Titan | Stable boss ID | Base armor | Core HP | Fractured organ → exterior ability | Loss contract |
+|---|---|---:|---:|---|---|
+| CRONUS — The Gilded Harvester | `gravemaw` | 1,750 | 3,600 | Fate Eye → Homing Eye | Transformed into straight salvos |
+|  |  |  |  | Gaia Breath → Gravity Ring | Transformed into a slower ring with a wider safe opening |
+|  |  |  |  | Adamant Forge → Bone Missiles | Disabled |
+| HYPERION — Lord of First Light | `seraph_9` | 2,150 | 4,400 | Dawn Mind → Prism Lances | Transformed into fewer rays with a longer warning |
+|  |  |  |  | Solar Mantle → Laser Wings | Transformed into a single-wing sweep with a safe flank |
+|  |  |  |  | Sun Crown → Halo Barrier | Transformed into a fractured ring that cannot fully close |
+| OCEANUS — The Worldstream | `abyss_leviathan` | 2,450 | 5,000 | Worldstream Heart → Suction Waves | Transformed into a weaker pull with a broad calm channel |
+|  |  |  |  | Storm Palm → Chain Lightning | Transformed into an unchained single arc |
+|  |  |  |  | River Springs → Parasite Swarm | Disabled |
+| MNEMOSYNE — Mother of Echoes | `null_twin` | 2,850 | 6,200 | Memory Crown → Weapon Copy | Disabled |
+|  |  |  |  | Echo Heart → Echo Dash | Disabled |
+|  |  |  |  | Muse Veil → False Weakpoints | Disabled |
 
-The organ catalog text sometimes describes an attack as weakened or altered. The current OrganAbilityMap behavior is stricter: it sets the mapped ability to disabled with zero strength.
+These are the twelve selectable fractured organs in the current boss catalog. They are not twelve separately persisted collectibles. `data/story.json` instead defines one named AION shard returned by each Titan chapter—Beginning, Radiance, Flow and Memory—and `StoryService` can derive restored shards from a supplied set of cleared boss IDs. The live save still banks the existing numeric Core Shards currency rather than four unique narrative-shard objects.
 
-BossVisual receives the destroyed-organ list. It renders organ status and phase changes; SERAPH-9 also has explicit broken-wing and broken-halo states. Other physical transformations are currently more abstract.
+`BossVisual` receives the destroyed-organ list and supports a distinct loss token for all twelve organs, alongside authored Titan textures and procedural phase/effect drawing. Automated visual-contract tests cover those tokens; their clarity and impact have not yet been validated with human players or physical devices.
 
 ## Weapons
 
 | Weapon | Current runtime identity | Unlock path |
 |---|---|---|
-| Pulse Needle | Fast single straight projectile | Default |
+| Aion Spark (`pulse_needle`) | Fast single straight divine bolt; display-awakens from the Keeper's empty hands after first movement | Default |
 | Scatter Maw | Five-projectile spread | 2 Core Shards |
-| Rail Spine | Slow, high-damage projectile with four pierces | 4 Core Shards or first GRAVEMAW clear |
-| Arc Swarm | Homing projectile with up to three bounded chain hops and reduced damage after the primary hit | 6 Core Shards or first SERAPH-9 clear |
-| Void Orbitals | Regular projectile plus two close orbitals that consume bullets and deal contact damage | 9 Core Shards or first ABYSS LEVIATHAN clear |
+| Rail Spine | Slow, high-damage projectile with four pierces | 4 Core Shards or first CRONUS clear |
+| Arc Swarm | Homing projectile with up to three bounded chain hops and reduced damage after the primary hit | 6 Core Shards or first HYPERION clear |
+| Void Orbitals | Regular projectile plus two close orbitals that consume bullets and deal contact damage | 9 Core Shards or first OCEANUS clear |
 
 Weapon descriptions, exact values and caveats are maintained in BALANCE.md and data/weapons.json.
 
@@ -141,11 +145,11 @@ There are no purchases, ads, premium currencies or network-dependent rewards in 
 
 ### Boss and weapon unlocks
 
-- A new profile starts with GRAVEMAW and Pulse Needle.
-- Story victories unlock bosses sequentially: GRAVEMAW → SERAPH-9 → ABYSS LEVIATHAN → NULL TWIN.
-- GRAVEMAW, SERAPH-9 and ABYSS LEVIATHAN victories also unlock Rail Spine, Arc Swarm and Void Orbitals respectively.
+- A new profile starts with CRONUS (`gravemaw`) and Aion Spark (`pulse_needle`).
+- Story victories unlock Titans sequentially: CRONUS → HYPERION → OCEANUS → MNEMOSYNE.
+- CRONUS, HYPERION and OCEANUS victories also unlock Rail Spine, Arc Swarm and Void Orbitals respectively.
 - The Hangar also allows locked weapons to be purchased directly for their Core Shard cost.
-- Defeating NULL TWIN unlocks Abyss Loop.
+- Defeating MNEMOSYNE unlocks Abyss Loop.
 
 ### Forge
 
@@ -157,15 +161,17 @@ rounded cost = base cost × cost scale ^ current level
 
 ### The Last Nest
 
-The five visual stages are:
+The save and localization layer retain five existing stage labels. Their current visual interpretation is a mythic floating sanctuary:
 
-1. Broken Shell
-2. Awakened Reactor
-3. Living Workshop
-4. Diver Colony
-5. Infinite Nest
+| Stage | Existing UI label | Current visual state |
+|---:|---|---|
+| 0 | Broken Shell | Broken sky shrine, fallen masonry, damaged columns and a dormant Aether altar |
+| 1 | Awakened Reactor | Restored temple frame, awakened altar and illuminated bronze paths |
+| 2 | Living Workshop | Working bronze mechanisms and waterfalls beneath the island |
+| 3 | Diver Colony | Keeper silhouettes, banners and a visibly inhabited sanctuary |
+| 4 | Infinite Nest | Laurels, orbiting star lights and a thriving celestial haven |
 
-Nest stage is the higher of total wins and total purchased upgrade levels divided by four, capped at stage four. The drawing adds reactor light, machinery, survivor silhouettes and plants as the stage rises.
+Nest stage is the higher of total wins and total purchased upgrade levels divided by four, capped at stage four. The scene is drawn as a bright floating island with clouds, marble terraces, bronze inlay, aqua Aether light and six facilities with distinct mythic-tech silhouettes. Reduced Motion freezes decorative cloud, water, Aether and ornament animation while preserving every structure and interaction.
 
 | Facility | Stage requirement | Current function |
 |---|---:|---|
@@ -182,7 +188,7 @@ Fourteen local achievements and nineteen local contracts are data-driven, rotate
 
 | Mode | Implemented behavior | Current boundary |
 |---|---|---|
-| Story Descent | Select an unlocked boss, weapon and one of three difficulties; victory advances progression | No story scenes beyond boss fantasy text and Nest state |
+| Story Descent | Select an unlocked Titan, weapon and one of three difficulties; victory advances progression. The first eligible CRONUS Story run presents a skippable four-beat English-first prologue. Main also presents the localized chapter intro before an eligible Story attempt while that chapter has no Story difficulty progress, and the shard-restoration beat when the run result explicitly marks its first Story clear | Intro and first-clear victory presentation are connected for all four chapter records. Intro-seen state lives in the handed-off run config rather than a durable story ledger. Story gating does not rely on the cross-mode `boss_clears` counter. The authored `first_breach` beat remains data-only and is not yet shown during a run |
 | Daily Rift | Uses a seed derived from the current UTC date, chooses a fixed boss and weapon, and runs on Deep difficulty | A completed run can queue an unverified local summary under a canonical UTC-day challenge ID; there is no synchronization authority, upload transport, or online leaderboard |
 | Friend Rift | Creates and parses ID1 codes containing boss, seed, weapon, difficulty, modifiers and optional targets | Accepted runs queue under a canonical payload-derived challenge ID, so unrelated codes do not share a local board. Score/time targets are evaluated and shown as met/missed after the run. Clipboard checksum is not server authority; modifier IDs are transported but do not yet alter rules |
 | Abyss Loop | Cycles bosses after wins, increases HP, damage and projectile speed by depth, carries selected mutations, restores part of health, and advances local meta goals | Continuation occurs through the Retry action; no online leaderboard or periodic choice screen |
@@ -203,7 +209,7 @@ Abyss Loop adds per-depth scaling beyond these values. Exact formulas are in BAL
 
 ## Presentation
 
-The current build uses code-drawn 2D visuals rather than imported character or boss art.
+The current direction is bright mythic 2D: blue sky-worlds, marble, bronze, aqua Aether light, coral danger accents, gold divine seals, chunky silhouettes and strong dark outlines for mobile readability. The build imports authored raster art for the unarmed Keeper, all four Titans, the sky battle and the divine interior. `PlayerController`, `BossVisual`, `RunScene` and the Last Nest also add procedural drawing for readable status, phase damage, organ-loss transformations, effects, sanctuary structures and fallbacks. This is a working art pass, not a claim of final production art or device-validated readability.
 
 Semantic palette:
 
@@ -216,7 +222,7 @@ Semantic palette:
 | Bio-Matter | #92E65D |
 | Core Shard | #A78BFA |
 | Armor | #D7D0BD |
-| Deep-space background | #03050C |
+| Dark UI / outline base | #03050C |
 
 Projectiles use distinct shapes in addition to color. High-contrast mode changes hostile shots to orange while retaining the angular silhouette and white center.
 
@@ -230,6 +236,14 @@ Audio is synthesized at runtime. The current library contains 24 named one-shots
 - Accepted events persist immediately and may arrive out of order without double-counting. Tutorial completion means all ten bits are understood; it is not set by the Forge step alone.
 - Settings exposes “Replay tutorial on next run.” Replay resets presentation without erasing persistent comprehension, persists the first nine observations across the Run-to-Nest handoff, and completes on the later Forge purchase.
 - The defense step can advance through either a first Dash or a real telegraphed-volley avoidance: the latter is emitted only after that volley ends without a hit and without a Dash since its telegraph began. Replay remains observational rather than gated. Timing, comprehension and first-Dive targets have not been measured with people.
+
+### AION prologue and first movement
+
+- On a non-QA Story start against CRONUS, while the persistent tutorial understood mask is still zero, `Main` presents a skippable four-beat English-first prologue: AION is devoured, the Titans receive eternal hunger, the hero begins unarmed, and AION's Spark is promised. Hebrew remains an optional Settings localization and is never selected automatically for a fresh profile.
+- That launch is marked `aether_prologue`. The Keeper enters the run with the Spark dormant and automatic fire blocked.
+- Moving at least 12 pixels records the tutorial movement observation and starts a 0.36-second awakening delay. The AION Spark then appears, automatic fire becomes active, and the game emits its toast, sound, haptic request and analytics event.
+- The authored hero and procedural fallback both present empty hands. Even after awakening, `PlayerController.presentation_snapshot()` reports no visible physical weapon and no muzzle flash. Weapon selection and automatic projectile behavior still exist as combat systems; “unarmed” describes the hero presentation, not removal of the weapon catalog.
+- Prologue eligibility currently relies on the tutorial understood mask rather than a separate narrative-completion save field. The prologue handoff marks `story_intro_seen` so it does not immediately duplicate CRONUS's chapter intro. For each Titan, Main otherwise shows the chapter intro only while its Story difficulty progress is incomplete. Before banking, RunScene records an explicit `story_first_clear` result marker; Main uses that marker for the victory/shard beat, so Daily/Friend/Abyss wins cannot suppress or fabricate chapter delivery. `story_intro_seen` survives the handed-off config and its retry, but is not separately persisted; returning to the Nest before a clear can therefore show the intro again. The authored `first_breach` beat remains data-only.
 
 ### Localization
 
@@ -283,9 +297,11 @@ The game makes no core-play network request and does not embed backend credentia
 
 Present and playable in source:
 
-- Complete outside–inside–outside state path
-- Four boss records and visual silhouettes
-- Three selectable organs per boss
+- Complete outside–Dive–purify–return state path, with purification currently resolved by the existing organ-destruction runtime contract
+- A skippable English-first AION opening, optional Hebrew localization, and first-movement Spark awakening for the first eligible CRONUS Story run
+- Four Titan records, authored textures and distinct visual silhouettes
+- Three selectable fractured organs per Titan, with twelve supported exterior-loss visual tokens
+- A four-chapter bilingual story catalog and read-only story service, with localized chapter-intro and first-clear victory presentation connected through Main
 - Five weapon records and runtime weapon behaviors
 - 24 mutation records
 - 18 permanent-upgrade records
@@ -299,6 +315,8 @@ Present and playable in source:
 Not established by this snapshot:
 
 - Full production-quality uniqueness for every boss attack and room
+- Live presentation of the four authored `first_breach` chapter beats
+- Separate persistence or player-facing collection UI for the four named AION story shards
 - Human balance/feel validation for mutation and permanent-upgrade combinations
 - Complete cosmetic system and richer achievement/contract presentation
 - Browser/simulator/device validation of Hebrew/RTL text fit and visual ordering
@@ -306,7 +324,7 @@ Not established by this snapshot:
 - Monetization, purchases, ads or restore flow
 - Android or iOS signed builds
 - Complete semantic full-path Web validation, release-candidate device/performance QA, or physical-device control-feel testing. The current candidate passed both CI-served and public-host movement/Dash gates in Actions run `33572931398`, alongside its source-bound 30-minute structural soak. Those bounded gates prove 3/3/3 canvas-targeted touch events, accepted movement, one Dash with charge consumption, a stable run generation, and changed rendered frames; they do not prove breach/Dive/organ return, reload persistence, mobile-browser behavior, device ergonomics, or human comprehension.
-- Final Apple 6.9-inch screenshots, a supported-iPhone App Preview capture, store approval, or submission (five 1080×1920 development stills, an audio-complete 1080×1920 social trailer, and an 886×1920 Apple-format technical candidate exist; all are virtual-display evidence)
+- Final Apple 6.9-inch screenshots, a supported-Apple-path App Preview capture, store approval, or submission. Five 1080×1920 stills, an audio-complete 1080×1920 social edit, and an 886×1920 Apple-format experiment exist, but all are virtual-display evidence from the superseded pre-pivot identity and must not represent the current product.
 
 ## Source precedence
 

@@ -112,6 +112,12 @@ jobs:
       - name: Run procedural audio contract tests
         shell: bash
         run: bash .github/scripts/run_godot_checked.sh --suite audio -- ./godot --headless --path infinidive-game --scene res://tests/audio/ProceduralAudioTest.tscn
+      - name: Run story catalog and progression tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite story -- ./godot --headless --path infinidive-game --scene res://tests/story/StoryServiceTest.tscn
+      - name: Run story presentation and first-clear decision tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite story_presentation -- ./godot --headless --path infinidive-game --scene res://tests/story/StoryPresentationTest.tscn
       - name: Run bounded structural soak smoke
         shell: bash
         run: |

@@ -75,7 +75,8 @@ const STRINGS := {
 		"upgrade_requires": "REQUIRES {name} · LEVEL {level}",
 		"tutorial_replay": "REPLAY TUTORIAL ON NEXT RUN",
 		"tutorial.drag_to_move": "DRAG TO MOVE",
-		"tutorial.auto_fire": "YOUR WEAPON FIRES AUTOMATICALLY",
+		"tutorial.auto_fire": "AION'S SPARK FIRES AUTOMATICALLY",
+		"aion_spark_awakened": "AION'S SPARK AWAKENS",
 		"tutorial.avoid_or_dash": "AVOID THE TELEGRAPH — OR PHASE THROUGH",
 		"tutorial.hit_exposed_armor": "KEEP FIRE ON THE EXPOSED ARMOR",
 		"tutorial.enter_breach": "TAP DIVE NOW AND ENTER THE BREACH",
@@ -92,7 +93,7 @@ const STRINGS := {
 		"friend_code_copied": "Challenge code copied to the clipboard.",
 		"daily_reset": "RESETS 00:00 UTC",
 		"trophies_subtitle": "Every collapsed colossus leaves a permanent scar on the Nest.",
-		"core_subtitle": "The deepest system of the Nest answers only after the Null Twin falls.",
+		"core_subtitle": "The deepest system of the Nest answers only after Mnemosyne falls.",
 		"settings_subtitle": "Assist settings preserve the full game. Competitive Daily Rifts use a fixed standard profile.",
 		"support_feedback": "SUPPORT & FEEDBACK",
 		"privacy_policy": "PRIVACY POLICY",
@@ -266,7 +267,8 @@ const STRINGS := {
 		"upgrade_requires": "דורש {name} · רמה {level}",
 		"tutorial_replay": "הפעלת ההדרכה מחדש בריצה הבאה",
 		"tutorial.drag_to_move": "גררו כדי לזוז",
-		"tutorial.auto_fire": "הנשק יורה אוטומטית",
+		"tutorial.auto_fire": "ניצוץ איון יורה אוטומטית",
+		"aion_spark_awakened": "ניצוץ איון מתעורר",
 		"tutorial.avoid_or_dash": "התחמקו מהטלגרף — או עברו דרכו בפאזה",
 		"tutorial.hit_exposed_armor": "המשיכו לירות בשריון החשוף",
 		"tutorial.enter_breach": "לחצו לצלילה והיכנסו לפרצה",
@@ -283,7 +285,7 @@ const STRINGS := {
 		"friend_code_copied": "קוד האתגר הועתק ללוח.",
 		"daily_reset": "מתאפס ב־00:00 UTC",
 		"trophies_subtitle": "כל ענק שקרס משאיר צלקת קבועה בקן.",
-		"core_subtitle": "המערכת העמוקה ביותר בקן נענית רק לאחר נפילת תאום האפס.",
+		"core_subtitle": "המערכת העמוקה ביותר בקן נענית רק לאחר נפילת מנמוסינה.",
 		"settings_subtitle": "הגדרות הסיוע שומרות על המשחק המלא. בקרעים יומיים תחרותיים נעשה שימוש בפרופיל אחיד.",
 		"support_feedback": "תמיכה ומשוב",
 		"privacy_policy": "מדיניות פרטיות",
@@ -392,8 +394,11 @@ const STRINGS := {
 func _ready() -> void:
 	SettingsManager.language_changed.connect(_on_language_changed)
 
+func current_locale() -> String:
+	return SettingsManager.normalize_language(SettingsManager.get_value("language", SettingsManager.DEFAULT_LANGUAGE))
+
 func text(key: String, values: Dictionary = {}) -> String:
-	var locale := String(SettingsManager.get_value("language","en"))
+	var locale := current_locale()
 	var table: Dictionary = STRINGS.get(locale,STRINGS.en)
 	var result := String(table.get(key,STRINGS.en.get(key,key)))
 	for value_key in values:
@@ -401,7 +406,7 @@ func text(key: String, values: Dictionary = {}) -> String:
 	return result
 
 func content_text(category: String, item_id: String, field: String, fallback: String = "") -> String:
-	var locale := String(SettingsManager.get_value("language", "en"))
+	var locale := current_locale()
 	if locale != "he":
 		return fallback
 	var category_table: Dictionary = HebrewContent.CONTENT.get(category, {})
@@ -444,7 +449,7 @@ func layout_direction() -> Control.LayoutDirection:
 	return Control.LAYOUT_DIRECTION_RTL if is_rtl() else Control.LAYOUT_DIRECTION_LTR
 
 func is_rtl() -> bool:
-	return String(SettingsManager.get_value("language","en"))=="he"
+	return current_locale() == "he"
 
 func _on_language_changed(locale: String) -> void:
 	locale_changed.emit(locale)

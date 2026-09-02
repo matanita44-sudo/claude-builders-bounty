@@ -6,6 +6,13 @@ The current project version is 0.1.0. This is a publicly deployed pre-alpha deve
 
 ## [Unreleased]
 
+### Bright Greek-mythic identity and AION narrative
+
+- Reframed the player-facing world around CRONUS, HYPERION, OCEANUS, and MNEMOSYNE; the Keeper begins visibly unarmed and awakens the hand-cast AION SPARK through first movement. English remains the default language regardless of OS/browser locale, while Hebrew is available only through an explicit Settings selector.
+- Integrated the AION prologue, fresh-chapter intros, and explicit first-Story-clear shard-restoration beats through Main. The four authored `first_breach` story beats remain data-only, and public/browser/device presentation plus human comprehension remain unverified.
+- Classified every existing runtime still, poster, and trailer as truthful but legacy pre-pivot provenance. They show the superseded dark GRAVEMAW identity and are not approved for current marketing or store submission; new media must be captured from the frozen bright Greek-mythic release candidate.
+- Rebuilt the app icon, Android adaptive layers, iOS launch screen, wordmark, feature graphic, and social card in the bright mythic identity, then regenerated and validated all raster derivatives. The current 15-suite matrix passes `28,949/0`; separate visual/story/player presentation probes pass `309/0`, `476/0/0`, `34/0`, and `17/0`.
+
 ### Semantic Web QA candidate
 
 - Added a read-only Web QA snapshot that exists only when the exact query `?infinidive_qa=1` is present. It exposes a fixed whitelist of Nest/run state, player position, movement observation, Dash counters/charge, monotonic revision, and ephemeral run generation. It does not expose raw run IDs, seeds, saves, profile/currency data, challenge codes, account identifiers, or analytics payloads.
@@ -66,12 +73,12 @@ The current project version is 0.1.0. This is a publicly deployed pre-alpha deve
 - Three armor phases, three player-selected organ dives and a final core sequence.
 - OrganAbilityMap with idempotent organ destruction and exterior ability disabling.
 - Four boss data records and code-drawn silhouettes:
-  - GRAVEMAW
-  - SERAPH-9
-  - ABYSS LEVIATHAN
-  - NULL TWIN
+  - CRONUS
+  - HYPERION
+  - OCEANUS
+  - MNEMOSYNE
 - Five weapon records and runtime behaviors:
-  - Pulse Needle
+  - Aion Spark
   - Scatter Maw
   - Rail Spine
   - Arc Swarm
@@ -125,4 +132,4 @@ The current project version is 0.1.0. This is a publicly deployed pre-alpha deve
 - Completed Daily/Friend runs queue challenge-separated, validated, unverified local summaries; Story/Abyss results do not consume the outbox. There is no backend transport, account, online leaderboard UI, fetched config, or cloud save.
 - Current local Web and debug-signed Android candidate outputs pass structural validation with recorded hashes. Current source commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a` passed the complete configured remote matrix in run `33572931398`, including source-bound 30-minute soak job `100071482078`, Pages deploy job `100078099551`, and public-host semantic smoke job `100078147875`. The candidate iOS PCK is assembled only into a retained unsigned scaffold after full export failed on blank Team ID. No complete breach/Dive/organ/reload browser result, release-signed AAB, full current-source Xcode export/compile/archive/sign, native install, or store upload exists.
 - Current public artifact `9826433759` binds the deployed URL to candidate commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a` and retains HTTP-200, movement, Dash, touch-event, and frame-change evidence. Historical artifact `9823113363` from jobs `100049011404` / `100049076641` remains prior-source comparison only. No Mobile Safari/Chrome, human-control, simulator, or physical-device test is claimed.
-- Development icon/brand exports, five real-runtime stills, a 1080×1920 audio-complete social trailer, an 886×1920 audio-complete Apple-format technical candidate/poster, and bilingual privacy/support drafts exist with provenance and hashes. The privacy/support drafts are reachable in the pre-alpha Pages deployment, but final legal approval has not occurred; the Apple candidate still requires supported-iPhone recapture, and none of the media is store-accepted or submitted.
+- Development icon/brand exports, five real-runtime stills, a 1080×1920 audio-complete social edit, an 886×1920 audio-complete Apple-format experiment/poster, and bilingual privacy/support drafts exist with provenance and hashes. The captured media is now explicitly legacy pre-pivot evidence and cannot represent the current product. The deployed privacy/support pages also predate the pivot, final legal approval has not occurred, and no media is store-accepted or submitted.

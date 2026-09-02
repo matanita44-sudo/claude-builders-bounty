@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "story_id": "aion_eternal_hunger",
+  "prologue": {
+    "id": "prologue_aion_falls",
+    "title": {
+      "en": "THE FEAST THAT BROKE TIME",
+      "he": "המשתה ששבר את הזמן"
+    },
+    "beats": [
+      {
+        "id": "prologue_keeper_of_forever",
+        "moment": "prologue",
+        "speaker": "ARCHIVE",
+        "text": {
+          "en": "AION, god of eternity, kept every tomorrow moving. Four proud Titans wanted his endless life for themselves.",
+          "he": "איון, אל הנצח, הניע את כל ימי המחר. ארבעה טיטאנים גאים רצו את חייו האינסופיים לעצמם."
+        }
+      },
+      {
+        "id": "prologue_forbidden_feast",
+        "moment": "prologue",
+        "speaker": "ARCHIVE",
+        "text": {
+          "en": "They broke the god of eternity into four living shards and swallowed him at a forbidden feast.",
+          "he": "הם שברו את אל הנצח לארבעה שברים חיים ובלעו אותו במשתה אסור."
+        }
+      },
+      {
+        "id": "prologue_hunger_curse",
+        "moment": "prologue",
+        "speaker": "AION",
+        "text": {
+          "en": "You wanted eternity—now hunger forever. AION's final curse drove them to devour one sky-world after another.",
+          "he": "רציתם נצח — תרעבו לנצח. קללתו האחרונה של איון דחפה אותם לטרוף עולם־שמיים אחר עולם־שמיים."
+        }
+      },
+      {
+        "id": "prologue_last_nest",
+        "moment": "prologue",
+        "speaker": "ARCHIVE",
+        "text": {
+          "en": "At the Last Nest, an unarmed young keeper heard AION's final heartbeat—and became the first Diver.",
+          "he": "בקן האחרון שמע שומר צעיר ובלתי־חמוש את פעימת הלב האחרונה של איון — והפך לצולל הראשון."
+        }
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "chapter_cronus",
+      "order": 1,
+      "boss_id": "gravemaw",
+      "requires_boss_id": "",
+      "title": {
+        "en": "CRONUS — THE STOLEN BEGINNING",
+        "he": "קרונוס — ההתחלה הגנובה"
+      },
+      "summary": {
+        "en": "Take back the first moment of AION from the Gilded Harvester.",
+        "he": "השב את הרגע הראשון של איון מידי הקוצר המוזהב."
+      },
+      "reward_shard": {
+        "id": "aion_shard_beginning",
+        "name": {
+          "en": "SHARD OF BEGINNING",
+          "he": "שבר ההתחלה"
+        }
+      },
+      "beats": [
+        {
+          "id": "cronus_intro",
+          "moment": "chapter_intro",
+          "speaker": "ARCHIVE",
+          "text": {
+            "en": "Cronus swallowed AION's first moment. Now every meal feels like the first bite, and none can satisfy him.",
+            "he": "קרונוס בלע את הרגע הראשון של איון. כעת כל ארוחה מרגישה כמו הביס הראשון, ושום דבר אינו משביע אותו."
+          }
+        },
+        {
+          "id": "cronus_breach",
+          "moment": "first_breach",
+          "speaker": "AION",
+          "text": {
+            "en": "My beginning is still alive behind his golden armor. Cut a path to it.",
+            "he": "ההתחלה שלי עדיין חיה מאחורי השריון הזהוב שלו. פתח אליה דרך."
+          }
+        },
+        {
+          "id": "cronus_victory",
+          "moment": "boss_defeated",
+          "speaker": "ARCHIVE",
+          "text": {
+            "en": "The Shard of Beginning returns. For one quiet heartbeat, Cronus is no longer hungry.",
+            "he": "שבר ההתחלה שב. למשך פעימת לב שקטה אחת, קרונוס כבר אינו רעב."
+          }
+        }
+      ]
+    },
+    {
+      "id": "chapter_hyperion",
+      "order": 2,
+      "boss_id": "seraph_9",
+      "requires_boss_id": "gravemaw",
+      "title": {
+        "en": "HYPERION — THE ENDLESS NOON",
+        "he": "היפריון — הצהריים האינסופיים"
+      },
+      "summary": {
+        "en": "Free AION's stolen radiance from the Lord of First Light.",
+        "he": "שחרר את הזוהר הגנוב של איון מאדון האור הראשון."
+      },
+      "reward_shard": {
+        "id": "aion_shard_radiance",
+        "name": {
+          "en": "SHARD OF RADIANCE",
+          "he": "שבר הזוהר"
+        }
+      },
+      "beats": [
+        {
+          "id": "hyperion_intro",
+          "moment": "chapter_intro",
+          "speaker": "ARCHIVE",
+          "text": {
+            "en": "Hyperion swallowed AION's brightest hour. His sun can never set, so he feeds it every dawn he finds.",
+            "he": "היפריון בלע את השעה הבהירה ביותר של איון. השמש שלו אינה שוקעת, ולכן הוא מאכיל אותה בכל שחר שהוא מוצא."
+          }
+        },
+        {
+          "id": "hyperion_breach",
+          "moment": "first_breach",
+          "speaker": "AION",
+          "text": {
+            "en": "The light inside him is mine. Break his perfect pattern and let it move again.",
+            "he": "האור שבתוכו הוא שלי. שבור את התבנית המושלמת שלו ותן לו לנוע שוב."
+          }
+        },
+        {
+          "id": "hyperion_victory",
+          "moment": "boss_defeated",
+          "speaker": "ARCHIVE",
+          "text": {
+            "en": "The Shard of Radiance returns. Day and night begin speaking to each other again.",
+            "he": "שבר הזוהר שב. היום והלילה מתחילים לדבר זה עם זה מחדש."
+          }
+        }
+      ]
+    },
+    {
+      "id": "chapter_oceanus",
+      "order": 3,
+      "boss_id": "abyss_leviathan",
+      "requires_boss_id": "seraph_9",
+      "title": {
+        "en": "OCEANUS — THE RIVER OF YEARS",
+        "he": "אוקיינוס — נהר השנים"
+      },
+      "summary": {
+        "en": "Dive beneath the Worldstream and recover AION's living flow.",
+        "he": "צלול מתחת לזרם העולם והשב את הזרימה החיה של איון."
+      },
+      "reward_shard": {
+        "id": "aion_shard_flow",
+        "name": {
+          "en": "SHARD OF FLOW",
+          "he": "שבר הזרימה"
+        }
+      },
+      "beats": [
+        {
+          "id": "oceanus_intro",
+          "moment": "chapter_intro",
+          "speaker": "ARCHIVE",
+          "text": {
+            "en": "Oceanus drank AION's river of years. The stolen current circles inside him, thirsty for every sea in the sky.",
+            "he": "אוקיינוס שתה את נהר השנים של איון. הזרם הגנוב מקיף אותו מבפנים וצמא לכל ים בשמיים."
+          }
+        },
+        {
+          "id": "oceanus_breach",
+          "moment": "first_breach",
+          "speaker": "AION",
+          "text": {
+            "en": "Do not fight the whole river. Change the organ that commands its course.",
+            "he": "אל תילחם בנהר כולו. שנה את האיבר שקובע את מסלולו."
+          }
+        },
+        {
+          "id": "oceanus_victory",
+          "moment": "boss_defeated",
+          "speaker": "ARCHIVE",
+          "text": {
+            "en": "The Shard of Flow returns. Waterfalls wake beneath the Last Nest.",
+            "he": "שבר הזרימה שב. מפלים מתעוררים מתחת לקן האחרון."
+          }
+        }
+      ]
+    },
+    {
+      "id": "chapter_mnemosyne",
+      "order": 4,
+      "boss_id": "null_twin",
+      "requires_boss_id": "abyss_leviathan",
+      "title": {
+        "en": "MNEMOSYNE — THE NAME OF ETERNITY",
+        "he": "מנמוסינה — שמו של הנצח"
+      },
+      "summary": {
+        "en": "Defeat the Mother of Echoes and restore the shard that remembers AION.",
+        "he": "הבס את אם ההדים והשב את השבר שזוכר את איון."
+      },
+      "reward_shard": {
+        "id": "aion_shard_memory",
+        "name": {
+          "en": "SHARD OF MEMORY",
+          "he": "שבר הזיכרון"
+        }
+      },
+      "beats": [
+        {
+          "id": "mnemosyne_intro",
+          "moment": "chapter_intro",
+          "speaker": "ARCHIVE",
+          "text": {
+            "en": "Mnemosyne swallowed AION's true name. She remembers the forbidden feast perfectly—and copies every hero sent to end it.",
+            "he": "מנמוסינה בלעה את שמו האמיתי של איון. היא זוכרת את המשתה האסור בשלמותו ומעתיקה כל גיבור שנשלח לסיים אותו."
+          }
+        },
+        {
+          "id": "mnemosyne_breach",
+          "moment": "first_breach",
+          "speaker": "AION",
+          "text": {
+            "en": "She knows your last move. Become someone new before the next one.",
+            "he": "היא מכירה את המהלך האחרון שלך. הפוך למישהו חדש לפני המהלך הבא."
+          }
+        },
+        {
+          "id": "mnemosyne_victory",
+          "moment": "boss_defeated",
+          "speaker": "AION",
+          "text": {
+            "en": "Four shards answer one another. My heartbeat returns to the Last Nest—but eternity is still deeper than this victory.",
+            "he": "ארבעת השברים עונים זה לזה. פעימת הלב שלי שבה לקן האחרון, אך הנצח עמוק יותר מהניצחון הזה."
+          }
+        }
+      ]
+    }
+  ]
+}

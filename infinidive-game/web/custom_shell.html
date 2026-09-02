@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#050814">
+  <meta name="theme-color" content="#78D5E1">
   <link rel="icon" type="image/png" href="index.icon.png">
   <link rel="apple-touch-icon" href="index.apple-touch-icon.png">
   <title>INFINIDIVE — Play</title>
   <style>
-    html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#03050c;color:#eafcff;font-family:system-ui,sans-serif;touch-action:none;-webkit-user-select:none;user-select:none}#canvas{display:block;width:100%;height:100%;outline:0}#status{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 36%,#142341,#03050c 67%);font-size:12px;font-weight:900;letter-spacing:.18em}#status.hidden{display:none}#safe-area-probe{position:fixed;inset:0;pointer-events:none;visibility:hidden;padding-left:env(safe-area-inset-left,0px);padding-top:env(safe-area-inset-top,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#78d5e1;color:#17324b;font-family:system-ui,sans-serif;touch-action:none;-webkit-user-select:none;user-select:none}#canvas{display:block;width:100%;height:100%;outline:0}#status{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 34%,#fff2a8 0,#d9f0d5 26%,#78d5e1 72%);font-size:12px;font-weight:900;letter-spacing:.18em;text-shadow:0 1px 0 rgba(255,255,255,.72)}#status.hidden{display:none}#safe-area-probe{position:fixed;inset:0;pointer-events:none;visibility:hidden;padding-left:env(safe-area-inset-left,0px);padding-top:env(safe-area-inset-top,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
   </style>
 </head>
 <body>
   <canvas id="canvas">Your browser does not support canvas.</canvas>
-  <div id="status">ENTERING THE NEST…</div>
+  <div id="status">AWAKENING THE NEST…</div>
   <div id="safe-area-probe" aria-hidden="true"></div>
   <script src="$GODOT_URL"></script>
   <script>
@@ -32,9 +32,9 @@
     addEventListener('resize', updateSafeArea, {passive:true});
     addEventListener('orientationchange', updateSafeArea, {passive:true});
     const engine = new Engine($GODOT_CONFIG);
-    engine.startGame({onProgress:(c,t)=>{const e=document.getElementById('status');if(t>0)e.textContent=`DIVING ${Math.round(c/t*100)}%`;}})
+    engine.startGame({onProgress:(c,t)=>{const e=document.getElementById('status');if(t>0)e.textContent=`AWAKENING ${Math.round(c/t*100)}%`;}})
       .then(()=>document.getElementById('status').classList.add('hidden'))
-      .catch(err=>{document.getElementById('status').textContent='THE RIFT FAILED TO OPEN';console.error(err);});
+      .catch(err=>{document.getElementById('status').textContent='THE GATE DID NOT OPEN';console.error(err);});
   </script>
 </body>
 </html>

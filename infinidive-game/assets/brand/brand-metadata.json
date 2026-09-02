@@ -1,21 +1,24 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "brand": "INFINIDIVE",
   "owner": "Matan",
   "copyright": "Copyright 2026 Matan. All rights reserved.",
   "tagline": "Fight giants outside. Destroy them within.",
-  "visual_concept": "A cyan Diver crosses a bone-armored boundary and enters a magenta split iris. The mark represents the outside-to-inside-to-outside gameplay hook without depicting or claiming a gameplay screen.",
+  "visual_concept": "A monumental marble Titan frames a golden time-sun seal while a tiny unarmed Keeper awakens the Aion spark. The seal combines a clock face, a controlled breach and divine sunlight; it communicates the game's scale, mythic sky-world and outside-to-inside transformation without depicting or claiming a gameplay screen.",
   "palette": {
-    "space": "#070A0F",
-    "deep_space": "#03050C",
-    "tissue": "#19101D",
-    "armor": "#D7D0BD",
-    "armor_shadow": "#59606B",
-    "friendly": "#54F2E7",
-    "friendly_highlight": "#C9FFFB",
-    "vulnerable": "#F32D83",
-    "core_shard": "#A78BFA",
-    "text": "#F4F1E8"
+    "sky": "#8EDCF4",
+    "sky_haze": "#C8F1EC",
+    "cloud": "#FFFFFF",
+    "marble": "#FFF7E8",
+    "marble_shadow": "#C7D9DD",
+    "outline": "#203354",
+    "bronze": "#B96F3A",
+    "bronze_shadow": "#8A4D2D",
+    "aqua": "#35C8C0",
+    "aqua_light": "#A8F3E6",
+    "coral": "#FF786B",
+    "gold": "#F6C84A",
+    "gold_light": "#FFF0A6"
   },
   "assets": [
     {
@@ -31,6 +34,29 @@
       "background": "opaque",
       "intended_use": ["App Store icon source", "Google Play icon source"],
       "gameplay_representation": false
+    },
+    {
+      "file": "android_adaptive_background.svg",
+      "source_dimensions": "432x432",
+      "background": "opaque",
+      "intended_use": ["Android adaptive icon background layer"],
+      "gameplay_representation": false
+    },
+    {
+      "file": "android_adaptive_foreground.svg",
+      "source_dimensions": "432x432",
+      "background": "transparent",
+      "intended_use": ["Android adaptive icon foreground layer"],
+      "gameplay_representation": false,
+      "safe_zone": "The time-sun seal and Aion spark remain inside the central adaptive-icon safe zone; the Titan and Keeper extremities provide intentional mask overscan."
+    },
+    {
+      "file": "android_adaptive_monochrome.svg",
+      "source_dimensions": "432x432",
+      "background": "transparent",
+      "intended_use": ["Android themed monochrome icon layer"],
+      "gameplay_representation": false,
+      "color_contract": "Single white silhouette on transparency; Android supplies the themed colors."
     },
     {
       "file": "wordmark.svg",
@@ -62,15 +88,16 @@
       "background": "opaque",
       "intended_use": ["iOS static launch screen source"],
       "gameplay_representation": false,
-      "disclosure": "Original static brand treatment; the raster export is generated from this vector source"
+      "disclosure": "Original static brand treatment; raster exports are generated from this vector source"
     }
   ],
   "production_rules": {
     "app_icon": "Export opaque at 1024x1024 in sRGB. Do not add rounded corners; store platforms apply their own masks.",
+    "adaptive_icon": "Keep the time-sun seal and Aion spark in the central safe zone. Validate foreground against circle, squircle and rounded-square masks, plus Android themed monochrome mode.",
     "wordmark": "Preserve the original proportions and clear space equal to at least one glyph-I width.",
     "store_graphics": "Verify current platform dimensions and file-size requirements immediately before submission.",
     "screenshots": "Never use the feature graphic or social card as a gameplay screenshot.",
-    "edits": "Do not recolor semantic cyan, magenta, bone, or violet independently of the game palette."
+    "edits": "Preserve the sky, marble, bronze, aqua, coral, gold and deep-blue-outline roles; do not restore dark-biopunk, bone-monster or iris imagery."
   },
   "provenance": {
     "method": "Original hand-authored SVG geometry created as project source code",

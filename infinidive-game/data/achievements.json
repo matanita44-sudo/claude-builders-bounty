@@ -35,8 +35,8 @@
     },
     {
       "id": "gravebreaker",
-      "title": {"en": "Gravebreaker", "he": "שוברי הקבר"},
-      "description": {"en": "Defeat Gravemaw.", "he": "הביסו את לוע־הקבר."},
+      "title": {"en": "Break the First Hunger", "he": "שבירת הרעב הראשון"},
+      "description": {"en": "Defeat Cronus.", "he": "הביסו את קרונוס."},
       "event": "run_complete",
       "metric": "count",
       "threshold": 1,
@@ -45,8 +45,8 @@
     },
     {
       "id": "silence_the_choir",
-      "title": {"en": "Silence the Choir", "he": "השתקת המקהלה"},
-      "description": {"en": "Defeat Seraph-9.", "he": "הביסו את שרף־9."},
+      "title": {"en": "End the Endless Noon", "he": "סוף הצהריים האינסופיים"},
+      "description": {"en": "Defeat Hyperion.", "he": "הביסו את היפריון."},
       "event": "run_complete",
       "metric": "count",
       "threshold": 1,
@@ -55,8 +55,8 @@
     },
     {
       "id": "harpoon_the_abyss",
-      "title": {"en": "Harpoon the Abyss", "he": "צלצל לתהום"},
-      "description": {"en": "Defeat the Abyss Leviathan.", "he": "הביסו את לווייתן התהום."},
+      "title": {"en": "Turn the Worldstream", "he": "הסטת זרם העולם"},
+      "description": {"en": "Defeat Oceanus.", "he": "הביסו את אוקיינוס."},
       "event": "run_complete",
       "metric": "count",
       "threshold": 1,
@@ -65,8 +65,8 @@
     },
     {
       "id": "break_the_mirror",
-      "title": {"en": "Break the Mirror", "he": "שבירת המראה"},
-      "description": {"en": "Defeat the Null Twin.", "he": "הביסו את תאום האפס."},
+      "title": {"en": "Outgrow the Echo", "he": "להתגבר על ההד"},
+      "description": {"en": "Defeat Mnemosyne.", "he": "הביסו את מנמוסינה."},
       "event": "run_complete",
       "metric": "count",
       "threshold": 1,

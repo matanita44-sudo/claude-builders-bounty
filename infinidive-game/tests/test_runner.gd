@@ -298,6 +298,12 @@ func _test_mutations() -> void:
 	_assert(RunSceneClass.effective_fire_interval(1.0,0.8,rate_engine.flags,true)<RunSceneClass.effective_fire_interval(1.0,0.8,rate_engine.flags,false), "Breach Hunger must accelerate fire only during its timer")
 
 func _test_localization_and_settings() -> void:
+	_assert(String(SaveManager.default_profile().settings.language) == "en", "Fresh profiles must default to English without consulting the OS locale")
+	_assert(SettingsManager.normalize_language("HE_il") == "he", "An explicitly stored regional Hebrew selection must canonicalize to optional Hebrew")
+	_assert(SettingsManager.normalize_language("fr-FR") == "en", "Unsupported locales must fail closed to English")
+	_assert(SettingsManager.normalize_language(null) == "en", "Malformed locale values must fail closed to English")
+	_assert(LocalizationService.current_locale() == "en", "Fresh isolated startup must apply English before user-facing UI is created")
+	_assert(TranslationServer.get_locale() == "en", "Fresh startup must override any engine or platform locale with persisted English")
 	var english_keys: Array = LocalizationService.STRINGS.en.keys()
 	var hebrew_keys: Array = LocalizationService.STRINGS.he.keys()
 	english_keys.sort()
@@ -374,6 +380,22 @@ func _test_localization_and_settings() -> void:
 
 func _test_localized_ui() -> void:
 	var original_values := SettingsManager.values.duplicate(true)
+	SettingsManager.values.language = "en"
+	var english_nest := NestViewClass.new()
+	add_child(english_nest)
+	await get_tree().process_frame
+	_assert(english_nest._tagline.text == LocalizationService.STRINGS.en.tagline, "Fresh Nest UI must render its primary copy in English")
+	_assert(english_nest._hunt_button.text == LocalizationService.STRINGS.en.begin_dive, "Fresh primary action must render in English")
+	_assert(english_nest._boss_title.text == String(GameData.get_boss("gravemaw").get("name", "")), "Fresh boss selection must use the English catalog name")
+	english_nest._show_settings()
+	await get_tree().process_frame
+	var language_option := english_nest._overlay.find_child("LanguageOption",true,false) as OptionButton
+	_assert(language_option != null, "Settings must expose an explicit language selector")
+	_assert(language_option != null and language_option.selected == 0, "Fresh language selector must visibly select English")
+	_assert(language_option != null and language_option.get_item_text(0) == LocalizationService.STRINGS.en.english and language_option.get_item_text(1) == LocalizationService.STRINGS.en.hebrew, "Fresh language choices must be explained in English")
+	english_nest.queue_free()
+	await get_tree().process_frame
+
 	SettingsManager.values.language = "he"
 	var nest := NestViewClass.new()
 	add_child(nest)

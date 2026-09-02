@@ -8,6 +8,9 @@ const RoomPatternRuntimeScript := preload("res://scripts/core/room_pattern_runti
 const RoomSpaceScript := preload("res://scripts/core/room_space.gd")
 const RoomDefenderEffectsScript := preload("res://scripts/core/room_defender_effects.gd")
 const MetaGoalServiceScript := preload("res://scripts/services/meta_goal_service.gd")
+const SkyBattleTexture := preload("res://assets/art/backgrounds/sky_battle.png")
+const DivineInteriorTexture := preload("res://assets/art/backgrounds/divine_interior.png")
+const STORY_BOSS_ORDER := ["gravemaw","seraph_9","abyss_leviathan","null_twin"]
 
 signal run_finished(payload: Dictionary)
 
@@ -199,6 +202,8 @@ var _target_hit_count := 0
 var _peak_projectiles := 0
 var _tutorial_start_position := Vector2.ZERO
 var _tutorial_movement_seen := false
+var _aether_awakened := true
+var _aether_awakening_timer := -1.0
 var _meta_dirty := false
 var _last_perfect_dash_count := 0
 var _orbit_growth := 0.0
@@ -579,6 +584,7 @@ static func qa_ratio(current: Variant, maximum: Variant) -> Variant:
 
 func _ready() -> void:
 	_apply_config_defaults()
+	_aether_awakened = not bool(config.get("aether_prologue",false))
 	_mutation_choice_count = maxi(0, int(config.get("mutation_choice_count", 0)))
 	boss_definition = GameData.get_boss(String(config.boss))
 	weapon_definition = GameData.get_weapon(String(config.weapon))
@@ -749,6 +755,7 @@ func _build_world() -> void:
 		"dash_charges": _mutated_dash_charges(),
 		"starting_shield": _permanent_stats.starting_shield
 	})
+	_player.set_aether_awakened(_aether_awakened)
 	_player.died.connect(_on_player_died)
 	_player.damaged.connect(_on_player_damaged)
 	_player.dash_started.connect(_on_dash_started)
@@ -816,6 +823,12 @@ func _physics_process(delta: float) -> void:
 	if not _tutorial_movement_seen and _player.position.distance_to(_tutorial_start_position) >= 12.0:
 		_tutorial_movement_seen = true
 		_tutorial_observe(TutorialFlowScript.EVENT_MOVEMENT_STARTED)
+		if not _aether_awakened:
+			_aether_awakening_timer = 0.36
+	if _aether_awakening_timer >= 0.0:
+		_aether_awakening_timer -= delta
+		if _aether_awakening_timer <= 0.0:
+			_awaken_aion_spark()
 	elapsed += delta
 	breach_fury_timer = maxf(0.0,breach_fury_timer-delta)
 	if state in [RunState.EXTERIOR, RunState.CORE]:
@@ -942,6 +955,8 @@ func _update_combat(delta: float, exterior: bool) -> void:
 		_update_internal_hazards(delta)
 
 func _fire_timer_step(delta: float) -> void:
+	if not _aether_awakened:
+		return
 	fire_timer -= delta
 	if fire_timer > 0.0:
 		return
@@ -950,6 +965,23 @@ func _fire_timer_step(delta: float) -> void:
 	if phase_open_timer > 0.0:
 		fire_timer /= maxf(0.1, float(_permanent_stats.get("phase_open_rate_mul", 1.0)))
 	_fire_weapon()
+
+func _awaken_aion_spark() -> void:
+	if _aether_awakened:
+		return
+	_aether_awakened = true
+	_aether_awakening_timer = -1.0
+	fire_timer = 0.0
+	if _player != null:
+		_player.set_aether_awakened(true)
+	if _hud != null:
+		_hud.show_toast(LocalizationService.text("aion_spark_awakened"),Color("#F1BE48"))
+	AudioManager.play_sfx("mutation_select",1.08,0.72)
+	SettingsManager.pulse_haptic(16,0.42)
+	AnalyticsService.track("tutorial_step",{
+		"step":"aion_spark_awakened",
+		"boss":String(boss_definition.get("id","gravemaw"))
+	})
 
 func _fire_weapon(is_echo := false) -> void:
 	var target := _aim_target()
@@ -3839,6 +3871,7 @@ func _complete_run(won: bool,cause: String) -> void:
 		"weapon":String(weapon_definition.id),
 		"seed":int(config.seed),
 		"mode":String(config.mode)
+		,"story_first_clear":won and String(config.mode)=="story" and not _story_boss_completed_before_run(String(boss_definition.id))
 		,"difficulty":String(config.difficulty)
 		,"challenge_id":String(config.get("challenge_id",""))
 		,"challenge_day_utc":String(config.get("challenge_day_utc",""))
@@ -3867,6 +3900,17 @@ func _complete_run(won: bool,cause: String) -> void:
 	AnalyticsService.track("run_complete" if won else "player_death",{"boss":String(boss_definition.id),"seconds":elapsed,"organs":organs_destroyed,"cause":cause})
 	if String(config.mode) == "daily":
 		AnalyticsService.track("daily_rift_complete", {"boss":String(boss_definition.id),"won":won,"score":int(_result.score)})
+
+func _story_boss_completed_before_run(boss_id: String) -> bool:
+	var boss_index := STORY_BOSS_ORDER.find(boss_id)
+	if boss_index < 0:
+		return false
+	var required_depth := boss_index + 1
+	var progress: Dictionary = SaveManager.profile.get("difficulty_progress",{})
+	for raw_depth in progress.values():
+		if int(raw_depth) >= required_depth:
+			return true
+	return false
 
 func _submit_result_offline() -> void:
 	var major_events: Array[String] = []
@@ -4036,17 +4080,22 @@ func _decorative_motion_time() -> float:
 func _draw() -> void:
 	var interior:=state in [RunState.DIVING_IN,RunState.INTERNAL_ROOMS,RunState.ORGAN_CHAMBER,RunState.MUTATION_CHOICE,RunState.DIVING_OUT]
 	var motion_time:=_decorative_motion_time()
-	draw_rect(Rect2(0,0,540,960),VisualTheme.TISSUE.darkened(0.58) if interior else VisualTheme.DEEP_SPACE)
+	var background_texture: Texture2D = DivineInteriorTexture if interior else SkyBattleTexture
+	draw_texture_rect(background_texture,Rect2(0,0,540,960),false,Color(1,1,1,0.96))
+	# Keep combat silhouettes legible over the illustrated sky without returning
+	# to the old near-black space backdrop. The warm/cool wash also makes the
+	# outside-to-inside transition readable in a single phone-sized glance.
+	draw_rect(Rect2(0,0,540,960),Color("#DFF7FF",0.10) if not interior else Color("#184F78",0.18))
 	for star in _stars:
 		var point:Vector2=star.position
-		var alpha:=0.0 if interior else 0.18+sin(motion_time*1.4+float(star.phase))*0.12
-		draw_circle(point,float(star.size),Color(0.72,0.88,1.0,alpha))
+		var alpha:=0.0 if interior else 0.045+sin(motion_time*1.4+float(star.phase))*0.025
+		draw_circle(point,float(star.size)*1.25,Color(1.0,0.96,0.68,alpha))
 	if interior:
 		for index in 15:
 			var y:=float(index)*72.0+fmod(motion_time*35.0,72.0)-50.0
 			var x:=270.0+sin(index*1.7+motion_time*0.45)*205.0
-			draw_line(Vector2(0,y),Vector2(x,y+35),Color(VisualTheme.VULNERABLE,0.08),3.0+index%3)
-			draw_line(Vector2(540,y+18),Vector2(540-x,y+55),Color(VisualTheme.SHARD,0.06),2.0)
+			draw_line(Vector2(0,y),Vector2(x,y+35),Color("#FFF0A8",0.08),3.0+index%3)
+			draw_line(Vector2(540,y+18),Vector2(540-x,y+55),Color("#5FE6DA",0.08),2.0)
 	_draw_active_room_motifs()
 	_draw_room_defender_effects()
 	for enemy in _enemies:

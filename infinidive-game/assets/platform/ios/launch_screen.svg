@@ -1,65 +1,102 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1170" height="2532" viewBox="0 0 1170 2532" role="img" aria-labelledby="title desc">
-  <title id="title">INFINIDIVE launch screen</title>
-  <desc id="desc">A cyan Diver descends into a bone-armored magenta iris on a dark biopunk space field.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1170" height="2532" viewBox="0 0 1170 2532" role="img" aria-labelledby="title desc">
+  <title id="title">INFINIDIVE bright mythic launch screen</title>
+  <desc id="desc">A luminous sky reveals a colossal marble Titan behind a golden time-sun seal while a small unarmed Keeper raises the Aion spark above a custom path-only INFINIDIVE wordmark.</desc>
   <defs>
-    <radialGradient id="space" cx="50%" cy="47%" r="76%">
-      <stop offset="0" stop-color="#19101D"/>
-      <stop offset="0.5" stop-color="#070A0F"/>
-      <stop offset="1" stop-color="#03050C"/>
-    </radialGradient>
-    <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#F32D83" stop-opacity="0.24"/>
-      <stop offset="0.58" stop-color="#A78BFA" stop-opacity="0.08"/>
-      <stop offset="1" stop-color="#03050C" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8EDCF4"/>
+      <stop offset="0.56" stop-color="#C8F1EC"/>
+      <stop offset="1" stop-color="#F5E7C6"/>
+    </linearGradient>
+    <linearGradient id="marble" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFDF5"/>
+      <stop offset="0.62" stop-color="#F5E7C6"/>
+      <stop offset="1" stop-color="#C7D9DD"/>
+    </linearGradient>
+    <linearGradient id="bronze" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E19A5A"/>
+      <stop offset="1" stop-color="#8A4D2D"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF0A6"/>
+      <stop offset="0.52" stop-color="#F6C84A"/>
+      <stop offset="1" stop-color="#D9902F"/>
+    </linearGradient>
+    <path id="ray" d="M585 957 L624 1042 L546 1042 Z"/>
+    <path id="glyph-i" d="M10 0 H70 L80 22 L64 32 H56 V148 H68 L80 170 H0 L12 148 H24 V32 H14 L0 22 Z"/>
+    <path id="glyph-n" d="M0 170 V0 H31 L86 103 V0 H116 V170 H86 L30 67 V170 Z"/>
+    <path id="glyph-f" d="M0 170 V0 H106 L96 30 H32 V68 H88 V98 H32 V170 Z"/>
+    <path id="glyph-d" fill-rule="evenodd" d="M0 0 H57 C101 0 124 29 124 85 C124 141 101 170 57 170 H0 Z M32 30 V140 H55 C79 140 92 122 92 85 C92 48 79 30 55 30 Z"/>
+    <path id="glyph-v" d="M0 0 H34 L58 123 L82 0 H116 L78 170 H38 Z"/>
+    <path id="glyph-e" d="M0 0 H106 L96 30 H32 V68 H88 V98 H32 V140 H106 L96 170 H0 Z"/>
   </defs>
 
-  <rect width="1170" height="2532" fill="url(#space)"/>
-  <circle cx="585" cy="1356" r="560" fill="url(#pulse)"/>
-  <circle cx="585" cy="1356" r="420" fill="#100A16" stroke="#59606B" stroke-width="42"/>
-  <circle cx="585" cy="1356" r="342" fill="#070A0F" stroke="#D7D0BD" stroke-width="42"/>
+  <rect width="1170" height="2532" fill="url(#sky)"/>
+  <circle cx="879" cy="382" r="171" fill="#FFF0A6" opacity="0.92"/>
+  <path d="M-100 468 C55 352 188 475 325 414 C471 350 579 452 722 381 C858 313 982 392 1270 251 V618 H-100 Z" fill="#FFFFFF" opacity="0.67"/>
+  <path d="M-130 1976 C66 1808 239 1945 399 1880 C584 1805 725 1964 931 1869 C1053 1813 1167 1824 1310 1740 V2532 H-130 Z" fill="#FFFDF5" opacity="0.92"/>
+  <path d="M-84 2170 C119 2042 287 2166 455 2099 C649 2021 799 2156 1264 1937" fill="none" stroke="#D7DFE3" stroke-width="34" opacity="0.58"/>
 
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <g stroke="#070A0F" stroke-width="116">
-      <path d="M229 1215 C274 1069 397 970 545 948"/>
-      <path d="M650 961 C797 999 892 1112 916 1259"/>
-      <path d="M889 1495 C805 1641 651 1707 502 1682"/>
-      <path d="M392 1652 C254 1582 185 1448 197 1321"/>
+  <g stroke="#203354" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-220 1515 C-71 1082 233 968 438 945 L732 945 C937 968 1241 1082 1390 1515 L1236 1762 H-66 Z" fill="url(#marble)" stroke-width="42"/>
+    <path d="M-116 1466 L336 988 L233 1648 Z M1286 1466 L834 988 L937 1648 Z" fill="url(#bronze)" stroke-width="38"/>
+    <path d="M386 275 L784 275 L881 523 L819 846 L585 974 L351 846 L289 523 Z" fill="url(#marble)" stroke-width="46"/>
+    <path d="M329 542 L418 253 L585 172 L752 253 L841 542 L731 442 L690 635 L585 569 L480 635 L439 442 Z" fill="url(#bronze)" stroke-width="42"/>
+    <path d="M366 420 L446 273 L585 209 L724 273 L804 420 L689 364 L585 423 L481 364 Z" fill="url(#gold)" stroke-width="26"/>
+    <path d="M428 690 L531 663 M639 663 L742 690" fill="none" stroke-width="40"/>
+    <path d="M479 704 L531 712 M639 712 L691 704" fill="none" stroke="#35C8C0" stroke-width="22"/>
+    <path d="M585 677 L549 797 L585 827 L621 797" fill="none" stroke="#8A4D2D" stroke-width="22"/>
+    <path d="M493 862 Q585 922 677 862" fill="none" stroke="#8A4D2D" stroke-width="22"/>
+    <path d="M365 735 C407 790 431 836 440 891" fill="none" stroke="#FFFFFF" stroke-opacity="0.72" stroke-width="26"/>
+    <path d="M789 735 C750 790 729 837 721 895" fill="none" stroke="#B7CDD2" stroke-width="22"/>
+  </g>
+
+  <g fill="url(#gold)" stroke="#203354" stroke-width="24" stroke-linejoin="round">
+    <use href="#ray" xlink:href="#ray"/>
+    <use href="#ray" xlink:href="#ray" transform="rotate(45 585 1360)"/>
+    <use href="#ray" xlink:href="#ray" transform="rotate(90 585 1360)"/>
+    <use href="#ray" xlink:href="#ray" transform="rotate(135 585 1360)"/>
+    <use href="#ray" xlink:href="#ray" transform="rotate(180 585 1360)"/>
+    <use href="#ray" xlink:href="#ray" transform="rotate(225 585 1360)"/>
+    <use href="#ray" xlink:href="#ray" transform="rotate(270 585 1360)"/>
+    <use href="#ray" xlink:href="#ray" transform="rotate(315 585 1360)"/>
+  </g>
+  <circle cx="585" cy="1360" r="330" fill="url(#gold)" stroke="#203354" stroke-width="42"/>
+  <circle cx="585" cy="1360" r="270" fill="#FFF7E8" stroke="#B96F3A" stroke-width="34"/>
+  <circle cx="585" cy="1360" r="212" fill="#FFFDF5" stroke="#35C8C0" stroke-width="26"/>
+  <path d="M585 1148 V1190 M585 1530 V1572 M373 1360 H415 M755 1360 H797 M435 1210 L466 1241 M704 1479 L735 1510 M735 1210 L704 1241 M466 1479 L435 1510" fill="none" stroke="#B96F3A" stroke-width="24" stroke-linecap="round"/>
+  <path d="M493 1190 H677 L628 1295 H542 Z M542 1425 H628 L677 1530 H493 Z" fill="#FF786B" stroke="#203354" stroke-width="30" stroke-linejoin="round"/>
+  <path d="M542 1295 L585 1325 L628 1295 L616 1360 L628 1425 L585 1395 L542 1425 L554 1360 Z" fill="#35C8C0" stroke="#203354" stroke-width="24" stroke-linejoin="round"/>
+  <circle cx="585" cy="1360" r="32" fill="#F6C84A" stroke="#203354" stroke-width="16"/>
+  <circle cx="585" cy="1360" r="10" fill="#FFFFFF"/>
+
+  <g stroke="#203354" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="585" cy="1642" r="62" fill="#F2B58C" stroke-width="24"/>
+    <path d="M528 1633 C534 1568 637 1563 642 1636 C613 1613 576 1608 528 1633 Z" fill="#FF786B" stroke-width="21"/>
+    <path d="M530 1706 L640 1706 L671 1900 L499 1900 Z" fill="#35C8C0" stroke-width="27"/>
+    <path d="M546 1720 L585 1786 L624 1720 L635 1869 L535 1869 Z" fill="#FFF7E8" stroke-width="15"/>
+    <path d="M536 1733 L448 1642 L474 1606 L560 1694 M634 1733 L722 1642 L696 1606 L610 1694" fill="none" stroke="#F2B58C" stroke-width="36"/>
+    <circle cx="458" cy="1618" r="24" fill="#F2B58C" stroke-width="16"/>
+    <circle cx="712" cy="1618" r="24" fill="#F2B58C" stroke-width="16"/>
+    <path d="M535 1900 L516 1988 M635 1900 L654 1988" fill="none" stroke-width="38"/>
+    <path d="M529 1982 H477 M641 1982 H693" fill="none" stroke="#8A4D2D" stroke-width="32"/>
+  </g>
+  <path d="M585 1514 L602 1551 L643 1557 L613 1586 L620 1627 L585 1608 L550 1627 L557 1586 L527 1557 L568 1551 Z" fill="#F6C84A" stroke="#203354" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M542 1543 Q585 1511 628 1543" fill="none" stroke="#A8F3E6" stroke-width="17" stroke-linecap="round"/>
+
+  <g transform="translate(146 2148) scale(0.78)">
+    <g fill="#B96F3A" opacity="0.58" transform="translate(0 14)">
+      <use href="#glyph-i" xlink:href="#glyph-i" x="0"/><use href="#glyph-n" xlink:href="#glyph-n" x="86"/><use href="#glyph-f" xlink:href="#glyph-f" x="216"/><use href="#glyph-i" xlink:href="#glyph-i" x="336"/><use href="#glyph-n" xlink:href="#glyph-n" x="422"/><use href="#glyph-i" xlink:href="#glyph-i" x="552"/><use href="#glyph-d" xlink:href="#glyph-d" x="638"/><use href="#glyph-i" xlink:href="#glyph-i" x="776"/><use href="#glyph-v" xlink:href="#glyph-v" x="862"/><use href="#glyph-e" xlink:href="#glyph-e" x="992"/>
     </g>
-    <g stroke="#D7D0BD" stroke-width="78">
-      <path d="M229 1215 C274 1069 397 970 545 948"/>
-      <path d="M650 961 C797 999 892 1112 916 1259"/>
-      <path d="M889 1495 C805 1641 651 1707 502 1682"/>
-      <path d="M392 1652 C254 1582 185 1448 197 1321"/>
+    <g fill="#203354" stroke="#FFF7E8" stroke-width="14" paint-order="stroke fill">
+      <use href="#glyph-i" xlink:href="#glyph-i" x="0"/><use href="#glyph-n" xlink:href="#glyph-n" x="86"/><use href="#glyph-f" xlink:href="#glyph-f" x="216"/><use href="#glyph-i" xlink:href="#glyph-i" x="336"/><use href="#glyph-n" xlink:href="#glyph-n" x="422"/><use href="#glyph-i" xlink:href="#glyph-i" x="552"/>
+    </g>
+    <g fill="#35C8C0" stroke="#203354" stroke-width="12" paint-order="stroke fill">
+      <use href="#glyph-d" xlink:href="#glyph-d" x="638"/><use href="#glyph-i" xlink:href="#glyph-i" x="776"/><use href="#glyph-v" xlink:href="#glyph-v" x="862"/><use href="#glyph-e" xlink:href="#glyph-e" x="992"/>
     </g>
   </g>
-
-  <g fill="#F32D83" stroke="#070A0F" stroke-width="24" stroke-linejoin="round">
-    <path d="M585 1044 C653 1126 670 1212 631 1284 C616 1311 599 1333 585 1355 C571 1333 554 1311 539 1284 C500 1212 517 1126 585 1044 Z"/>
-    <path d="M585 1044 C653 1126 670 1212 631 1284 C616 1311 599 1333 585 1355 C571 1333 554 1311 539 1284 C500 1212 517 1126 585 1044 Z" transform="rotate(120 585 1356)"/>
-    <path d="M585 1044 C653 1126 670 1212 631 1284 C616 1311 599 1333 585 1355 C571 1333 554 1311 539 1284 C500 1212 517 1126 585 1044 Z" transform="rotate(240 585 1356)"/>
-  </g>
-  <circle cx="585" cy="1356" r="136" fill="#03050C" stroke="#A78BFA" stroke-width="16"/>
-  <circle cx="585" cy="1356" r="89" fill="#070A0F" stroke="#F32D83" stroke-opacity="0.72" stroke-width="10"/>
-
-  <path d="M585 458 V1040" fill="none" stroke="#54F2E7" stroke-opacity="0.14" stroke-width="80" stroke-linecap="round"/>
-  <path d="M585 482 V1048" fill="none" stroke="#C9FFFB" stroke-opacity="0.8" stroke-width="12" stroke-linecap="round"/>
-  <g stroke="#070A0F" stroke-width="22" stroke-linejoin="round">
-    <path d="M585 606 L630 1033 L607 1091 L585 1222 L563 1091 L540 1033 Z" fill="#54F2E7"/>
-    <path d="M557 997 L462 1084 L560 1112 Z" fill="#D7D0BD"/>
-    <path d="M613 997 L708 1084 L610 1112 Z" fill="#D7D0BD"/>
-  </g>
-  <path d="M585 688 L603 1026 L585 1136 L567 1026 Z" fill="#C9FFFB"/>
-  <circle cx="585" cy="1044" r="16" fill="#070A0F" stroke="#A78BFA" stroke-width="9"/>
-
-  <g fill="#F4F1E8" opacity="0.74">
-    <circle cx="126" cy="316" r="7"/>
-    <circle cx="992" cy="386" r="5"/>
-    <circle cx="1054" cy="1918" r="8"/>
-    <circle cx="103" cy="2208" r="5"/>
-  </g>
-  <path d="M424 2010 H746" stroke="#F32D83" stroke-width="8" stroke-linecap="round"/>
-  <circle cx="424" cy="2010" r="9" fill="#F32D83"/>
-  <circle cx="746" cy="2010" r="9" fill="#F32D83"/>
+  <path d="M150 2315 H1020" fill="none" stroke="#203354" stroke-width="12" stroke-linecap="round"/>
+  <path d="M150 2315 H655" fill="none" stroke="#F6C84A" stroke-width="6" stroke-linecap="round"/>
+  <path d="M655 2315 H1020" fill="none" stroke="#FF786B" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="655" cy="2315" r="16" fill="#35C8C0" stroke="#203354" stroke-width="8"/>
 </svg>

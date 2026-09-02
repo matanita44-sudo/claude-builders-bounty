@@ -1,6 +1,6 @@
 # Asset licenses and provenance
 
-Last audited: 2026-09-01
+Last audited: 2026-09-02
 
 This file documents the creative media committed to the INFINIDIVE project. It distinguishes original project work, generated evidence, and third-party material. It is not a license for the source code as a whole.
 
@@ -25,33 +25,86 @@ Copyright © 2026 Matan. All rights reserved.
 
 The feature and social graphics are illustrative key art. They are not gameplay screenshots and must not be represented as such.
 
-Verified SHA-256 values for the Android adaptive-icon SVG sources are: background `78aefec7c75b3019058f50b7c0845a007cef35bfab4dbaf6201d87d84625ec53`, foreground `b1d0620980957c776bc516e8af6cba5a1e09156b4d2d50035723e9c761971c8c`, and monochrome `128040c3ec3808d5d1c0fe30a9e11f5dc180f56e8c8da3976bff8fa43179ab4b`.
+The bright Greek-mythic SVG masters were fingerprinted after final raster QA on 2026-09-02:
+
+| Source path | Size | SHA-256 |
+|---|---:|---|
+| `assets/brand/logo_mark.svg` | 6,320 bytes | `d68bea3cebe0c3f95ce32d2681e4de1a78b30b16ebf239985ef03f9778b1d777` |
+| `assets/brand/app_icon.svg` | 5,929 bytes | `dd6a756e859a21c306438fdc5aea8cac3b752086ba8c29a11fb5d89149810e0a` |
+| `assets/brand/wordmark.svg` | 5,605 bytes | `8a37e7a7de3b21500f7c872b61db7348d005728d142b56ba7d155103677d0812` |
+| `assets/brand/feature_graphic.svg` | 6,883 bytes | `433b2c68a0bb4dace139a40a2b2e8d13692822788e2f93735bf1a1eaa37c1c14` |
+| `assets/brand/social_card.svg` | 7,170 bytes | `14f1f1863603c59ec6f926e1cc6f5a3579339d646be74d9ca69c43f5dd70b95b` |
+| `assets/brand/android_adaptive_background.svg` | 1,114 bytes | `a7f6d6c006b5929bd4981a527bc7e8c42717d4fdce99e81198149c28247fec8a` |
+| `assets/brand/android_adaptive_foreground.svg` | 3,642 bytes | `31ef1eddf22964e8ef5e212d1e734fb6c712cd1633737740242d4066a2aa2ae8` |
+| `assets/brand/android_adaptive_monochrome.svg` | 1,204 bytes | `3944bb9fb7b745b785c5ffe184b9e1808a6c0f5dec85eec388b792b0723fca8b` |
+| `assets/platform/ios/launch_screen.svg` | 8,473 bytes | `2f1fafaadf76afe6c9331cee09c4334feb229459fd6ad0278a7add38442f3a39` |
 
 ### Store raster exports
 
-The following files are deterministic raster exports of the original SVG sources above. `file(1)` inspection on 2026-09-01 verified the stated dimensions and channel formats. The Google Play icon, wordmark, and social card are RGBA; the app icon and feature graphic are RGB without alpha.
+The following files are deterministic raster exports of the original SVG sources above. `file(1)` inspection on 2026-09-02 verified the stated dimensions and channel formats. The Google Play icon, wordmark, and social card are RGBA; the app icon and feature graphic are RGB without alpha.
 
 | Path | Verified format | Size | SHA-256 | Rights |
 |---|---|---:|---|---|
-| `assets/store/app-icon-1024.png` | PNG, 1024×1024, 8-bit/color RGB | 160,067 bytes | `1a1d424f889849893a74812209225843a650f46290cb4d26ba18250fe9fedf52` | Copyright © 2026 Matan. All rights reserved. |
-| `assets/store/google-play-icon-512.png` | PNG, 512×512, 8-bit/color RGBA | 141,587 bytes | `113502be137d8927654c9906d3237025896074c68f53947c747adf0b18fda635` | Copyright © 2026 Matan. All rights reserved. |
-| `assets/store/google-play-feature-1024x500.png` | PNG, 1024×500, 8-bit/color RGB | 79,388 bytes | `88cbbf03f75d0621ff87a4239491ec536eab9eeae7e7a3967d981b568532961c` | Copyright © 2026 Matan. All rights reserved. |
-| `assets/store/wordmark-2400.png` | PNG, 2400×630, 8-bit/color RGBA | 69,906 bytes | `85fd835ccc0f0553ebffd3f81b74b806530dc79a222f8d29f6dacdae535c9878` | Copyright © 2026 Matan. All rights reserved. |
-| `assets/store/social-card-1200x630.png` | PNG, 1200×630, 8-bit/color RGBA | 115,461 bytes | `3fef144afb1d783e276a5c4b4e0dda272bd0ac46703a3d7174e24d2054ec3321` | Copyright © 2026 Matan. All rights reserved. |
+| `assets/store/app-icon-1024.png` | PNG, 1024×1024, 8-bit/color RGB | 143,963 bytes | `69a38953ac5403f7db0c287dec796ca905684013da6b53936ccce2623630627c` | Copyright © 2026 Matan. All rights reserved. |
+| `assets/store/google-play-icon-512.png` | PNG, 512×512, 8-bit/color RGBA | 72,562 bytes | `eb161d7102cc2d73f1859a53775f38d52350d8355bd9342763772d7653540244` | Copyright © 2026 Matan. All rights reserved. |
+| `assets/store/google-play-feature-1024x500.png` | PNG, 1024×500, 8-bit/color RGB | 112,731 bytes | `b1c85302917e766e40869dfa22c01c58e1fa6d71deef3eb284716833eef7daa8` | Copyright © 2026 Matan. All rights reserved. |
+| `assets/store/wordmark-2400.png` | PNG, 2400×630, 8-bit/color RGBA | 122,479 bytes | `52dd7ad56152e1916d6c0166ecbec7ecc06e4cf6ef895215e86747e90534ff12` | Copyright © 2026 Matan. All rights reserved. |
+| `assets/store/social-card-1200x630.png` | PNG, 1200×630, 8-bit/color RGBA | 157,601 bytes | `45dffcfb19beed61ac5d6ad4166f3ab04b1ee59459928471333433bf84809777` | Copyright © 2026 Matan. All rights reserved. |
 
-`assets/platform/ios/icon-{40,58,60,76,80,87,114,120,128,136,152,167,180,192,1024}.png` are deterministic exact-size RGB/no-alpha derivatives of the same original app-icon source, wired through `export_presets.cfg`. Their generated `.import` files are Godot metadata, not separate creative assets.
+`assets/platform/ios/icon-{40,58,60,76,80,87,114,120,128,136,152,167,180,192,1024}.png` are deterministic exact-size RGB/no-alpha derivatives of the same original app-icon source, wired through `export_presets.cfg`. Their generated `.import` files are Godot metadata, not separate creative assets. The exact derivative fingerprints are:
 
-`assets/platform/ios/launch_screen@2x.png` and `launch_screen.png` are the 780×1688 and 1170×2532, 8-bit sRGB RGB/no-alpha rasters exported from `launch_screen.svg` and wired to the iOS storyboard as its 2x/3x images. Source SHA-256: `a351126dbddfff161a28744a854d85ec210a6c4f88cfde07abb0d0922aad6985`; 2x raster SHA-256: `98582dc2439409c857fca71613cd2fa4266eb41d960377075d950284a873ca93`; 3x raster SHA-256: `4478c6e3b26f1a3d80e87b954418e38909cca30a63caab8168d40a592e14960a`.
+| iOS icon | Size | SHA-256 |
+|---|---:|---|
+| `icon-40.png` | 2,716 bytes | `f58a3fb4f30eeb2dd9296af3c8b2e414a580587ce6241ecd37a6e4b18b27d0e8` |
+| `icon-58.png` | 4,807 bytes | `3a82966af16c568c5b5235004eca3f0935dd736060e9747641d2ad4bf7aa00ca` |
+| `icon-60.png` | 5,093 bytes | `8eae7838ca59acf79c9f7b2c37d9a6acc5a078d647213b84ea7018aadf84ef91` |
+| `icon-76.png` | 7,161 bytes | `afff2ecb0123d230b4021e0b862df74b4f58e63941c9a1d828b860abcaab96d1` |
+| `icon-80.png` | 7,639 bytes | `50eb995d6c8fad48ee497ddec09d5e6e85fee66124dc6474ccf09160f0cefbc5` |
+| `icon-87.png` | 8,707 bytes | `14477455949281218ef07d3fcec125b34a6c5bbdd5a81fc70b54b9c9c9fcaee1` |
+| `icon-114.png` | 12,251 bytes | `13444a7486d2640fd475ae0a6de23e95673cf4fb2d60e19111a9e22c5fd83508` |
+| `icon-120.png` | 13,115 bytes | `b48431324802375ba8dfcf8e436a2baa85fe9b730bc942489ae6437e3327a271` |
+| `icon-128.png` | 14,101 bytes | `6a4de57ee3c0be00e80075d8615c5f4171fb9743226cce65987d4cd61c43a190` |
+| `icon-136.png` | 15,187 bytes | `04b38f67de033e8abf9b2827c7cbedc6691b454445af9a6b4f05f1a8ed36eca9` |
+| `icon-152.png` | 17,394 bytes | `1e20b494b0c9d7e82ef4ae900184afccd1a61d6e7f9d8db513d9b83241362ad4` |
+| `icon-167.png` | 19,256 bytes | `5b25e1da29f11eeb27c15ae371a2104ac9bf5eb94aad0b401acace73593a6dc3` |
+| `icon-180.png` | 21,146 bytes | `6ac4a57546d0e2a5f88cea9bb5c66eea35abf05f6fe25ae713282c193768af17` |
+| `icon-192.png` | 22,722 bytes | `c4ac3acba7d4f52beb7708ae0c4d6908b9f9af3eee1c8fcfbab32fe805ba5e63` |
+| `icon-1024.png` | 143,963 bytes | `69a38953ac5403f7db0c287dec796ca905684013da6b53936ccce2623630627c` |
+
+`assets/platform/ios/launch_screen@2x.png` and `launch_screen.png` are the 780×1688 and 1170×2532, 8-bit sRGB RGB/no-alpha rasters exported from `launch_screen.svg` and wired to the iOS storyboard as its 2x/3x images. Source size/hash: 8,473 bytes, `2f1fafaadf76afe6c9331cee09c4334feb229459fd6ad0278a7add38442f3a39`; 2x raster size/hash: 201,788 bytes, `905cf3045c20775fe5a1ca25835fd352fe48dc8c01738c49307d7e4c86ca0f12`; 3x raster size/hash: 313,398 bytes, `c17a2df0f4bd695888c74157d6f9c341a9efe8c6b952bfd5991a863db9f686e6`.
 
 The feature graphic satisfies the recorded no-alpha channel requirement. The Play icon has the recorded 512×512, 32-bit RGBA format and size limit; final visual and console-upload validation still remain before submission.
 
+## Project-generated runtime artwork
+
+The runtime images below were created on 2026-09-02 specifically for INFINIDIVE at the project owner's direction using the image generator built into the development environment. The generation briefs requested original Greek-mythic characters and environments with a bright, readable mobile-game presentation; they did not request imitation of a named artist or the reproduction of an existing game asset.
+
+A user-supplied reference image was consulted only for broad visual direction such as readability, color, scale, and energy. The reference image is not included in this repository, was not composited into these files, and is not redistributed by the project.
+
+Use of the generated outputs is subject to the image-generator provider terms applicable to the owner and the relevant service account. This provenance record does not make an independent claim about copyrightability, exclusivity, or ownership beyond those terms. No third-party stock asset, texture pack, character file, font, or watermarked element was intentionally incorporated.
+
+The transparent hero and Titan outputs were processed after generation by removing their generated chroma-key backgrounds, trimming the transparent canvas, and resizing them for the Godot runtime. Oceanus received one additional image-generator edit on 2026-09-02 to remove residual green inside the water halo before the same mechanical resize/canvas fit. The two full-frame backgrounds were resized and exported as 8-bit RGB PNGs at the game's 540×960 portrait reference size; they did not require chroma-key transparency. These operations did not introduce another creative source.
+
+| Path | Runtime format | Post-generation processing | SHA-256 |
+|---|---|---|---|
+| `assets/art/heroes/aion_diver_unarmed.png` | PNG, 313×512, 8-bit sRGBA | Chroma-key background removal, transparent trim, and resize | `ca6b44ba4842de8c2b31b35b8063b34a2235253b515820874b2e13b917631697` |
+| `assets/art/titans/cronus.png` | PNG, 683×768, 8-bit sRGBA | Chroma-key background removal, transparent trim, and resize | `13090ff99e036af3d96561ae0844586aa5905675c5ce8b198f27f84ab47045a0` |
+| `assets/art/titans/hyperion.png` | PNG, 512×768, 8-bit sRGBA | Chroma-key background removal, transparent trim, and resize | `da242f5413c29b0358d735647292979b89bb649c1b8a21ac4e698f6fabee7245` |
+| `assets/art/titans/oceanus.png` | PNG, 540×768, 8-bit sRGBA | Image-generator transparent-background cleanup, resize, and transparent canvas fit | `d662a4e09b69f05036d877b780497f218151ad382527d8a98df810463627273a` |
+| `assets/art/titans/mnemosyne.png` | PNG, 515×768, 8-bit sRGBA | Chroma-key background removal, transparent trim, and resize | `a496f32f5b331f6ba7a729303f702bd3cbe09de3f5bad486d0e42eb841eb443a` |
+| `assets/art/backgrounds/sky_battle.png` | PNG, 540×960, 8-bit sRGB | Portrait resize and PNG24/RGB export; no chroma key | `020e2702d677950e2224ec03a87e10805bdf01f1d7892a56a423ffacac82b3a8` |
+| `assets/art/backgrounds/divine_interior.png` | PNG, 540×960, 8-bit sRGB | Portrait resize and PNG24/RGB export; no chroma key | `9d104587ebf8d6361d021d19fbbca883450e30ee6276be08ba311d2b231c076e` |
+
+Godot-generated `assets/art/**/*.import` files are engine import metadata and are not separate creative assets.
+
 ## Runtime visual and audio identity
 
-The current game does not ship external sprites, texture packs, sound samples, music recordings, icon libraries, or font files.
+The current game ships the project-generated runtime images catalogued above. It does not ship separately sourced stock sprites, texture packs, sound samples, music recordings, icon libraries, or font files.
 
 | System | Relevant source | Provenance |
 |---|---|---|
-| Procedural boss, projectile, organ, room, and Nest visuals | `scripts/gameplay/boss_visual.gd`, `scripts/gameplay/run_scene.gd`, `scripts/ui/nest_view.gd`, and related project scripts | Original code-native geometry and drawing logic; no external visual assets |
+| Runtime characters, Titans, and battle backgrounds | `assets/art/`, `scripts/gameplay/player_controller.gd`, `scripts/gameplay/boss_visual.gd`, and `scripts/gameplay/run_scene.gd` | Project-directed generated artwork catalogued above, with original code-native fallbacks and effects |
+| Procedural projectile, room, UI, and Nest visuals | `scripts/gameplay/projectile_pool.gd`, `scripts/gameplay/run_scene.gd`, `scripts/ui/nest_view.gd`, and related project scripts | Original code-native geometry and drawing logic |
 | Procedural sound effects and music | `scripts/services/procedural_audio.gd` | Original runtime synthesis; no recorded or sampled source audio |
 | Semantic palette | `scripts/ui/visual_theme.gd` | Original project palette |
 | UI text rendering | Godot runtime/default font behavior | No font file is redistributed by this repository |
@@ -75,6 +128,10 @@ Copyright © 2026 Matan. All rights reserved.
 | `artifacts/internal-zone.png` | Game capture | Rendered from this project |
 | `artifacts/organ-choice-real.png` | Game capture | Rendered from this project |
 | `artifacts/organ-choice.png` | Game capture | Rendered from this project |
+| `artifacts/aion-prologue-preview.png` | Current English-first story capture | Captured from the live bright-mythic Godot window at 405×720 under Linux/Xvfb; 35,099 bytes; SHA-256 `2c1516b855150b92a86bf5b2b6e33eedad11352c36f5b560a9fe58db6611dca8` |
+| `artifacts/unarmed-intro-preview.png` | Current unarmed-Keeper capture | Captured from the live bright-mythic Godot window at 405×720 before first movement; 370,304 bytes; SHA-256 `d38654f404e22145cf3897a7eb7e11d593ee737fcae76f4a23b14c5a7cace04c` |
+| `artifacts/mythic-combat-preview.png` | Current Aion Spark combat capture | Captured from the live bright-mythic Godot window at 405×720 after first movement; 372,962 bytes; SHA-256 `8499307355d156125588c622119229d3c3742676c22f1dfaa9115cc757303da1` |
+| `artifacts/mythic-nest-preview.png` | Current Last Nest capture | Captured from the live bright-mythic Godot window at 405×720; 83,630 bytes; SHA-256 `7b73ea56bb3e2bf8620741c11fee8995dbd5359603389a89d9189c977e12a35e` |
 | `artifacts/boot.avi` | Game capture video | Rendered from this project |
 | `artifacts/boot.png.import` and other Godot `.import` metadata | Generated engine metadata | Created by Godot; not an authored media asset |
 
@@ -95,20 +152,20 @@ Copyright © 2026 Matan. All rights reserved.
 | `assets/store/gameplay/internal-zone-1080x1920.png` | Actual runtime still | Captured from the live Godot window at 1080×1920 |
 | `assets/store/gameplay/raw/session-1080x1920.mp4` | Continuous actual runtime video | FFmpeg X11 capture of the live Godot window; silent because the virtual run used the Dummy audio driver |
 | `assets/store/gameplay/trailer-runtime-dev-17s.mp4` | Edited actual runtime video | Hard cuts from the continuous capture only; no overlays, key art, retiming, or generated frames |
-| `assets/store/gameplay/trailer-runtime-social-17s.mp4` | Android/social development trailer | The unchanged 1080×1920, 30 fps H.264 gameplay stream from the development edit plus a 48 kHz stereo AAC arrangement rendered only from the shipped `ProceduralAudio` implementation; 3,183,616 bytes; SHA-256 `3950107d8ef89abffd42fec303f96ef5931a1c4139dcc771d91c17c7fa9c7103` |
-| `assets/store/gameplay/trailer-runtime-apple-candidate-886x1920-17s.mp4` | Apple-format technical candidate | Complete runtime frames scaled proportionally to 886×1576 and padded to 886×1920, with the same project-generated 48 kHz stereo AAC; no gameplay crop or fabricated frames; 22,353,991 bytes; SHA-256 `7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8`. Not submission-ready because the source was Linux/Xvfb rather than a supported iPhone capture. |
-| `assets/store/gameplay/trailer-runtime-apple-poster-5s-886x1920.jpg` | Candidate poster frame | 886×1920, 8-bit RGB JPEG frame extracted at 5.0 seconds from the Apple-format technical candidate; 78,842 bytes; SHA-256 `f04c066c4cc3e8124984bd78a3c3c8d11fae59d5f6e332d17c288dcb01b466a5` |
-| `assets/store/gameplay/capture-manifest.json` | Provenance metadata | Original project documentation containing capture facts, hashes, and limitations |
+| `assets/store/gameplay/trailer-runtime-social-17s.mp4` | Legacy pre-pivot social development trailer | The unchanged 1080×1920, 30 fps H.264 gameplay stream from the development edit plus a 48 kHz stereo AAC arrangement rendered only from the shipped `ProceduralAudio` implementation; 3,183,616 bytes; SHA-256 `3950107d8ef89abffd42fec303f96ef5931a1c4139dcc771d91c17c7fa9c7103`. Truthful historical provenance only; its dark GRAVEMAW identity does not represent the current product. |
+| `assets/store/gameplay/trailer-runtime-apple-candidate-886x1920-17s.mp4` | Legacy pre-pivot Apple-format experiment | Complete runtime frames scaled proportionally to 886×1576 and padded to 886×1920, with the same project-generated 48 kHz stereo AAC; no gameplay crop or fabricated frames; 22,353,991 bytes; SHA-256 `7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8`. Not submission-ready because it predates the identity pivot and the source was Linux/Xvfb rather than a supported Apple capture path. |
+| `assets/store/gameplay/trailer-runtime-apple-poster-5s-886x1920.jpg` | Legacy pre-pivot poster frame | 886×1920, 8-bit RGB JPEG frame extracted at 5.0 seconds from the Apple-format experiment; 78,842 bytes; SHA-256 `f04c066c4cc3e8124984bd78a3c3c8d11fae59d5f6e332d17c288dcb01b466a5` |
+| `assets/store/gameplay/capture-manifest.json` | Provenance metadata | Original project documentation containing capture facts, hashes, limitations, and an explicit legacy pre-pivot/non-submission status |
 | `assets/store/gameplay/README.md` | Evidence documentation | Original project documentation |
 | `assets/store/gameplay/*.import` | Godot import metadata, when present | Generated engine metadata; not a separate creative asset |
 
 ## Third-party asset inventory
 
-No third-party creative assets are currently committed to this project. The delivered trailer audio is an offline render from the game's original procedural-audio source; it contains no external sample, recording, voice, music, or sound library.
+No separately sourced third-party creative assets are currently committed to this project. The project-generated image outputs are disclosed in their own section above and remain governed by the applicable image-generator provider terms. The delivered trailer audio is an offline render from the game's original procedural-audio source; it contains no external sample, recording, voice, music, or sound library.
 
 Specifically, the current inventory contains:
 
-- no external or copyrighted character art;
+- no separately sourced character or environment art;
 - no stock imagery;
 - no external icons;
 - no external fonts;

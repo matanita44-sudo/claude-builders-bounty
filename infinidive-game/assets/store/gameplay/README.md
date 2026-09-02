@@ -1,25 +1,27 @@
-# Truthful gameplay media
+# Historical pre-pivot runtime media
 
-Every gameplay pixel in this folder comes from the actual running INFINIDIVE Godot project. The media contains no mockups, recreated UI, key art, speed changes, generated frames, or claims for unimplemented features.
+Every gameplay pixel in this folder came from an actual running INFINIDIVE Godot build. The media contains no mockups, recreated UI, key art, speed changes, generated frames, or claims for unimplemented features.
+
+> **Legacy identity notice:** this capture predates the bright Greek-mythic/AION presentation pivot. It truthfully records the earlier dark GRAVEMAW build, but it does **not** represent the current CRONUS, unarmed-Keeper, AION SPARK, sky-world, or story presentation. None of these stills, posters, or trailers is submission-ready or approved for current store/marketing use. Preserve them as development provenance only; replace them with real release-candidate captures after the pivot is frozen and validated.
 
 ## Trailer deliverables
 
 | File | Intended use | What changed from the runtime edit |
 |---|---|---|
-| `trailer-runtime-social-17s.mp4` | Primary Android/social portrait trailer | Original 1080×1920 H.264 video stream copied without re-encoding; stereo procedural game audio added |
-| `trailer-runtime-apple-candidate-886x1920-17s.mp4` | iPhone App Preview technical-format candidate | Full 1080×1920 frame scaled to 886×1576, then padded with 172 black pixels above and below; stereo procedural game audio added |
-| `trailer-runtime-apple-poster-5s-886x1920.jpg` | Five-second candidate poster-frame reference | Actual candidate video frame; no alpha channel |
+| `trailer-runtime-social-17s.mp4` | Historical pre-pivot social-development edit | Original 1080×1920 H.264 video stream copied without re-encoding; stereo procedural game audio added |
+| `trailer-runtime-apple-candidate-886x1920-17s.mp4` | Historical pre-pivot iPhone technical-format experiment | Full 1080×1920 frame scaled to 886×1576, then padded with 172 black pixels above and below; stereo procedural game audio added |
+| `trailer-runtime-apple-poster-5s-886x1920.jpg` | Historical five-second poster-frame reference | Actual historical video frame; no alpha channel |
 | `trailer-runtime-dev-17s.mp4` | Preserved silent development edit | Unchanged source edit made only from the continuous runtime capture |
 
-The 17.2-second audio arrangement is rendered directly from the shipped `ProceduralAudio` implementation. It uses GRAVEMAW's own `nest`, `exterior`, `breach`, `organ`, `dive`, and `interior` music states plus shipped game SFX. There are no external samples, music, voices, or sound libraries.
+The 17.2-second audio arrangement was rendered directly from the shipped `ProceduralAudio` implementation. It uses the stable internal `gravemaw` boss profile and the captured build's `nest`, `exterior`, `breach`, `organ`, `dive`, and `interior` music states plus shipped game SFX. Its player-facing GRAVEMAW identity is pre-pivot; the same internal boss ID is now displayed as CRONUS. There are no external samples, music, voices, or sound libraries.
 
-## Current Apple status
+## Historical Apple-format status
 
-The Apple candidate passes local technical checks for Apple's current portrait iPhone App Preview format: 886×1920, H.264 High Profile Level 4.0, 30 fps, 10.12 Mbps video, stereo AAC configured at 256 kbps/48 kHz, 17.2 seconds, and under 500 MB. The specification checked on 2026-09-01 is Apple's [App preview specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/app-preview-specifications).
+The historical Apple-format file passed local technical checks performed on 2026-09-01 for the then-reviewed portrait iPhone App Preview stream contract: 886×1920, H.264 High Profile Level 4.0, 30 fps, 10.12 Mbps video, stereo AAC configured at 256 kbps/48 kHz, 17.2 seconds, and under 500 MB. The checked reference was Apple's [App preview specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/app-preview-specifications).
 
-It is deliberately named **candidate**, not submission-ready. The original footage was captured from Linux/Xvfb rather than an iPhone, and Apple describes iOS-device capture in its App Preview requirements. A final App Store submission preview therefore needs recapture on a real supported iPhone, followed by the same truthful edit and validation. Passing local `ffprobe` checks does not prove that App Store Connect accepted the upload.
+It was deliberately named **candidate**, but the visual pivot makes it a legacy artifact rather than a current candidate. The original footage was also captured from Linux/Xvfb rather than an iPhone. If an App Preview is used, it needs fresh release-candidate capture through a supported Apple workflow, truthful editing, current-spec validation, and App Store Connect processing. Passing local `ffprobe` checks never proved upload or review acceptance.
 
-## Runtime evidence
+## Historical runtime evidence
 
 | File | What the runtime visibly proves |
 |---|---|
@@ -27,7 +29,7 @@ It is deliberately named **candidate**, not submission-ready. The original foota
 | `exterior-combat-1080x1920.png` | Live movement, automatic fire, boss armor, projectiles, HUD, and dash control |
 | `breach-open-1080x1920.png` | Armor depletion creates a visible breach and enables `DIVE NOW` |
 | `organ-choice-1080x1920.png` | Three actual organ choices explain their exterior-combat consequence |
-| `internal-zone-1080x1920.png` | The selected Hunter Eye route changes the environment and HUD to an internal room |
+| `internal-zone-1080x1920.png` | The captured build's Hunter Eye route changes the environment and HUD to an internal room |
 | `raw/session-1080x1920.mp4` | Local-only 44.4-second continuous provenance capture; intentionally excluded from version control |
 
 ## Capture truth and limitations
@@ -37,7 +39,7 @@ It is deliberately named **candidate**, not submission-ready. The original foota
 - Interaction used ordinary mouse input through the project's mouse-to-touch emulation.
 - No save manipulation, state injection, debug skip, gameplay edit, or feature simulation was used.
 - The capture used Godot's Dummy audio driver, so the continuous capture and preserved development edit are silent. Audio was later rendered offline from shipped game code.
-- This is virtual-display evidence, not physical iPhone/Android QA.
+- This is pre-pivot virtual-display evidence, not current-presentation evidence or physical iPhone/Android QA.
 - The candidate's 172-pixel top and bottom black bars are disclosed format padding; they are not part of the game UI.
 
 ## Reproduction and validation

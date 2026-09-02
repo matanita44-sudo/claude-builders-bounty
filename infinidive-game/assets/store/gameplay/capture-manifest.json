@@ -1,7 +1,14 @@
 {
-  "schema_version": 2,
-  "status": "android_social_ready_apple_technical_candidate_only",
+  "schema_version": 3,
+  "status": "legacy_pre_pivot_development_evidence_not_submission_ready",
   "captured_at_utc": "2026-09-01",
+  "presentation_identity": {
+    "captured_identity": "Dark GRAVEMAW-era presentation before the Greek-mythic/AION pivot",
+    "current_identity": "Bright Greek-mythic presentation with CRONUS, the unarmed Keeper, and AION SPARK",
+    "represents_current_product": false,
+    "approved_for_current_store_or_marketing_use": false,
+    "required_action": "Recapture every store still, poster, and trailer from the frozen release candidate after the visual and narrative pivot is complete."
+  },
   "game": {
     "name": "INFINIDIVE",
     "application_version": "0.1.0",
@@ -99,7 +106,7 @@
     },
     {
       "file": "trailer-runtime-social-17s.mp4",
-      "kind": "actual_runtime_android_social_trailer",
+      "kind": "legacy_pre_pivot_social_development_trailer",
       "resolution": "1080x1920",
       "video": {
         "codec": "H.264 High Profile Level 4.0 yuv420p",
@@ -123,7 +130,7 @@
     },
     {
       "file": "trailer-runtime-apple-candidate-886x1920-17s.mp4",
-      "kind": "actual_runtime_apple_technical_format_candidate",
+      "kind": "legacy_pre_pivot_apple_technical_format_experiment",
       "submission_ready": false,
       "submission_blocker": "The underlying gameplay was captured on Linux/Xvfb rather than a supported iPhone. Technical stream validation cannot establish App Store Connect acceptance or satisfy device-capture provenance.",
       "resolution": "886x1920",
@@ -149,7 +156,7 @@
     },
     {
       "file": "trailer-runtime-apple-poster-5s-886x1920.jpg",
-      "kind": "actual_runtime_candidate_poster_frame",
+      "kind": "legacy_pre_pivot_poster_frame",
       "source_time_seconds": 5.0,
       "resolution": "886x1920",
       "color_type": "sRGB TrueColor without alpha",
@@ -197,6 +204,7 @@
       "App Store Connect upload or processing",
       "Google Play Console upload or processing",
       "Physical-device capture or playback",
+      "Current bright Greek-mythic/AION presentation",
       "Store-review acceptance"
     ]
   },
@@ -206,11 +214,13 @@
     "contains_fabricated_gameplay": false,
     "contains_unimplemented_feature_claims": false,
     "store_submission_approved": false,
+    "current_store_or_marketing_use_approved": false,
     "limitations": [
       "Development build version 0.1.0",
       "Virtual X display and software renderer rather than a physical phone",
       "The original capture is silent because the virtual run used the Dummy audio driver; deliverable audio is an offline render from shipped game code",
       "The Apple file is only a locally validated technical-format candidate and still requires supported iPhone recapture",
+      "All captured visuals predate the Greek-mythic/AION pivot and must not be used to represent the current product",
       "No store-console upload has been attempted or claimed"
     ]
   }

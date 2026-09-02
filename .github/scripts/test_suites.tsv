@@ -1,6 +1,6 @@
 # id|role|scene|timeout_seconds|expected_passed|sentinel|allowed_error_count|allowed_error_regex
 editor|import|-|180|-|-|0|-
-main|suite|res://tests/TestRunner.tscn|240|2714|INFINIDIVE TESTS|0|-
+main|suite|res://tests/TestRunner.tscn|240|2726|INFINIDIVE TESTS|0|-
 backend|suite|res://tests/backend/BackendOfflineTest.tscn|180|82|INFINIDIVE BACKEND TESTS|0|-
 upgrades|suite|res://tests/upgrades/PermanentUpgradeEngineTest.tscn|180|120|INFINIDIVE PERMANENT UPGRADE TESTS|0|-
 tutorial|suite|res://tests/tutorial/TutorialFlowTest.tscn|180|198|INFINIDIVE TUTORIAL FLOW TESTS|0|-
@@ -13,5 +13,11 @@ integration|suite|res://tests/rooms/runtime_integration/RoomRuntimeIntegrationTe
 organs|suite|res://tests/organs/OrganTransformationTest.tscn|180|325|INFINIDIVE ORGAN TRANSFORMATION TESTS|0|-
 meta|suite|res://tests/meta/MetaGoalServiceTest.tscn|180|111|INFINIDIVE META GOAL TESTS|0|-
 audio|suite|res://tests/audio/ProceduralAudioTest.tscn|180|505|INFINIDIVE AUDIO TESTS|0|-
+story|suite|res://tests/story/StoryServiceTest.tscn|180|164|INFINIDIVE STORY SERVICE TESTS|0|-
+story_presentation|suite|res://tests/story/StoryPresentationTest.tscn|180|280|INFINIDIVE STORY PRESENTATION TESTS|0|-
+visual|imported|res://tests/visual/VisualRegressionTest.tscn|-|-|-|0|-
+story_canon|imported|res://tests/visual/StoryCanonAcceptanceTest.tscn|-|-|-|0|-
+story_overlay|imported|res://tests/tutorial/StoryOverlayTest.tscn|-|-|-|0|-
+player_presentation|imported|res://tests/player/PlayerPresentationTest.tscn|-|-|-|0|-
 relaunch_probe|nested|res://tests/progression/ProcessRelaunchProbe.tscn|-|-|-|0|-
 soak|soak|res://tests/soak/SoakTest.tscn|150|-|SOAK RESULT|0|-
