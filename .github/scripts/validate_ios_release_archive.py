@@ -44,6 +44,7 @@ EXPECTED_XCODE_CONTROL_HASHES = {
     ),
 }
 PORTRAIT_ONLY = ["UIInterfaceOrientationPortrait"]
+SUPPORTED_LOCALIZATIONS = ["en", "he"]
 TEAM_PATTERN = re.compile(r"^[A-Z0-9]{10}$")
 BUNDLE_PATTERN = re.compile(
     r"^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
@@ -1104,6 +1105,8 @@ def _validate_app_info(
         "CFBundleShortVersionString": marketing_version,
         "CFBundleVersion": build_number,
         "CFBundleDisplayName": EXPECTED_DISPLAY_NAME,
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": SUPPORTED_LOCALIZATIONS,
         "CFBundleName": EXPECTED_DISPLAY_NAME,
         "CFBundlePackageType": "APPL",
         "DTPlatformName": "iphoneos",
@@ -1872,6 +1875,8 @@ def run_self_test() -> None:
         "CFBundleShortVersionString": "0.1.0",
         "CFBundleVersion": "1",
         "CFBundleDisplayName": EXPECTED_DISPLAY_NAME,
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": SUPPORTED_LOCALIZATIONS,
         "CFBundleName": EXPECTED_DISPLAY_NAME,
         "CFBundlePackageType": "APPL",
         "DTPlatformName": "iphoneos",
@@ -1887,6 +1892,9 @@ def run_self_test() -> None:
         },
     }
     _validate_app_info(info, bundle, "0.1.0", "1")
+    wrong_development_region = dict(info)
+    wrong_development_region["CFBundleDevelopmentRegion"] = "he"
+    _expect_failure(_validate_app_info, wrong_development_region, bundle, "0.1.0", "1")
     camera = dict(info)
     camera["NSCameraUsageDescription"] = "unused"
     _expect_failure(_validate_app_info, camera, bundle, "0.1.0", "1")

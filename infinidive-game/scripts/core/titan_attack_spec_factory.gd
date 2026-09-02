@@ -8,7 +8,8 @@ extends RefCounted
 ## identical attack plans. Plans contain ProjectilePool-compatible spawn specs
 ## plus bounded effect directives for mechanics which are not projectiles.
 
-const SPEC_VERSION := 1
+const SPEC_VERSION := 2
+const STATUS_ACTIVE := "active"
 const STATUS_DISABLED := "disabled"
 const DEFAULT_ARENA := Rect2(22.0, 228.0, 496.0, 692.0)
 const DEFAULT_COMBAT_BOUNDS := Rect2(24.0, 395.0, 492.0, 450.0)
@@ -26,6 +27,7 @@ const GUIDANCE_CORRIDOR_HALF_WIDTH_PX := 12.0
 const GUIDANCE_MAX_PLAYER_SPEED_PX := 620.0
 const GUIDANCE_MAX_HAZARD_HORIZON_SECONDS := 4.0
 const VALID_WEAPON_ARCHETYPES := ["pulse", "scatter", "rail", "arc", "orbitals"]
+const INTACT_TUNING_FIELDS := ["projectile_budget", "telegraph_seconds", "base_speed", "damage"]
 
 const ABILITY_IDS := [
 	"homing_eye",
@@ -47,120 +49,72 @@ const ABILITY_IDS := [
 const ABILITY_BLUEPRINTS := {
 	"homing_eye": {
 		"mechanic": "fate_lock_pursuit",
-		"projectile_budget": 3,
-		"telegraph_seconds": 1.04,
-		"base_speed": 238.0,
-		"damage": 10.0,
 		"visual_token": "fate_eye_sickle_star",
 		"cause_token": "ability:homing_eye",
 		"safe_kind": "lateral_break",
 	},
 	"gravity_ring": {
 		"mechanic": "harvest_gravity_ring",
-		"projectile_budget": 22,
-		"telegraph_seconds": 1.12,
-		"base_speed": 176.0,
-		"damage": 11.0,
 		"visual_token": "gaia_gravity_seed",
 		"cause_token": "ability:gravity_ring",
 		"safe_kind": "angular_gap",
 	},
 	"bone_missiles": {
 		"mechanic": "adamant_staggered_salvo",
-		"projectile_budget": 7,
-		"telegraph_seconds": 0.96,
-		"base_speed": 325.0,
-		"damage": 11.0,
 		"visual_token": "adamant_sickle_shard",
 		"cause_token": "ability:bone_missiles",
 		"safe_kind": "salvo_flank",
 	},
 	"prism_lances": {
 		"mechanic": "dawn_prism_lane_sequence",
-		"projectile_budget": 3,
-		"telegraph_seconds": 1.18,
-		"base_speed": 430.0,
-		"damage": 12.0,
 		"visual_token": "dawn_prism_lance",
 		"cause_token": "ability:prism_lances",
 		"safe_kind": "prism_lane_gap",
 	},
 	"laser_wings": {
 		"mechanic": "solar_mantle_lane_burn",
-		"projectile_budget": 13,
-		"telegraph_seconds": 1.10,
-		"base_speed": 305.0,
-		"damage": 13.0,
 		"visual_token": "solar_mantle_ray",
 		"cause_token": "ability:laser_wings",
 		"safe_kind": "vertical_corridor",
 	},
 	"halo_barrier": {
 		"mechanic": "sun_crown_barrier_arc",
-		"projectile_budget": 16,
-		"telegraph_seconds": 1.16,
-		"base_speed": 214.0,
-		"damage": 9.0,
 		"visual_token": "sun_crown_orb",
 		"cause_token": "ability:halo_barrier",
 		"safe_kind": "rotating_arc_gap",
 	},
 	"suction_waves": {
 		"mechanic": "worldstream_bounded_pull",
-		"projectile_budget": 18,
-		"telegraph_seconds": 1.22,
-		"base_speed": 150.0,
-		"damage": 9.0,
 		"visual_token": "worldstream_tide_orb",
 		"cause_token": "ability:suction_waves",
 		"safe_kind": "calm_channel",
 	},
 	"chain_lightning": {
 		"mechanic": "storm_node_link",
-		"projectile_budget": 4,
-		"telegraph_seconds": 1.08,
-		"base_speed": 286.0,
-		"damage": 10.0,
 		"visual_token": "storm_link_arc",
 		"cause_token": "ability:chain_lightning",
 		"safe_kind": "unlinked_lane",
 	},
 	"parasite_swarm": {
 		"mechanic": "river_sprite_lunge_swarm",
-		"projectile_budget": 5,
-		"telegraph_seconds": 1.02,
-		"base_speed": 218.0,
-		"damage": 10.0,
 		"visual_token": "river_sprite_actor",
 		"cause_token": "ability:parasite_swarm",
 		"safe_kind": "swarm_split",
 	},
 	"weapon_copy": {
 		"mechanic": "memory_weapon_translation",
-		"projectile_budget": 7,
-		"telegraph_seconds": 1.26,
-		"base_speed": 310.0,
-		"damage": 10.0,
 		"visual_token": "memory_copy_shot",
 		"cause_token": "ability:weapon_copy",
 		"safe_kind": "translated_weapon_counter",
 	},
 	"echo_dash": {
 		"mechanic": "echo_recorded_dash_path",
-		"projectile_budget": 1,
-		"telegraph_seconds": 1.28,
-		"base_speed": 250.0,
-		"damage": 13.0,
 		"visual_token": "echo_dash_trail",
 		"cause_token": "ability:echo_dash",
 		"safe_kind": "recorded_path_flank",
 	},
 	"false_weakpoints": {
 		"mechanic": "muse_veil_decoy_wounds",
-		"projectile_budget": 6,
-		"telegraph_seconds": 1.34,
-		"base_speed": 236.0,
-		"damage": 9.0,
 		"visual_token": "muse_decoy_shard",
 		"cause_token": "ability:false_weakpoints",
 		"safe_kind": "true_wound_lane",
@@ -221,21 +175,44 @@ static func validate_catalog() -> Array[String]:
 		mechanics[mechanic] = ability_id
 		visuals[visual] = ability_id
 		causes[cause] = ability_id
-		var budget := int(blueprint.get("projectile_budget", 0))
-		if budget < 1 or budget > MAX_PROJECTILES_PER_ATTACK:
-			errors.append("Ability %s projectile budget is outside the global cap" % ability_id)
-		var telegraph := _numeric(blueprint.get("telegraph_seconds", null), -1.0)
-		if telegraph < MIN_TELEGRAPH_SECONDS or telegraph > MAX_TELEGRAPH_SECONDS:
-			errors.append("Ability %s telegraph is outside the readability bound" % ability_id)
-		if _numeric(blueprint.get("base_speed", null), 0.0) <= 0.0:
-			errors.append("Ability %s requires a positive speed" % ability_id)
-		if _numeric(blueprint.get("damage", null), 0.0) <= 0.0:
-			errors.append("Ability %s requires positive damage" % ability_id)
 		if String(blueprint.get("safe_kind", "")).is_empty():
 			errors.append("Ability %s requires explicit safe-path metadata" % ability_id)
 	for raw_blueprint_id in ABILITY_BLUEPRINTS:
 		if String(raw_blueprint_id) not in ABILITY_IDS:
 			errors.append("Unordered ability blueprint %s is not launch-owned" % String(raw_blueprint_id))
+	return errors
+
+
+static func validate_intact_tuning(ability_id: String, raw_tuning: Variant) -> Array[String]:
+	var errors: Array[String] = []
+	if not ABILITY_BLUEPRINTS.has(ability_id):
+		return ["Intact attack references unknown ability %s" % ability_id]
+	if typeof(raw_tuning) != TYPE_DICTIONARY:
+		return ["Ability %s requires an authoritative intact_tuning dictionary" % ability_id]
+	var tuning := raw_tuning as Dictionary
+	for field in INTACT_TUNING_FIELDS:
+		if not tuning.has(field):
+			errors.append("Ability %s intact_tuning is missing %s" % [ability_id, field])
+	for raw_field in tuning:
+		var field := String(raw_field)
+		if field not in INTACT_TUNING_FIELDS:
+			errors.append("Ability %s intact_tuning has unsupported field %s" % [ability_id, field])
+	var budget_value: Variant = tuning.get("projectile_budget", null)
+	if typeof(budget_value) not in [TYPE_INT, TYPE_FLOAT] \
+		or not is_finite(float(budget_value)) \
+		or float(budget_value) != floorf(float(budget_value)) \
+		or int(budget_value) < 1 \
+		or int(budget_value) > MAX_PROJECTILES_PER_ATTACK:
+		errors.append("Ability %s intact projectile budget is outside the global cap" % ability_id)
+	var telegraph := _numeric(tuning.get("telegraph_seconds", null), -1.0)
+	if telegraph < MIN_TELEGRAPH_SECONDS or telegraph > MAX_TELEGRAPH_SECONDS:
+		errors.append("Ability %s intact telegraph is outside the readability bound" % ability_id)
+	var base_speed := _numeric(tuning.get("base_speed", null), -1.0)
+	if base_speed < 90.0 or base_speed > 480.0:
+		errors.append("Ability %s intact speed is outside the readable bound" % ability_id)
+	var damage := _numeric(tuning.get("damage", null), -1.0)
+	if damage < 1.0 or damage > 20.0:
+		errors.append("Ability %s intact damage is outside the bounded hit range" % ability_id)
 	return errors
 
 
@@ -247,8 +224,18 @@ static func build_attack(ability_id: String, context: Dictionary, runtime_contra
 		var filtered := _rejected(ability_id, filter_reason)
 		filtered["filtered"] = true
 		return filtered
+	if String(runtime_contract.get("status", STATUS_ACTIVE)) != STATUS_ACTIVE:
+		return _rejected(ability_id, "non_intact_contract")
+	var intact_tuning_value: Variant = runtime_contract.get("intact_tuning", null)
+	var intact_errors := validate_intact_tuning(ability_id, intact_tuning_value)
+	if not intact_errors.is_empty():
+		var rejected := _rejected(ability_id, "invalid_intact_tuning")
+		rejected["errors"] = intact_errors
+		return rejected
 	var clean_context := _sanitize_context(context)
 	var blueprint := blueprint_for(ability_id)
+	var intact_tuning := (intact_tuning_value as Dictionary).duplicate(true)
+	blueprint.merge(intact_tuning, true)
 	var strength := _contract_strength(runtime_contract)
 	var plan := {
 		"valid": true,
@@ -270,6 +257,7 @@ static func build_attack(ability_id: String, context: Dictionary, runtime_contra
 		"context": clean_context.duplicate(true),
 		"runtime_status": String(runtime_contract.get("status", "active")),
 		"strength": strength,
+		"intact_tuning": intact_tuning.duplicate(true),
 		"group_token": _group_token(ability_id, clean_context),
 	}
 	var rng := RandomNumberGenerator.new()
@@ -359,6 +347,27 @@ static func validate_attack_plan(plan: Dictionary) -> Array[String]:
 		errors.append("Attack plan visual token does not match its ability")
 	if String(plan.get("cause_token", "")) != String(blueprint.get("cause_token", "")):
 		errors.append("Attack plan cause token does not match its ability")
+	var intact_tuning_value: Variant = plan.get("intact_tuning", null)
+	errors.append_array(validate_intact_tuning(ability_id, intact_tuning_value))
+	var intact_tuning := intact_tuning_value as Dictionary if typeof(intact_tuning_value) == TYPE_DICTIONARY else {}
+	var context_value: Variant = plan.get("context", null)
+	if typeof(context_value) != TYPE_DICTIONARY:
+		errors.append("Attack plan requires sanitized context")
+	else:
+		var context := context_value as Dictionary
+		var expected_budget := mini(
+			int(intact_tuning.get("projectile_budget", 0)),
+			int(context.get("projectile_budget_cap", 0))
+		)
+		if int(plan.get("projectile_budget", 0)) != expected_budget:
+			errors.append("Attack plan budget does not match its authoritative intact tuning")
+	var telegraph_value: Variant = plan.get("telegraph", null)
+	if typeof(telegraph_value) != TYPE_DICTIONARY \
+		or not is_equal_approx(
+			_numeric((telegraph_value as Dictionary).get("seconds", null), -1.0),
+			_numeric(intact_tuning.get("telegraph_seconds", null), -2.0)
+		):
+		errors.append("Attack plan telegraph does not match its authoritative intact tuning")
 	var budget := int(plan.get("projectile_budget", 0))
 	var projectiles_value: Variant = plan.get("projectiles", null)
 	if typeof(projectiles_value) != TYPE_ARRAY:
@@ -998,6 +1007,10 @@ static func _validate_projectile(projectile: Dictionary, plan: Dictionary, index
 	var damage := _numeric(projectile.get("damage", null), -1.0)
 	if damage <= 0.0 or damage > 20.0:
 		errors.append("Projectile %d damage is outside the runtime bound" % index)
+	var intact_tuning := plan.get("intact_tuning", {}) as Dictionary
+	var expected_damage := _numeric(intact_tuning.get("damage", null), -1.0) * _numeric(plan.get("strength", null), -1.0)
+	if not is_equal_approx(damage, expected_damage):
+		errors.append("Projectile %d damage does not match authoritative intact tuning" % index)
 	var options_value: Variant = projectile.get("options", null)
 	if typeof(options_value) != TYPE_DICTIONARY:
 		errors.append("Projectile %d lacks runtime options" % index)

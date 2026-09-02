@@ -96,7 +96,7 @@ def _expect(mapping: dict[str, object], key: str, expected: object, context: str
         )
 
 
-def _validate_marker(stage: str, stage_index: int, marker: dict[str, object]) -> None:
+def _validate_marker(stage: str, stage_index: int, marker: dict[str, object]) -> int:
     context = f"{stage} marker"
     expected_scalars = {
         "schema": SCHEMA,
@@ -109,6 +109,9 @@ def _validate_marker(stage: str, stage_index: int, marker: dict[str, object]) ->
     }
     for key, expected in expected_scalars.items():
         _expect(marker, key, expected, context)
+    process_id = marker.get("process_id")
+    if isinstance(process_id, bool) or not isinstance(process_id, int) or process_id <= 0:
+        raise StoreCaptureError(f"{context} process_id must be a positive integer")
 
     gate = marker.get("gate")
     if not isinstance(gate, dict):
@@ -133,7 +136,7 @@ def _validate_marker(stage: str, stage_index: int, marker: dict[str, object]) ->
     _expect(runtime, "state", EXPECTED_STATES[stage], context)
     if stage == "nest":
         _expect(runtime, "destroyed_organs", [], context)
-        return
+        return process_id
 
     _expect(runtime, "boss_id", "gravemaw", context)
     destroyed = runtime.get("destroyed_organs")
@@ -169,6 +172,7 @@ def _validate_marker(stage: str, stage_index: int, marker: dict[str, object]) ->
         selected_id = mutation.get("last_selected_id")
         if not isinstance(selected_id, str) or not selected_id:
             raise StoreCaptureError(f"{context} has no selected mutation identity")
+    return process_id
 
 
 def _png_color_type(path: pathlib.Path) -> int:
@@ -280,12 +284,18 @@ def validate_capture(
 
     stage_evidence: list[dict[str, object]] = []
     screenshot_hashes: set[str] = set()
+    process_ids: set[int] = set()
     for stage_index, stage in enumerate(STAGES):
         stem = f"{stage_index:02d}-{stage}"
         marker_path = capture_dir / f"{stem}.json"
         screenshot_path = capture_dir / f"{stem}.png"
         marker = _read_json(marker_path, f"{stage} readiness marker")
-        _validate_marker(stage, stage_index, marker)
+        process_id = _validate_marker(stage, stage_index, marker)
+        if process_id in process_ids:
+            raise StoreCaptureError(
+                f"{stage} marker reuses app process_id {process_id} from another stage"
+            )
+        process_ids.add(process_id)
         metrics = _bright_metrics(screenshot_path, expected_dimensions)
         screenshot_hash = str(metrics["sha256"])
         if screenshot_hash in screenshot_hashes:
@@ -295,6 +305,7 @@ def validate_capture(
             {
                 "stage": stage,
                 "runtime_state": EXPECTED_STATES[stage],
+                "process_id": process_id,
                 "marker_sha256": _sha256(marker_path),
                 "screenshot": metrics,
             }
@@ -408,6 +419,7 @@ def _marker(stage: str, stage_index: int) -> dict[str, object]:
         "stage": stage,
         "stage_index": stage_index,
         "capture_seed": CAPTURE_SEED,
+        "process_id": 39_107 + stage_index,
         "gate": {
             "stage": stage,
             "debug_build": True,
@@ -468,6 +480,36 @@ def run_self_test() -> None:
             raise AssertionError("dim legacy-identity screenshot was accepted")
         dark_path.write_bytes(valid_breach)
 
+        process_marker_path = root / "00-nest.json"
+        valid_process_marker = process_marker_path.read_text(encoding="utf-8")
+        invalid_process_marker = json.loads(valid_process_marker)
+        invalid_process_marker["process_id"] = True
+        process_marker_path.write_text(json.dumps(invalid_process_marker), encoding="utf-8")
+        try:
+            validate_capture(*arguments, expected_dimensions=dimensions)
+        except StoreCaptureError:
+            pass
+        else:
+            raise AssertionError("boolean native capture process ID was accepted")
+        process_marker_path.write_text(valid_process_marker, encoding="utf-8")
+
+        duplicate_process_path = root / "01-titan-exterior.json"
+        valid_duplicate_process_marker = duplicate_process_path.read_text(encoding="utf-8")
+        duplicate_process_marker = json.loads(valid_duplicate_process_marker)
+        duplicate_process_marker["process_id"] = 39_107
+        duplicate_process_path.write_text(
+            json.dumps(duplicate_process_marker), encoding="utf-8"
+        )
+        try:
+            validate_capture(*arguments, expected_dimensions=dimensions)
+        except StoreCaptureError:
+            pass
+        else:
+            raise AssertionError("duplicate native capture process ID was accepted")
+        duplicate_process_path.write_text(
+            valid_duplicate_process_marker, encoding="utf-8"
+        )
+
         marker_path = root / "05-post-organ-titan.json"
         valid_marker = marker_path.read_text(encoding="utf-8")
         drifted = json.loads(valid_marker)
@@ -481,8 +523,8 @@ def run_self_test() -> None:
             raise AssertionError("truthful-stage identity drift was accepted")
     print(
         "iOS Debug native store-capture validator self-test: PASS "
-        "(six-stage bright RGB positive; alpha, dimensions, dim identity, and "
-        "runtime-state negatives)"
+        "(six-stage bright RGB/unique-process positive; alpha, dimensions, dim "
+        "identity, duplicate-process, and runtime-state negatives)"
     )
 
 

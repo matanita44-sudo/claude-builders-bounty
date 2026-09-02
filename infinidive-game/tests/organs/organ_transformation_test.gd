@@ -2,6 +2,7 @@ extends Node
 
 const OrganMap := preload("res://scripts/core/organ_ability_map.gd")
 const BossPlanner := preload("res://scripts/core/boss_pattern_planner.gd")
+const Factory := preload("res://scripts/core/titan_attack_spec_factory.gd")
 const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
 const BossVisualClass := preload("res://scripts/gameplay/boss_visual.gd")
 
@@ -63,8 +64,12 @@ func _test_contract_catalog(bosses: Array) -> void:
 		for raw_organ in boss.get("organs",[]):
 			var organ := raw_organ as Dictionary
 			var organ_id := String(organ.get("id",""))
+			var ability_id := String(organ.get("ability",""))
+			var intact_tuning_value: Variant = organ.get("intact_tuning",null)
 			var loss := organ.get("loss",{}) as Dictionary
 			organ_count += 1
+			_check(not organ.has("intact_pattern"),"%s cannot retain the obsolete generic intact_pattern alias" % organ_id)
+			_check(typeof(intact_tuning_value) == TYPE_DICTIONARY and Factory.validate_intact_tuning(ability_id,intact_tuning_value).is_empty(),"%s must publish one strict Factory-owned intact_tuning contract" % organ_id)
 			var mode := String(loss.get("mode",""))
 			transform_count += 1 if mode == OrganMap.LOSS_TRANSFORM else 0
 			disable_count += 1 if mode == OrganMap.LOSS_DISABLE else 0
@@ -93,7 +98,8 @@ func _test_state_transitions_and_visuals(bosses: Array) -> void:
 			mapping.initialize(boss)
 			var intact := mapping.attack_contract(ability_id)
 			_check(mapping.is_ability_enabled(ability_id),"%s must begin with its intact exterior ability enabled" % organ_id)
-			_check(mapping.is_ability_runtime_enabled(ability_id) and String(intact.get("status","")) == OrganMap.STATUS_ACTIVE,"%s intact pattern must be runtime-selectable" % organ_id)
+			_check(mapping.is_ability_runtime_enabled(ability_id) and String(intact.get("status","")) == OrganMap.STATUS_ACTIVE,"%s intact Factory attack must be runtime-selectable" % organ_id)
+			_check((intact.get("intact_tuning",{}) as Dictionary) == (organ.get("intact_tuning",{}) as Dictionary) and (intact.get("pattern",{}) as Dictionary).is_empty(),"%s active OrganAbilityMap contract must copy intact tuning without a generic pattern" % organ_id)
 			var change := mapping.destroy_organ(organ_id)
 			_check(not change.is_empty() and String(change.get("variant","")) == String(loss.get("variant","")),"%s destruction must apply its authored variant exactly once" % organ_id)
 			_check(not mapping.is_ability_enabled(ability_id),"%s destruction must remove the intact ability" % organ_id)
@@ -194,6 +200,23 @@ func _test_validation_guardrails(bosses: Array) -> void:
 	duplicate_organ.loss = duplicate_loss
 	duplicate.organs[1] = duplicate_organ
 	_check(not OrganMap.validate_boss_definition(duplicate).is_empty(),"Validator must reject duplicate visual states inside a boss")
+	var missing_tuning := (bosses[0] as Dictionary).duplicate(true)
+	var missing_tuning_organ := (missing_tuning.organs[0] as Dictionary).duplicate(true)
+	missing_tuning_organ.erase("intact_tuning")
+	missing_tuning.organs[0] = missing_tuning_organ
+	_check(not OrganMap.validate_boss_definition(missing_tuning).is_empty(),"Validator must reject an organ without authoritative intact tuning")
+	var obsolete_pattern := (bosses[0] as Dictionary).duplicate(true)
+	var obsolete_pattern_organ := (obsolete_pattern.organs[0] as Dictionary).duplicate(true)
+	obsolete_pattern_organ.intact_pattern = {"family":"aimed_fan","count":1,"spread_radians":0.0,"speed":180.0,"damage":1.0}
+	obsolete_pattern.organs[0] = obsolete_pattern_organ
+	_check(not OrganMap.validate_boss_definition(obsolete_pattern).is_empty(),"Validator must reject obsolete intact_pattern data even when it looks bounded")
+	var loose_tuning := (bosses[0] as Dictionary).duplicate(true)
+	var loose_tuning_organ := (loose_tuning.organs[0] as Dictionary).duplicate(true)
+	var loose_tuning_contract := (loose_tuning_organ.intact_tuning as Dictionary).duplicate(true)
+	loose_tuning_contract.family = "aimed_fan"
+	loose_tuning_organ.intact_tuning = loose_tuning_contract
+	loose_tuning.organs[0] = loose_tuning_organ
+	_check(not OrganMap.validate_boss_definition(loose_tuning).is_empty(),"Validator must reject unsupported geometry fields inside strict intact tuning")
 
 
 func _test_phase_rule_catalog_and_all_orders(bosses: Array) -> void:
@@ -248,11 +271,16 @@ func _test_phase_rule_catalog_and_all_orders(bosses: Array) -> void:
 					_check(BossPlanner.validate_plan(plan).is_empty(),"%s phase %d plan must independently validate" % [boss_id,phase_index+1])
 					_check(int(plan.phase_index) == phase_index and String(plan.boss_id) == boss_id,"%s plan must retain exact boss/phase attribution" % boss_id)
 					_check(float(plan.telegraph_seconds) >= BossPlanner.MIN_TELEGRAPH_SECONDS and float(plan.telegraph_seconds) <= BossPlanner.MAX_TELEGRAPH_SECONDS and float(plan.cadence_seconds) >= BossPlanner.MIN_CADENCE_SECONDS,"%s phase %d must preserve bounded reaction timing" % [boss_id,phase_index+1])
-					_check(int(plan.projectile_count) <= int(plan.projectile_budget) and int(plan.projectile_budget) <= BossPlanner.MAX_PROJECTILE_BUDGET,"%s phase %d cannot exceed its projectile budget" % [boss_id,phase_index+1])
+					_check(int(plan.projectile_budget) <= BossPlanner.MAX_PROJECTILE_BUDGET,"%s phase %d cannot exceed its projectile budget" % [boss_id,phase_index+1])
 					_check(_plan_filters_destroyed_organ(plan,destroyed,organ_by_id),"%s phase %d order %s cannot select an intact or disabled destroyed-organ ability" % [boss_id,phase_index+1,order])
 					var specs := BossPlanner.build_projectile_specs(plan,origin,frozen_player,safe_angle)
-					_check(not specs.is_empty() and specs.size() <= int(plan.projectile_budget),"%s phase %d plan must emit a bounded nonzero wave" % [boss_id,phase_index+1])
-					_check(_projectile_specs_are_safe(plan,specs,frozen_player,safe_angle),"%s phase %d plan must retain exact safe geometry and attributable bounded shots" % [boss_id,phase_index+1])
+					if String(plan.get("status","")) == BossPlanner.STATUS_ACTIVE:
+						_check(String(plan.get("executor","")) == BossPlanner.EXECUTOR_FACTORY and not plan.has("pattern") and not plan.has("pattern_family") and not plan.has("projectile_count") and Factory.validate_intact_tuning(String(plan.ability_id),plan.get("intact_tuning",null)).is_empty(),"%s phase %d ACTIVE plan must carry only strict tuning owned by TitanAttackSpecFactory" % [boss_id,phase_index+1])
+						_check(specs.is_empty(),"%s phase %d ACTIVE plan cannot compile a legacy BossPatternPlanner projectile alias" % [boss_id,phase_index+1])
+					else:
+						_check(String(plan.get("executor","")) == BossPlanner.EXECUTOR_PLANNER and not plan.has("intact_tuning"),"%s phase %d BASIC/DEGRADED plan must remain exclusively BossPatternPlanner-owned" % [boss_id,phase_index+1])
+						_check(int(plan.projectile_count) <= int(plan.projectile_budget) and not specs.is_empty() and specs.size() <= int(plan.projectile_budget),"%s phase %d BASIC/DEGRADED plan must emit a bounded nonzero wave" % [boss_id,phase_index+1])
+						_check(_projectile_specs_are_safe(plan,specs,frozen_player,safe_angle),"%s phase %d BASIC/DEGRADED plan must retain exact safe geometry and attributable bounded shots" % [boss_id,phase_index+1])
 					selected_abilities[String(plan.ability_id)] = true
 				var available_abilities := _available_cycle_abilities(boss,rules[phase_index] as Dictionary,destroyed)
 				_check(_dictionary_contains_all(selected_abilities,available_abilities),"%s phase %d order %s deterministic stride must not starve a remaining ability" % [boss_id,phase_index+1,order])
@@ -307,14 +335,14 @@ func _plan_filters_destroyed_organ(plan: Dictionary, destroyed: Array, organ_by_
 	var source_organ := String(plan.get("source_organ",""))
 	var status := String(plan.get("status",""))
 	if source_organ.is_empty():
-		return String(plan.get("ability_id","")) == BossPlanner.BASIC_ABILITY and status == BossPlanner.STATUS_BASIC
+		return String(plan.get("ability_id","")) == BossPlanner.BASIC_ABILITY and status == BossPlanner.STATUS_BASIC and String(plan.get("executor","")) == BossPlanner.EXECUTOR_PLANNER
 	if not organ_by_id.has(source_organ):
 		return false
 	if source_organ not in destroyed:
-		return status == BossPlanner.STATUS_ACTIVE
+		return status == BossPlanner.STATUS_ACTIVE and String(plan.get("executor","")) == BossPlanner.EXECUTOR_FACTORY
 	var organ := organ_by_id[source_organ] as Dictionary
 	var loss := organ.get("loss",{}) as Dictionary
-	return String(loss.get("mode","")) == BossPlanner.LOSS_TRANSFORM and status == BossPlanner.STATUS_DEGRADED and String(plan.get("variant","")) == String(loss.get("variant",""))
+	return String(loss.get("mode","")) == BossPlanner.LOSS_TRANSFORM and status == BossPlanner.STATUS_DEGRADED and String(plan.get("executor","")) == BossPlanner.EXECUTOR_PLANNER and String(plan.get("variant","")) == String(loss.get("variant",""))
 
 
 func _available_cycle_abilities(boss: Dictionary, rule: Dictionary, destroyed: Array) -> Dictionary:
@@ -417,7 +445,11 @@ func _test_live_phase_planner_consumption(bosses: Array) -> void:
 			var warning := run._telegraph.duplicate(true)
 			var plan := warning.get("planner_plan",{}) as Dictionary
 			_check(bool(plan.get("valid",false)) and int(plan.get("phase_index",-1)) == phase_index,"%s phase %d live combat must consume its authored planner rule" % [boss.id,phase_index+1])
-			_check(run._boss_phase_attack_index == 1 and String(warning.get("contract_family","")) == String(plan.get("pattern_family","")),"%s phase %d warning must expose its deterministic attack index and exact family" % [boss.id,phase_index+1])
+			_check(run._boss_phase_attack_index == 1,"%s phase %d warning must expose its deterministic attack index" % [boss.id,phase_index+1])
+			if String(plan.get("status","")) == BossPlanner.STATUS_ACTIVE:
+				_check(String(plan.get("executor","")) == BossPlanner.EXECUTOR_FACTORY and String(warning.get("contract_family","")).is_empty() and String(plan.get("pattern_family","")).is_empty(),"%s phase %d ACTIVE warning cannot advertise obsolete generic pattern geometry" % [boss.id,phase_index+1])
+			else:
+				_check(String(plan.get("executor","")) == BossPlanner.EXECUTOR_PLANNER and String(warning.get("contract_family","")) == String(plan.get("pattern_family","")),"%s phase %d BASIC/DEGRADED warning must expose its exact Planner family" % [boss.id,phase_index+1])
 			var warning_target := Vector2(warning.get("target_position",Vector2.INF))
 			run._player.position += Vector2(90.0,0.0)
 			run._telegraph.timer = 0.0
@@ -428,10 +460,11 @@ func _test_live_phase_planner_consumption(bosses: Array) -> void:
 			var factory_plan := warning.get("factory_plan",{}) as Dictionary
 			if String(plan.get("status","")) == BossPlanner.STATUS_ACTIVE:
 				var factory_context := factory_plan.get("context",{}) as Dictionary
-				_check(bool(factory_plan.get("valid",false)) and runtime_spec_count == (factory_plan.get("projectiles",[]) as Array).size() and Vector2(factory_context.get("player_position",Vector2.INF)).is_equal_approx(warning_target),"%s phase %d ACTIVE wave must execute the complete Factory plan against the frozen telegraphed target" % [boss.id,phase_index+1])
+				_check(BossPlanner.build_projectile_specs(plan,run._boss_visual.target_position(),warning_target,float(warning.safe_angle),run._difficulty_projectile_speed()).is_empty(),"%s phase %d ACTIVE live plan cannot expose a Planner projectile fallback" % [boss.id,phase_index+1])
+				_check(bool(factory_plan.get("valid",false)) and (factory_plan.get("intact_tuning",{}) as Dictionary) == (plan.get("intact_tuning",{}) as Dictionary) and runtime_spec_count == (factory_plan.get("projectiles",[]) as Array).size() and Vector2(factory_context.get("player_position",Vector2.INF)).is_equal_approx(warning_target),"%s phase %d ACTIVE wave must execute the complete tuned Factory plan against the frozen telegraphed target" % [boss.id,phase_index+1])
 			else:
 				var expected_specs := BossPlanner.build_projectile_specs(plan,run._boss_visual.target_position(),warning_target,float(warning.safe_angle),run._difficulty_projectile_speed())
-				_check(factory_plan.is_empty() and run._pending_boss_emissions.is_empty() and run._projectiles.enemy_active.size() == expected_specs.size(),"%s phase %d BASIC/DEGRADED wave must retain the planner path and frozen telegraphed target" % [boss.id,phase_index+1])
+				_check(String(plan.get("executor","")) == BossPlanner.EXECUTOR_PLANNER and not expected_specs.is_empty() and factory_plan.is_empty() and run._pending_boss_emissions.is_empty() and run._projectiles.enemy_active.size() == expected_specs.size(),"%s phase %d BASIC/DEGRADED wave must retain the Planner path and frozen telegraphed target" % [boss.id,phase_index+1])
 			run._projectiles.clear_enemy()
 		run.projectiles_clear_and_enemies()
 		run.queue_free()

@@ -1,6 +1,6 @@
 # id|role|scene|timeout_seconds|expected_passed|sentinel|allowed_error_count|allowed_error_regex
 editor|import|-|180|-|-|0|-
-main|suite|res://tests/TestRunner.tscn|240|2860|INFINIDIVE TESTS|0|-
+main|suite|res://tests/TestRunner.tscn|240|2868|INFINIDIVE TESTS|0|-
 backend|suite|res://tests/backend/BackendOfflineTest.tscn|180|100|INFINIDIVE BACKEND TESTS|0|-
 upgrades|suite|res://tests/upgrades/PermanentUpgradeEngineTest.tscn|180|120|INFINIDIVE PERMANENT UPGRADE TESTS|0|-
 tutorial|suite|res://tests/tutorial/TutorialFlowTest.tscn|180|198|INFINIDIVE TUTORIAL FLOW TESTS|0|-
@@ -10,8 +10,8 @@ defender|suite|res://tests/rooms/defender_effects/RoomDefenderEffectsTest.tscn|1
 defender_live|suite|res://tests/rooms/defender_effects_live/RoomDefenderEffectsLiveTest.tscn|180|212|INFINIDIVE ROOM DEFENDER EFFECTS LIVE TESTS|0|-
 travel|suite|res://tests/projectiles/travel_models/ProjectileTravelModelsTest.tscn|180|685|INFINIDIVE PROJECTILE TRAVEL MODEL TESTS|0|-
 integration|suite|res://tests/rooms/runtime_integration/RoomRuntimeIntegrationTest.tscn|240|4131|INFINIDIVE ROOM RUNTIME INTEGRATION TESTS|0|-
-organs|suite|res://tests/organs/OrganTransformationTest.tscn|180|7008|INFINIDIVE ORGAN TRANSFORMATION TESTS|0|-
-attack_specs|suite|res://tests/bosses/attack_specs/TitanAttackSpecFactoryTest.tscn|180|855|INFINIDIVE TITAN ATTACK SPEC FACTORY TESTS|0|-
+organs|suite|res://tests/organs/OrganTransformationTest.tscn|180|7354|INFINIDIVE ORGAN TRANSFORMATION TESTS|0|-
+attack_specs|suite|res://tests/bosses/attack_specs/TitanAttackSpecFactoryTest.tscn|180|1045|INFINIDIVE TITAN ATTACK SPEC FACTORY TESTS|0|-
 meta|suite|res://tests/meta/MetaGoalServiceTest.tscn|180|111|INFINIDIVE META GOAL TESTS|0|-
 audio|suite|res://tests/audio/ProceduralAudioTest.tscn|180|684|INFINIDIVE AUDIO TESTS|0|-
 story|suite|res://tests/story/StoryServiceTest.tscn|180|164|INFINIDIVE STORY SERVICE TESTS|0|-
@@ -20,6 +20,6 @@ visual|suite|res://tests/visual/VisualRegressionTest.tscn|240|412|INFINIDIVE VIS
 story_canon|suite|res://tests/visual/StoryCanonAcceptanceTest.tscn|180|476|INFINIDIVE STORY CANON ACCEPTANCE|0|-
 story_overlay|suite|res://tests/tutorial/StoryOverlayTest.tscn|180|34|INFINIDIVE STORY OVERLAY TESTS|0|-
 player_presentation|suite|res://tests/player/PlayerPresentationTest.tscn|180|17|INFINIDIVE PLAYER PRESENTATION TESTS|0|-
-localized_layout|suite|res://tests/ui/LocalizedLayoutTest.tscn|240|2403|INFINIDIVE LOCALIZED LAYOUT TESTS|0|-
+localized_layout|suite|res://tests/ui/LocalizedLayoutTest.tscn|240|2408|INFINIDIVE LOCALIZED LAYOUT TESTS|0|-
 relaunch_probe|nested|res://tests/progression/ProcessRelaunchProbe.tscn|-|-|-|0|-
 soak|soak|res://tests/soak/SoakTest.tscn|150|-|SOAK RESULT|0|-

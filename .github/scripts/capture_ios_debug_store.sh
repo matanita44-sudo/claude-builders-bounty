@@ -80,14 +80,22 @@ if expected not in identifiers:
 PY
 
 simulator_udid=""
+capture_log_start=""
 cleanup_simulator() {
   local exit_status="$?"
   if [[ -n "${simulator_udid}" ]]; then
     if [[ ! -s "${output}/simulator-app.log" ]]; then
-      xcrun simctl spawn "${simulator_udid}" log show \
-        --style compact --last 15m \
-        --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
-        > "${output}/simulator-app.log" 2>&1 || true
+      if [[ -n "${capture_log_start}" ]]; then
+        xcrun simctl spawn "${simulator_udid}" log show \
+          --style compact --start "${capture_log_start}" \
+          --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
+          > "${output}/simulator-app.log" 2>&1 || true
+      else
+        xcrun simctl spawn "${simulator_udid}" log show \
+          --style compact --last 15m \
+          --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
+          > "${output}/simulator-app.log" 2>&1 || true
+      fi
     fi
     xcrun simctl shutdown "${simulator_udid}" >/dev/null 2>&1 || true
     xcrun simctl delete "${simulator_udid}" >/dev/null 2>&1 || true
@@ -113,16 +121,60 @@ xcrun simctl spawn "${simulator_udid}" defaults write NSGlobalDomain \
 xcrun simctl shutdown "${simulator_udid}"
 xcrun simctl boot "${simulator_udid}"
 xcrun simctl bootstatus "${simulator_udid}" -b
+capture_log_start="$(date '+%Y-%m-%d %H:%M:%S')"
 
 launch_log="${output}/simulator-launches.txt"
 : > "${launch_log}"
+launched_pids=()
+
+assert_bundle_install_state() {
+  local expected_state="$1"
+  local evidence_stem="$2"
+  local listing="${output}/.${evidence_stem}-installed-apps.json"
+
+  # `simctl listapps` has a stable plist contract across Xcode releases;
+  # normalize it with macOS' bundled plutil instead of relying on a newer,
+  # less-portable `--json` flag.
+  xcrun simctl listapps "${simulator_udid}" \
+    | plutil -convert json -o "${listing}" -- -
+  python3 - "${listing}" "${bundle_id}" "${expected_state}" <<'PY'
+import json
+import pathlib
+import sys
+
+payload = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+if not isinstance(payload, dict):
+    raise SystemExit("simctl listapps returned a non-object payload")
+installed = sys.argv[2] in payload
+expected = sys.argv[3]
+if expected not in {"present", "absent"}:
+    raise SystemExit(f"invalid expected app state: {expected}")
+if installed != (expected == "present"):
+    raise SystemExit(
+        f"bundle {sys.argv[2]} is {'present' if installed else 'absent'}; "
+        f"expected {expected}"
+    )
+PY
+  rm -f -- "${listing}"
+}
+
 for stage_index in "${!stages[@]}"; do
   stage="${stages[${stage_index}]}"
   stem="$(printf '%02d-%s' "${stage_index}" "${stage}")"
 
   # Reinstall for every canonical stage so gameplay saves, mutation discovery,
   # and the readiness marker cannot leak from an earlier capture.
-  xcrun simctl uninstall "${simulator_udid}" "${bundle_id}" >/dev/null 2>&1 || true
+  if (( stage_index == 0 )); then
+    # This is a newly created Simulator. Prove the bundle is absent instead of
+    # accepting an ambiguous uninstall failure.
+    assert_bundle_install_state absent "${stem}-before-first-install"
+  else
+    # Every later stage must start from the app installed by the prior stage,
+    # successfully remove it, and prove its data container registration is gone.
+    assert_bundle_install_state present "${stem}-before-uninstall"
+    xcrun simctl uninstall "${simulator_udid}" "${bundle_id}"
+    assert_bundle_install_state absent "${stem}-after-uninstall"
+  fi
   xcrun simctl install "${simulator_udid}" "${app}"
   data_container="$(
     xcrun simctl get_app_container "${simulator_udid}" "${bundle_id}" data
@@ -152,6 +204,24 @@ for stage_index in "${!stages[@]}"; do
     printf '%s\n' "${launch_output}" >&2
     exit "${launch_status}"
   fi
+  stage_pid="$(printf '%s\n' "${launch_output}" | awk -F ': ' 'END { print $NF }')"
+  case "${stage_pid}" in
+    ''|*[!0-9]*)
+      echo "Could not parse a numeric app PID for ${stage}: ${launch_output}" >&2
+      exit 1
+      ;;
+  esac
+  # macOS still ships Bash 3.2, where expanding an empty array under `set -u`
+  # aborts. The numeric stage guard keeps the first expansion non-empty-safe.
+  if (( stage_index > 0 )); then
+    for existing_pid in "${launched_pids[@]}"; do
+      if [[ "${existing_pid}" = "${stage_pid}" ]]; then
+        echo "Simulator unexpectedly reused app PID ${stage_pid} across isolated stages" >&2
+        exit 1
+      fi
+    done
+  fi
+  launched_pids+=("${stage_pid}")
 
   marker_path=""
   marker_listing="${output}/${stem}-marker-candidates.txt"
@@ -161,7 +231,7 @@ for stage_index in "${!stages[@]}"; do
     marker_count="$(wc -l < "${marker_listing}" | tr -d '[:space:]')"
     marker_candidate="$(sed -n '1p' "${marker_listing}")"
     if [[ "${marker_count}" = "1" ]] && \
-      python3 - "${marker_candidate}" "${stage}" "${stage_index}" <<'PY'
+      python3 - "${marker_candidate}" "${stage}" "${stage_index}" "${stage_pid}" <<'PY'
 import json
 import pathlib
 import sys
@@ -173,6 +243,8 @@ except (OSError, json.JSONDecodeError):
 if marker.get("stage") != sys.argv[2] or marker.get("stage_index") != int(sys.argv[3]):
     raise SystemExit(1)
 if marker.get("schema") != "infinidive.native-ios-store-capture.v1":
+    raise SystemExit(1)
+if marker.get("process_id") != int(sys.argv[4]):
     raise SystemExit(1)
 PY
     then
@@ -192,13 +264,36 @@ PY
   # gameplay/decorative clocks are frozen. One compositor turn avoids capturing
   # between the final Godot draw and CoreSimulator's display handoff.
   sleep 1
-  xcrun simctl io "${simulator_udid}" screenshot --type=png \
-    "${output}/${stem}.png"
+  raw_screenshot=""
+  screenshot_captured=false
+  for screenshot_attempt in 1 2; do
+    screenshot_candidate="${output}/${stem}-simctl-rgba-attempt-${screenshot_attempt}.png"
+    if python3 -c \
+      'import subprocess,sys; subprocess.run(["xcrun","simctl","io",sys.argv[1],"screenshot","--type=png",sys.argv[2]],check=True,timeout=45)' \
+      "${simulator_udid}" "${screenshot_candidate}"; then
+      raw_screenshot="${screenshot_candidate}"
+      screenshot_captured=true
+      break
+    fi
+    printf 'stage=%s screenshot_attempt=%s transport_failed_or_timed_out=true\n' \
+      "${stage}" "${screenshot_attempt}" >> "${launch_log}"
+    rm -f -- "${screenshot_candidate}"
+    sleep 1
+  done
+  if [[ "${screenshot_captured}" != true || -z "${raw_screenshot}" ]]; then
+    echo "Simulator screenshot transport failed twice for ${stage}" >&2
+    exit 1
+  fi
+  python3 .github/scripts/validate_ios_simulator_screenshot.py \
+    "${raw_screenshot}" --normalize-rgb "${output}/${stem}.png"
+  rm -f -- "${raw_screenshot}"
   xcrun simctl terminate "${simulator_udid}" "${bundle_id}"
 done
 
+# Give unified logging a bounded flush window after the final terminated stage.
+sleep 2
 xcrun simctl spawn "${simulator_udid}" log show \
-  --style compact --last 15m \
+  --style compact --start "${capture_log_start}" \
   --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
   > "${output}/simulator-app.log" 2>&1
 
@@ -234,6 +329,23 @@ pathlib.Path(sys.argv[1]).write_text(
 )
 PY
 
+# Godot 4.7.2 asks iOS' touch-only DisplayServer for an initial mouse position
+# once per process while wiring the root GUI. It returns Point2i() and gameplay
+# continues; permit only that exact engine line, and never more than one for
+# each isolated stage launch. Every other Error/Fault record fails closed;
+# only exact, per-process-bounded Simulator platform noise is also permitted.
+expected_pid_args=()
+for stage_pid in "${launched_pids[@]}"; do
+  expected_pid_args+=(--expected-pid "${stage_pid}")
+done
+python3 .github/scripts/validate_ios_simulator_log.py \
+  "${output}/simulator-app.log" \
+  --maximum-known-mouse-warnings "${#stages[@]}" \
+  --maximum-known-mouse-warnings-per-process 1 \
+  "${expected_pid_args[@]}"
+
+# Write a top-level PASS report only after both image/state and app-log checks
+# succeed, because the workflow deliberately uploads diagnostics on failure.
 python3 .github/scripts/validate_ios_debug_store_capture.py "${output}" \
   --expected-commit "${GITHUB_SHA}" \
   --expected-repository "${GITHUB_REPOSITORY}" \
@@ -242,13 +354,6 @@ python3 .github/scripts/validate_ios_debug_store_capture.py "${output}" \
   --xcode-version "${INFINIDIVE_XCODE_VERSION}" \
   --simulator-sdk-version "${INFINIDIVE_SIMULATOR_SDK}" \
   --write-report "${output}/qa-only-native-store-capture.json"
-
-if grep -Eiq \
-  'uncaught exception|fatal error|EXC_BAD_ACCESS|EXC_CRASH|crashed|abort trap|\[com\.matan\.infinidive:ERROR\]|SCRIPT ERROR|Parse Error' \
-  "${output}/simulator-app.log" 2>/dev/null; then
-  echo "Crash, fatal, or app-owned script error found in Simulator log" >&2
-  exit 1
-fi
 
 (
   cd "${output}"

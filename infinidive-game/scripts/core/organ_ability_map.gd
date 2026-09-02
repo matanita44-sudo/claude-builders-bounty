@@ -1,6 +1,8 @@
 class_name OrganAbilityMap
 extends RefCounted
 
+const TitanAttackSpecFactoryScript := preload("res://scripts/core/titan_attack_spec_factory.gd")
+
 const LOSS_DISABLE := "disable"
 const LOSS_TRANSFORM := "transform"
 const STATUS_ACTIVE := "active"
@@ -23,6 +25,13 @@ static func validate_boss_definition(boss: Dictionary) -> Array[String]:
 			continue
 		var organ := raw_organ as Dictionary
 		var organ_id := String(organ.get("id", "?"))
+		var ability_id := String(organ.get("ability", ""))
+		if organ.has("intact_pattern"):
+			errors.append("Organ %s retains obsolete intact_pattern data" % organ_id)
+		errors.append_array(TitanAttackSpecFactoryScript.validate_intact_tuning(
+			ability_id,
+			organ.get("intact_tuning", null)
+		))
 		var loss_value: Variant = organ.get("loss", null)
 		if typeof(loss_value) != TYPE_DICTIONARY:
 			errors.append("Organ %s requires a loss contract" % organ_id)
@@ -126,6 +135,7 @@ func initialize(boss: Dictionary) -> void:
 			"variant": "intact",
 			"visual_token": "",
 			"telegraph_multiplier": 1.0,
+			"intact_tuning": (organ.get("intact_tuning", {}) as Dictionary).duplicate(true),
 			"pattern": {}
 		}
 
@@ -152,6 +162,7 @@ func destroy_organ(organ_id: String) -> Dictionary:
 	ability_state.variant = String(loss.get("variant", "disabled"))
 	ability_state.visual_token = String(loss.get("visual_token", ""))
 	ability_state.telegraph_multiplier = float(loss.get("telegraph_multiplier", 1.0))
+	ability_state.intact_tuning = {}
 	ability_state.pattern = (loss.get("pattern", {}) as Dictionary).duplicate(true)
 	abilities[ability_id] = ability_state
 	return {
@@ -190,6 +201,7 @@ func attack_contract(ability_id: String) -> Dictionary:
 		"strength": float(ability_state.get("strength", 1.0)),
 		"telegraph_multiplier": float(ability_state.get("telegraph_multiplier", 1.0)),
 		"visual_token": String(ability_state.get("visual_token", "")),
+		"intact_tuning": (ability_state.get("intact_tuning", {}) as Dictionary).duplicate(true),
 		"pattern": (ability_state.get("pattern", {}) as Dictionary).duplicate(true)
 	}
 

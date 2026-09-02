@@ -1,19 +1,23 @@
 class_name BossPatternPlanner
 extends RefCounted
 
+const TitanAttackSpecFactoryScript := preload("res://scripts/core/titan_attack_spec_factory.gd")
+
 ## Pure, deterministic compiler for exterior Titan phase rules.
 ##
 ## The planner owns no Nodes, RNG state, or mutable gameplay state. Callers
 ## provide the boss definition, current phase, destroyed organs, run seed, and
 ## attack index; the same inputs always produce the same bounded plan.
 
-const PLAN_VERSION := 1
+const PLAN_VERSION := 2
 const BASIC_ABILITY := "basic_rupture"
 const STATUS_BASIC := "basic"
 const STATUS_ACTIVE := "active"
 const STATUS_DEGRADED := "degraded"
 const LOSS_DISABLE := "disable"
 const LOSS_TRANSFORM := "transform"
+const EXECUTOR_FACTORY := "titan_attack_spec_factory"
+const EXECUTOR_PLANNER := "boss_pattern_planner"
 const VALID_FAMILIES := ["aimed_fan", "ring", "lane"]
 
 const PHASE_COUNT := 3
@@ -56,11 +60,12 @@ static func validate_boss_definition(boss: Dictionary) -> Array[String]:
 			errors.append("Boss %s has an invalid phase ability %s" % [boss_id, ability_id])
 		else:
 			abilities[ability_id] = organ_id
-		var intact_value: Variant = organ.get("intact_pattern", null)
-		if typeof(intact_value) != TYPE_DICTIONARY:
-			errors.append("Organ %s requires an intact exterior pattern" % organ_id)
-		else:
-			errors.append_array(_validate_pattern("Organ %s intact" % organ_id, intact_value as Dictionary))
+		if organ.has("intact_pattern"):
+			errors.append("Organ %s retains obsolete intact_pattern data" % organ_id)
+		errors.append_array(TitanAttackSpecFactoryScript.validate_intact_tuning(
+			ability_id,
+			organ.get("intact_tuning", null)
+		))
 
 	var rules_value: Variant = boss.get("phase_rules", null)
 	if typeof(rules_value) != TYPE_ARRAY:
@@ -177,8 +182,9 @@ static func build_plan(boss: Dictionary, phase_index: int, destroyed_organs: Arr
 				"source_organ": organ_id,
 				"status": STATUS_ACTIVE,
 				"variant": "intact",
+				"executor": EXECUTOR_FACTORY,
 				"telegraph_multiplier": 1.0,
-				"pattern": (organ.get("intact_pattern", {}) as Dictionary).duplicate(true),
+				"intact_tuning": (organ.get("intact_tuning", {}) as Dictionary).duplicate(true),
 			}
 			continue
 		var loss := organ.get("loss", {}) as Dictionary
@@ -189,6 +195,7 @@ static func build_plan(boss: Dictionary, phase_index: int, destroyed_organs: Arr
 			"source_organ": organ_id,
 			"status": STATUS_DEGRADED,
 			"variant": String(loss.get("variant", "degraded")),
+			"executor": EXECUTOR_PLANNER,
 			"telegraph_multiplier": maxf(1.0, float(loss.get("telegraph_multiplier", 1.0))),
 			"pattern": (loss.get("pattern", {}) as Dictionary).duplicate(true),
 		}
@@ -202,6 +209,7 @@ static func build_plan(boss: Dictionary, phase_index: int, destroyed_organs: Arr
 				"source_organ": "",
 				"status": STATUS_BASIC,
 				"variant": String(rule.get("mechanic", "phase_fallback")),
+				"executor": EXECUTOR_PLANNER,
 				"telegraph_multiplier": 1.0,
 				"pattern": (rule.get("fallback_pattern", {}) as Dictionary).duplicate(true),
 			})
@@ -216,12 +224,18 @@ static func build_plan(boss: Dictionary, phase_index: int, destroyed_organs: Arr
 	var sequence_index := posmod(stable_seed + attack_index * stride, candidates.size())
 	var selected := (candidates[sequence_index] as Dictionary).duplicate(true)
 	var budget := int(rule.get("projectile_budget", MAX_PROJECTILE_BUDGET))
-	var pattern := _bounded_pattern(
-		selected.get("pattern", {}) as Dictionary,
-		budget,
-		float(rule.get("speed_multiplier", 1.0)),
-		float(rule.get("safety_margin", 1.0))
-	)
+	var executor := String(selected.get("executor", ""))
+	var pattern: Dictionary = {}
+	var intact_tuning: Dictionary = {}
+	if executor == EXECUTOR_FACTORY:
+		intact_tuning = (selected.get("intact_tuning", {}) as Dictionary).duplicate(true)
+	else:
+		pattern = _bounded_pattern(
+			selected.get("pattern", {}) as Dictionary,
+			budget,
+			float(rule.get("speed_multiplier", 1.0)),
+			float(rule.get("safety_margin", 1.0))
+		)
 	var telegraph := clampf(
 		float(rule.get("telegraph_seconds", MIN_TELEGRAPH_SECONDS)) * float(selected.get("telegraph_multiplier", 1.0)),
 		MIN_TELEGRAPH_SECONDS,
@@ -241,12 +255,10 @@ static func build_plan(boss: Dictionary, phase_index: int, destroyed_organs: Arr
 		"source_organ": String(selected.get("source_organ", "")),
 		"status": String(selected.get("status", STATUS_BASIC)),
 		"variant": String(selected.get("variant", "")),
+		"executor": executor,
 		"telegraph_seconds": telegraph,
 		"cadence_seconds": float(rule.get("cadence_seconds", 2.5)),
 		"projectile_budget": budget,
-		"projectile_count": mini(_estimated_projectile_count(pattern), budget),
-		"pattern_family": String(pattern.get("family", "")),
-		"pattern": pattern,
 		"selection_stride": stride,
 		"authored_selection_stride": authored_stride,
 		"sequence_index": sequence_index,
@@ -255,6 +267,12 @@ static func build_plan(boss: Dictionary, phase_index: int, destroyed_organs: Arr
 		"attack_index": attack_index,
 		"destroyed_organs": _sorted_strings(destroyed.keys()),
 	}
+	if executor == EXECUTOR_FACTORY:
+		plan["intact_tuning"] = intact_tuning
+	else:
+		plan["projectile_count"] = mini(_estimated_projectile_count(pattern), budget)
+		plan["pattern_family"] = String(pattern.get("family", ""))
+		plan["pattern"] = pattern
 	var plan_errors := validate_plan(plan)
 	if not plan_errors.is_empty():
 		return _rejected_plan(boss, phase_index, plan_errors)
@@ -263,6 +281,8 @@ static func build_plan(boss: Dictionary, phase_index: int, destroyed_organs: Arr
 
 static func build_projectile_specs(plan: Dictionary, origin: Vector2, player_position: Vector2, safe_angle: float, runtime_speed_multiplier: float = 1.0) -> Array[Dictionary]:
 	if not bool(plan.get("valid", false)) or not validate_plan(plan).is_empty():
+		return []
+	if String(plan.get("executor", "")) != EXECUTOR_PLANNER:
 		return []
 	var pattern := plan.get("pattern", {}) as Dictionary
 	var family := String(pattern.get("family", ""))
@@ -342,17 +362,34 @@ static func validate_plan(plan: Dictionary) -> Array[String]:
 	var budget := int(plan.get("projectile_budget", 0))
 	if budget < MIN_PROJECTILE_BUDGET or budget > MAX_PROJECTILE_BUDGET:
 		errors.append("Plan projectile budget is outside runtime bounds")
-	var count := int(plan.get("projectile_count", -1))
-	if count < 1 or count > budget:
-		errors.append("Plan projectile count exceeds its bounded budget")
-	var pattern_value: Variant = plan.get("pattern", null)
-	if typeof(pattern_value) != TYPE_DICTIONARY:
-		errors.append("Plan has no executable pattern")
-	else:
-		errors.append_array(_validate_pattern("Plan", pattern_value as Dictionary))
 	var status := String(plan.get("status", ""))
 	if status not in [STATUS_BASIC, STATUS_ACTIVE, STATUS_DEGRADED]:
 		errors.append("Plan has an unsupported ability status")
+	var executor := String(plan.get("executor", ""))
+	var pattern_value: Variant = plan.get("pattern", null)
+	var intact_tuning_value: Variant = plan.get("intact_tuning", null)
+	if status == STATUS_ACTIVE:
+		if executor != EXECUTOR_FACTORY:
+			errors.append("Active intact plan must be owned by TitanAttackSpecFactory")
+		for obsolete_field in ["pattern", "pattern_family", "projectile_count"]:
+			if plan.has(obsolete_field):
+				errors.append("Active intact plan cannot retain generic field %s" % obsolete_field)
+		errors.append_array(TitanAttackSpecFactoryScript.validate_intact_tuning(
+			String(plan.get("ability_id", "")),
+			intact_tuning_value
+		))
+	else:
+		if executor != EXECUTOR_PLANNER:
+			errors.append("Basic and degraded plans must be owned by BossPatternPlanner")
+		if typeof(pattern_value) != TYPE_DICTIONARY:
+			errors.append("Planner-owned plan has no executable pattern")
+		else:
+			errors.append_array(_validate_pattern("Plan", pattern_value as Dictionary))
+		var count := int(plan.get("projectile_count", -1))
+		if count < 1 or count > budget:
+			errors.append("Plan projectile count exceeds its bounded budget")
+		if plan.has("intact_tuning"):
+			errors.append("Planner-owned plan cannot retain intact Factory tuning")
 	if String(plan.get("ability_id", "")).is_empty():
 		errors.append("Plan has no attributable ability")
 	return errors

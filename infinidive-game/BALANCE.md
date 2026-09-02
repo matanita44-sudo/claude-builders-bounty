@@ -2,7 +2,7 @@
 
 > Snapshot: project version 0.1.0 on 2026-09-01. Values below describe current code and JSON data. They are not playtest conclusions, retention claims or final launch tuning.
 
-The reconstructed post-`a550ca8` tree passes the complete local `40,160/0` matrix across 21 suites, editor/import, and strict zero-error scanning. Focused Titan attack, organ transformation, pre-rendered audio, visual, story, localized-layout acceptance, and QA-only native-capture activation gates now run independently. Deployed `a550ca8` separately retains source-bound remote `28,949/0`; the rebuilt delta requires a new remote fingerprint. This coverage verifies configured formulas and effect contracts but does not substitute for human balance, comprehension, audio-mix, or device-performance testing.
+The reconstructed post-`a550ca8` tree passes the complete local `40,709/0` matrix across 21 suites, editor/import, and strict zero-error scanning. Focused Titan attack, organ transformation, pre-rendered audio, visual, story, localized-layout acceptance, and QA-only native-capture activation gates now run independently. Deployed `a550ca8` separately retains source-bound remote `28,949/0`; the rebuilt delta requires a new remote fingerprint. This coverage verifies configured formulas and effect contracts but does not substitute for human balance, comprehension, audio-mix, or device-performance testing.
 
 The six room-runtime suites contribute 24,438/0. Their mechanics coverage includes a twelve-profile defender minimum-TTK audit with zero failures. The compiler/travel/live coverage also verifies lane-topology bounds, full frozen preview contracts, actual-homing suppression without trajectory straightening, 30/60/120 Hz player-homing parity, swept collision before retirement in first-contact order, nonlinear/homing subsegments when safe-zone metadata is absent, terminal first-arena-exit behavior under the exact `16/3s` node-link hitch, compiler-signed owner/cycle isolation, and exact cleanup. These checks prove the named formulas and bounded execution paths, not final human tuning.
 
@@ -122,18 +122,28 @@ The total excludes internal defenders and assumes exactly one pass through each 
 One attack is telegraphed at a time, although existing projectiles can overlap later attacks.
 
 - Initial attack timer: 1.4s after phase setup.
-- Telegraph: max(0.74s, 0.98s − phase × 0.04s), multiplied by assist_telegraph.
-- Post-attack delay: random 2.1–3.1s minus phase × 0.08s.
+- ACTIVE telegraph: the greater of the phase-rule warning and the ability's catalog warning, multiplied by `assist_telegraph`.
+- ACTIVE projectile speed: catalog base speed × phase-rule speed multiplier × difficulty multiplier. The phase multiplier is applied once.
+- Post-attack delay: the selected phase rule's 2.30–3.10s cadence.
 
-| Ability family | Base projectile damage | Base speed / shape |
-|---|---:|---|
-| Homing Eye / Weapon Copy | 10 | Five shots at 250px/s; homing 1.45 for up to 1.5s |
-| Gravity Ring / Suction Waves | 12 | 22-shot radial ring at 185px/s with a gap |
-| Bone Missiles / Parasite Swarm | 11 | Eight-shot aimed fan at 330px/s |
-| Laser Wings / Echo Dash | 13 | Downward wall at 315px/s with a 116px gap |
-| Prism Lances / Chain Lightning | 12 | Three-shot aimed fan at 430px/s |
-| Halo Barrier / False Weakpoints | 10 | Rotating 16-slot ring at 225px/s with omitted slots |
-| Basic Rupture | 9 | 14-shot radial ring at 205px/s with a gap |
+`projectile_budget` is a cap, not an exact count: safe gaps remove ring/lane shots, Weapon Copy varies by equipped archetype, and Echo Dash emits one recorded-path head. Ability-specific geometry, effects, and effect-only damage stay compiler-owned; the four scalar columns below are the complete strict `intact_tuning` schema in `bosses.json` and are consumed by the Factory.
+
+| Intact ability | Projectile budget | Telegraph (s) | Base speed (px/s) | Projectile damage |
+|---|---:|---:|---:|---:|
+| Homing Eye | 3 | 1.04 | 238 | 10 |
+| Gravity Ring | 22 | 1.12 | 176 | 11 |
+| Bone Missiles | 7 | 0.96 | 325 | 11 |
+| Prism Lances | 3 | 1.18 | 430 | 12 |
+| Laser Wings | 13 | 1.10 | 305 | 13 |
+| Halo Barrier | 16 | 1.16 | 214 | 9 |
+| Suction Waves | 18 | 1.22 | 150 | 9 |
+| Chain Lightning | 4 | 1.08 | 286 | 10 |
+| Parasite Swarm | 5 | 1.02 | 218 | 10 |
+| Weapon Copy | 7 | 1.26 | 310 | 10 |
+| Echo Dash | 1 | 1.28 | 250 | 13 |
+| False Weakpoints | 6 | 1.34 | 236 | 9 |
+
+Basic Rupture and degraded organ replacements use their phase/loss `aimed_fan`, `ring`, or `lane` records through `BossPatternPlanner`; they are not aliases for the 12 intact mechanics.
 
 Destroying an organ always removes its intact exterior ability. Seven loss contracts replace it with a safer authored `aimed_fan`, `ring`, or `lane` variant, while five seal the system completely; the replacement values and human organ-order balance still require playtesting.
 

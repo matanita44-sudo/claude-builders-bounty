@@ -7,12 +7,13 @@ const { spawnSync } = require('node:child_process');
 
 const targetUrlArgument = process.argv[2];
 const evidenceDirArgument = process.argv[3];
+const coordinateSelfTest = targetUrlArgument === '--coordinate-self-test' && process.argv.length === 3;
 const chromeBin = process.env.INFINIDIVE_CHROME_BIN;
 const playwrightRoot = process.env.INFINIDIVE_PLAYWRIGHT_ROOT;
 const ffmpegBin = process.env.INFINIDIVE_FFMPEG_BIN || 'ffmpeg';
 const ffprobeBin = process.env.INFINIDIVE_FFPROBE_BIN || 'ffprobe';
 
-if (!targetUrlArgument || !evidenceDirArgument || !chromeBin || !playwrightRoot) {
+if (!coordinateSelfTest && (!targetUrlArgument || !evidenceDirArgument || !chromeBin || !playwrightRoot)) {
   throw new Error(
     'Bright trailer capture requires URL, evidence directory, Chrome, and Playwright root',
   );
@@ -35,7 +36,9 @@ const TERMINAL_STATES = new Set(['DEAD', 'VICTORY']);
 const LOGICAL_VIEWPORT = Object.freeze({ width: 540, height: 960 });
 const MAX_DIAGNOSTICS = 128;
 
-const { chromium } = require(path.join(playwrightRoot, 'node_modules', 'playwright-core'));
+const chromium = coordinateSelfTest
+  ? null
+  : require(path.join(playwrightRoot, 'node_modules', 'playwright-core')).chromium;
 
 function sha256Bytes(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -370,10 +373,32 @@ function qaEvidence(snapshot) {
 }
 
 function actualPoint(logicalPoint, viewport) {
+  // Godot keeps the 540x960 game aspect inside taller phone canvases. Browser
+  // touch coordinates must include the resulting letterbox offset; scaling X
+  // and Y independently targets the lower cyan bar on 886x1920 captures.
+  const scale = Math.min(
+    viewport.width / LOGICAL_VIEWPORT.width,
+    viewport.height / LOGICAL_VIEWPORT.height,
+  );
+  const offsetX = (viewport.width - LOGICAL_VIEWPORT.width * scale) / 2;
+  const offsetY = (viewport.height - LOGICAL_VIEWPORT.height * scale) / 2;
   return [
-    logicalPoint[0] * viewport.width / LOGICAL_VIEWPORT.width,
-    logicalPoint[1] * viewport.height / LOGICAL_VIEWPORT.height,
+    offsetX + logicalPoint[0] * scale,
+    offsetY + logicalPoint[1] * scale,
   ];
+}
+
+if (coordinateSelfTest) {
+  const base = actualPoint([270, 842], { width: 540, height: 960 });
+  const tall = actualPoint([270, 842], { width: 886, height: 1920 });
+  const wide = actualPoint([270, 480], { width: 1200, height: 960 });
+  if (base[0] !== 270 || base[1] !== 842
+      || Math.abs(tall[0] - 443) > 1e-9 || Math.abs(tall[1] - 1553.9481481481482) > 1e-9
+      || Math.abs(wide[0] - 600) > 1e-9 || Math.abs(wide[1] - 480) > 1e-9) {
+    throw new Error(`Aspect-preserving touch coordinate self-test failed: ${JSON.stringify({ base, tall, wide })}`);
+  }
+  process.stdout.write('bright trailer touch-coordinate self-test: PASS\n');
+  process.exit(0);
 }
 
 async function dispatchDrag(cdp, fromLogical, toLogical, touchId, viewport, page) {

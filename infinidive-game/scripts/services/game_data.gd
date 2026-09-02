@@ -2,6 +2,7 @@ extends Node
 
 const OrganAbilityMapScript := preload("res://scripts/core/organ_ability_map.gd")
 const BossPatternPlannerScript := preload("res://scripts/core/boss_pattern_planner.gd")
+const TitanAttackSpecFactoryScript := preload("res://scripts/core/titan_attack_spec_factory.gd")
 const TitanCollapseCatalogScript := preload("res://scripts/gameplay/titan_collapse_catalog.gd")
 
 const DATA_FILES := {
@@ -54,6 +55,7 @@ func _validate() -> void:
 	_validate_unique_ids(mutations, "mutation")
 	_validate_unique_ids(upgrades, "upgrade")
 	validation_errors.append_array(TitanCollapseCatalogScript.validate_catalog(titan_collapses))
+	validation_errors.append_array(TitanAttackSpecFactoryScript.validate_catalog())
 	if bosses.size() < 4:
 		validation_errors.append("Release data requires four bosses")
 	if weapons.size() < 5:
@@ -76,6 +78,7 @@ func _validate() -> void:
 		validation_errors.append("Release data requires 30 authored room modules")
 	if chamber_count < 12:
 		validation_errors.append("Release data requires 12 organ chambers")
+	var catalog_abilities: Dictionary = {}
 	for boss_value in bosses:
 		var boss: Dictionary = boss_value
 		var organs: Array = boss.get("organs", [])
@@ -88,8 +91,14 @@ func _validate() -> void:
 			if ability_id.is_empty() or ability_ids.has(ability_id):
 				validation_errors.append("Boss %s has an invalid organ ability map" % boss.get("id", "?"))
 			ability_ids[ability_id] = true
+			if catalog_abilities.has(ability_id):
+				validation_errors.append("Exterior ability %s is assigned to multiple organs" % ability_id)
+			catalog_abilities[ability_id] = true
 		validation_errors.append_array(OrganAbilityMapScript.validate_boss_definition(boss))
 		validation_errors.append_array(BossPatternPlannerScript.validate_boss_definition(boss))
+	for ability_id in TitanAttackSpecFactoryScript.ABILITY_IDS:
+		if not catalog_abilities.has(ability_id):
+			validation_errors.append("Exterior ability %s has no authoritative organ tuning" % ability_id)
 
 func _validate_unique_ids(values: Array, label: String) -> void:
 	var seen: Dictionary = {}

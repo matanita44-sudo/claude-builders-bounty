@@ -32,7 +32,13 @@ static func sanitize_nickname(raw_value: Variant) -> String:
 	return normalized.left(MAX_NICKNAME_LENGTH)
 
 
+static func can_convert_result_to_friend_challenge(result: Dictionary) -> bool:
+	return ChallengeCodeClass.can_convert_result_to_friend_challenge(result)
+
+
 static func build_model(result: Dictionary, challenge_code: String, nickname: String = "") -> Dictionary:
+	if not can_convert_result_to_friend_challenge(result):
+		return {"valid": false, "reason": "unsupported_continuation_state"}
 	var code := challenge_code.strip_edges()
 	var decoded: Dictionary = ChallengeCodeClass.decode(code)
 	if decoded.is_empty():
@@ -46,9 +52,9 @@ static func build_model(result: Dictionary, challenge_code: String, nickname: St
 	var elapsed_ms := maxi(0, int(float(result.get("elapsed", 0.0)) * 1000.0))
 	var modifiers := ChallengeCodeClass.canonical_modifiers(result.get("modifiers", []))
 	var decoded_modifiers := ChallengeCodeClass.canonical_modifiers(decoded.get("modifiers", []))
-	# The card is evidence for the exact run that produced its challenge. Refuse
-	# to render a plausible-looking card when the copied code belongs to a
-	# different Titan, loadout, seed, rules, score, or completion time.
+	# Bind the local, unverified result card to every field ID1 can transport.
+	# Refuse a plausible-looking card when the copied code belongs to a different
+	# Titan, loadout, seed, rules, score target, or completion-time target.
 	if (
 		String(decoded.get("boss", "")) != boss_id
 		or String(decoded.get("weapon", "")) != weapon_id

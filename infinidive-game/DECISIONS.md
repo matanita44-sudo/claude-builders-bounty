@@ -236,7 +236,7 @@ The project contains no ad SDK, billing SDK, login, cloud save, networked leader
 
 **Status:** Implemented for the current headless suite
 
-The rebuilt local result totals 40,160 assertions with zero failures across 21 suites. Focused Titan attack, expanded organ transformation, pre-rendered audio, visual, story, localized-layout, and QA-only native-capture gate coverage now run independently. Editor/import plus every suite driver produce exact sentinels and zero unexpected engine/script/parse errors. The source-current 8.003-second bounded soak, all seven movement models, source fingerprint binding, and transaction-recovery self-test pass. Deployed commit `a550ca8` separately retains remote 28,949/0 and public evidence; the rebuilt delta requires a new frozen remote chain.
+The rebuilt local result totals 40,709 assertions with zero failures across 21 suites. Focused Titan attack, expanded organ transformation, pre-rendered audio, visual, story, localized-layout, and QA-only native-capture gate coverage now run independently. Editor/import plus every suite driver produce exact sentinels and zero unexpected engine/script/parse errors. The source-current 8.05-second bounded soak, all seven movement models, source fingerprint binding, and transaction-recovery self-test pass. Deployed commit `a550ca8` separately retains remote 28,949/0 and public evidence; the rebuilt delta requires a new frozen remote chain.
 
 **Consequences**
 
@@ -319,7 +319,7 @@ The Web build publishes a fixed semantic snapshot only when the exact query para
 
 ## D-021 — Bright Greek-mythic presentation pivot
 
-**Status:** Implemented and publicly deployed in candidate `a550ca8`; human/device art validation remains open
+**Status:** Implemented in `a550ca8` and present in inspected live marker `e7275f5`; human/device art validation remains open
 
 The code-drawn production pipeline remains original, while the presentation direction changes from dark biopunk to a bright mythic sky world: colossal Greek-inspired Titans, open light, marble and bronze structure, aqua/coral accents, chunky touch targets, and high-contrast attack language. The direction is original and does not reproduce another game's interface or assets.
 
@@ -332,12 +332,12 @@ The code-drawn production pipeline remains original, while the presentation dire
 **Consequences**
 
 - The deployed source applies the direction to the boss, Last Nest, and run-HUD presentation while retaining touch safe areas, optional Hebrew/RTL support, projectile contrast, and Reduced Motion behavior.
-- Deployed `a550ca8` evidence includes historical remote main `2,726/0`, its complete 15-suite remote matrix, Web export, public whole-path/reload smoke, and retained rendered frames from run `33594396541`; rebuilt local main is `2,860/0`. These validate contracts and automated rendering, not taste, human-play readability, mobile rendering, or commercial art quality.
-- The public Pages build serves commit `a550ca8` and includes the visual and story pivot. Rebuilt hardening after that commit remains pending revalidation and deployment.
+- Deployed `a550ca8` evidence includes historical remote main `2,726/0`, its complete 15-suite remote matrix, Web export, public whole-path/reload smoke, and retained rendered frames from run `33594396541`; rebuilt local main is `2,868/0`. These validate contracts and automated rendering, not taste, human-play readability, mobile rendering, or commercial art quality.
+- The inspected public Pages marker is `e7275f5` and includes the visual/story pivot plus later hardening. Its public job did not complete after deployment, so `a550ca8` remains the latest complete public whole-path/reload proof while post-`e7275f5` work remains pending revalidation and deployment.
 
 ## D-022 — Canonical Aion prologue through a decoupled story layer
 
-**Status:** Story data/service, English-first overlay, prologue, chapter-intro, nonmodal first-breach, and first-clear victory integration deployed in `a550ca8`; human/device validation pending
+**Status:** Story data/service, English-first overlay, prologue, chapter-intro, nonmodal first-breach, and first-clear victory integration shipped in `a550ca8` and remain present in live marker `e7275f5`; human/device validation pending
 
 The opening canon is concise and English-first: Aion is devoured; his final curse is “You craved eternity. Now hunger forever.”; the hero begins without a weapon; and Aion's spark awakens. Hebrew remains an optional explicit localization. Narrative beats are supplied from data rather than embedded in gameplay controllers.
 

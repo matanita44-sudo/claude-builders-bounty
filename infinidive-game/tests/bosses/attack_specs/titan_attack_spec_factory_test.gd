@@ -21,6 +21,7 @@ const EXPECTED_COUNTS := {
 
 var passed := 0
 var failures: Array[String] = []
+var intact_tunings: Dictionary = {}
 
 
 func _ready() -> void:
@@ -36,7 +37,9 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _run() -> void:
+	intact_tunings = _read_intact_tunings()
 	_test_catalog_identity()
+	_test_intact_tuning_authority()
 	_test_all_plans_are_bounded_and_deterministic()
 	_test_edge_and_corner_safe_guidance()
 	_test_cronus_mechanics()
@@ -64,7 +67,7 @@ func _test_edge_and_corner_safe_guidance() -> void:
 	]
 	for ability_id in Factory.ability_ids():
 		for corner in corners:
-			var plan:=Factory.build_attack(ability_id,_context({"combat_bounds":combat_bounds,"player_position":corner}))
+			var plan:=_build_attack(ability_id,_context({"combat_bounds":combat_bounds,"player_position":corner}))
 			_check(bool(plan.get("valid",false)),"%s must resolve feasible safe guidance from combat corner %s" % [ability_id,corner])
 			var clean_context:=plan.get("context",{}) as Dictionary
 			_check(Vector2(clean_context.get("player_position",Vector2.INF)).is_equal_approx(corner),"%s edge targeting must preserve the exact frozen player snapshot at %s" % [ability_id,corner])
@@ -86,7 +89,7 @@ func _test_edge_and_corner_safe_guidance() -> void:
 		for raw_edge_case in edge_cases:
 			var edge_case:=raw_edge_case as Dictionary
 			var edge_position:=Vector2(edge_case.position)
-			var plan:=Factory.build_attack(String(ability_id),_context({"combat_bounds":combat_bounds,"player_position":edge_position}))
+			var plan:=_build_attack(String(ability_id),_context({"combat_bounds":combat_bounds,"player_position":edge_position}))
 			_check(bool(plan.get("valid",false)),"%s must resolve absolute guidance from edge midpoint %s" % [ability_id,edge_position])
 			var safe:=((plan.safe_paths as Array)[0] as Dictionary) if bool(plan.get("valid",false)) else {}
 			var safe_target:=Vector2(safe.get("safe_target",Vector2.INF))
@@ -98,13 +101,13 @@ func _test_edge_and_corner_safe_guidance() -> void:
 			_check(int(safe.get("resolved_side",0))==expected_side,"%s safe-side metadata must describe the resolved absolute edge target" % ability_id)
 			_check(_runtime_safe_target_survives(plan),"%s named edge attack must keep every runtime hazard outside its resolved target" % ability_id)
 
-	var outside_tamper:=Factory.build_attack("homing_eye",_context()).duplicate(true)
+	var outside_tamper:=_build_attack("homing_eye",_context()).duplicate(true)
 	((outside_tamper.safe_paths as Array)[0] as Dictionary).safe_target=Vector2(-500.0,-500.0)
 	_check(not Factory.validate_attack_plan(outside_tamper).is_empty(),"Validator must reject absolute guidance outside player combat bounds")
-	var projectile_tamper:=Factory.build_attack("bone_missiles",_context()).duplicate(true)
+	var projectile_tamper:=_build_attack("bone_missiles",_context()).duplicate(true)
 	(((projectile_tamper.projectiles as Array)[0] as Dictionary).options as Dictionary).erase("safe_position")
 	_check(not Factory.validate_attack_plan(projectile_tamper).is_empty(),"Validator must reject a projectile which drops the compiled safe target")
-	var echo_tamper:=Factory.build_attack("echo_dash",_context()).duplicate(true)
+	var echo_tamper:=_build_attack("echo_dash",_context()).duplicate(true)
 	var echo_path:=((_effect(echo_tamper,"recorded_dash_danger_trail").path_points) as Array)
 	((echo_tamper.safe_paths as Array)[0] as Dictionary).safe_target=Vector2(echo_path[0])
 	_check(not Factory.validate_attack_plan(echo_tamper).is_empty(),"Validator must reject an Echo target inside the recorded danger trail")
@@ -113,7 +116,7 @@ func _test_edge_and_corner_safe_guidance() -> void:
 		Vector2(184.0,534.0),Vector2(218.0,726.0),Vector2(252.0,534.0),Vector2(286.0,726.0),
 		Vector2(320.0,534.0),Vector2(354.0,726.0),Vector2(354.0,534.0),Vector2(184.0,726.0),
 	]
-	var infeasible_echo:=Factory.build_attack("echo_dash",_context({"combat_bounds":constrained_bounds,"player_position":constrained_bounds.get_center(),"dash_path":saturating_dash_path}))
+	var infeasible_echo:=_build_attack("echo_dash",_context({"combat_bounds":constrained_bounds,"player_position":constrained_bounds.get_center(),"dash_path":saturating_dash_path}))
 	_check(not bool(infeasible_echo.get("valid",true)) and String(infeasible_echo.get("reason",""))=="infeasible_safe_guidance","Factory must fail closed when authored hazard geometry leaves no reachable safe target")
 
 
@@ -132,6 +135,42 @@ func _context(overrides: Dictionary = {}) -> Dictionary:
 	}
 	result.merge(overrides, true)
 	return result
+
+
+func _read_intact_tunings() -> Dictionary:
+	var result: Dictionary = {}
+	var file := FileAccess.open("res://data/bosses.json", FileAccess.READ)
+	_check(file != null, "Boss catalog must be readable for intact Factory tuning")
+	if file == null:
+		return result
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	_check(typeof(parsed) == TYPE_ARRAY, "Boss catalog must parse for intact Factory tuning")
+	if typeof(parsed) != TYPE_ARRAY:
+		return result
+	for raw_boss in parsed as Array:
+		for raw_organ in (raw_boss as Dictionary).get("organs", []):
+			var organ := raw_organ as Dictionary
+			var ability_id := String(organ.get("ability", ""))
+			_check(not organ.has("intact_pattern"), "%s cannot retain the removed generic intact alias" % ability_id)
+			_check(not result.has(ability_id), "%s must own exactly one intact tuning source" % ability_id)
+			result[ability_id] = (organ.get("intact_tuning", {}) as Dictionary).duplicate(true)
+	return result
+
+
+func _active_contract(ability_id: String, overrides: Dictionary = {}) -> Dictionary:
+	var result := {
+		"ability_id": ability_id,
+		"status": Factory.STATUS_ACTIVE,
+		"runtime_enabled": true,
+		"strength": 1.0,
+		"intact_tuning": (intact_tunings.get(ability_id, {}) as Dictionary).duplicate(true),
+	}
+	result.merge(overrides, true)
+	return result
+
+
+func _build_attack(ability_id: String, context: Dictionary, contract_overrides: Dictionary = {}) -> Dictionary:
+	return Factory.build_attack(ability_id, context, _active_contract(ability_id, contract_overrides))
 
 
 func _test_catalog_identity() -> void:
@@ -170,13 +209,57 @@ func _test_catalog_identity() -> void:
 	_check(not is_equal_approx(keyed_angle,Factory.deterministic_safe_angle(774411,"gravemaw",1,9,player_bearing)),"Distinct attack indices must not reuse one fixed safe angle")
 
 
+func _test_intact_tuning_authority() -> void:
+	_check(intact_tunings.size() == 12, "Every launch ability must have exactly one catalog-owned intact tuning record")
+	for ability_id in Factory.ability_ids():
+		var tuning := (intact_tunings.get(ability_id, {}) as Dictionary).duplicate(true)
+		_check(Factory.validate_intact_tuning(ability_id, tuning).is_empty(), "%s catalog tuning must validate" % ability_id)
+		_check(tuning.size() == Factory.INTACT_TUNING_FIELDS.size(), "%s tuning cannot retain unconsumed legacy pattern fields" % ability_id)
+		for field in Factory.INTACT_TUNING_FIELDS:
+			_check(tuning.has(field), "%s tuning must declare authoritative %s" % [ability_id, field])
+
+		var baseline := _build_attack(ability_id, _context())
+		var changed := tuning.duplicate(true)
+		changed.projectile_budget = 1
+		changed.telegraph_seconds = float(tuning.telegraph_seconds) + 0.05
+		changed.base_speed = float(tuning.base_speed) * 0.9
+		changed.damage = float(tuning.damage) + 1.0
+		var changed_snapshot := changed.duplicate(true)
+		var compiled := Factory.build_attack(ability_id, _context(), _active_contract(ability_id, {"intact_tuning": changed}))
+		var repeated := Factory.build_attack(ability_id, _context(), _active_contract(ability_id, {"intact_tuning": changed}))
+		_check(bool(compiled.get("valid", false)) and compiled == repeated, "%s changed catalog tuning must compile deterministically" % ability_id)
+		_check(changed == changed_snapshot, "%s Factory cannot mutate caller-owned tuning" % ability_id)
+		_check((compiled.get("intact_tuning", {}) as Dictionary) == changed, "%s plan must retain its exact authoritative tuning source" % ability_id)
+		_check(int(compiled.get("projectile_budget", 0)) == 1 and (compiled.get("projectiles", []) as Array).size() == 1, "%s projectile_budget tuning must cap the unique compiler" % ability_id)
+		_check(is_equal_approx(float((compiled.telegraph as Dictionary).seconds), float(changed.telegraph_seconds)), "%s telegraph tuning must drive the warning" % ability_id)
+		var baseline_projectile := (baseline.projectiles as Array)[0] as Dictionary
+		var compiled_projectile := (compiled.projectiles as Array)[0] as Dictionary
+		_check(is_equal_approx(Vector2(compiled_projectile.velocity).length(), Vector2(baseline_projectile.velocity).length() * 0.9), "%s base_speed tuning must drive its unique projectile geometry exactly once" % ability_id)
+		_check(is_equal_approx(float(compiled_projectile.damage), float(changed.damage)), "%s damage tuning must drive projectile damage" % ability_id)
+
+	var missing := (intact_tunings.homing_eye as Dictionary).duplicate(true)
+	missing.erase("damage")
+	_check(not Factory.validate_intact_tuning("homing_eye", missing).is_empty(), "Missing authoritative tuning must fail closed")
+	var extra := (intact_tunings.homing_eye as Dictionary).duplicate(true)
+	extra.family = "aimed_fan"
+	_check(not Factory.validate_intact_tuning("homing_eye", extra).is_empty(), "Unsupported legacy tuning fields must fail closed")
+	var non_finite := (intact_tunings.homing_eye as Dictionary).duplicate(true)
+	non_finite.base_speed = NAN
+	_check(not Factory.validate_intact_tuning("homing_eye", non_finite).is_empty(), "Non-finite authoritative tuning must fail closed")
+	var fractional_budget := (intact_tunings.homing_eye as Dictionary).duplicate(true)
+	fractional_budget.projectile_budget = 2.5
+	_check(not Factory.validate_intact_tuning("homing_eye", fractional_budget).is_empty(), "Fractional projectile budgets must fail closed instead of truncating")
+	var missing_contract := Factory.build_attack("homing_eye", _context())
+	_check(not bool(missing_contract.get("valid", true)) and String(missing_contract.get("reason", "")) == "invalid_intact_tuning", "Factory must not revive hard-coded tuning when catalog input is missing")
+
+
 func _test_all_plans_are_bounded_and_deterministic() -> void:
 	var fingerprints: Dictionary = {}
 	for ability_id in Factory.ability_ids():
 		var context := _context()
 		var context_before := context.duplicate(true)
-		var first := Factory.build_attack(ability_id, context)
-		var second := Factory.build_attack(ability_id, context)
+		var first := _build_attack(ability_id, context)
+		var second := _build_attack(ability_id, context)
 		_check(first == second, "%s plan must be deterministic for identical supplied context" % ability_id)
 		_check(context == context_before, "%s factory must not mutate caller context" % ability_id)
 		_check(bool(first.valid), "%s intact plan must compile" % ability_id)
@@ -199,26 +282,26 @@ func _test_all_plans_are_bounded_and_deterministic() -> void:
 		var fingerprint := _mechanical_fingerprint(first)
 		_check(not fingerprints.has(fingerprint), "%s emitted plan cannot alias another ability fingerprint" % ability_id)
 		fingerprints[fingerprint] = ability_id
-		var next_attack := Factory.build_attack(ability_id, _context({"attack_index": 9}))
+		var next_attack := _build_attack(ability_id, _context({"attack_index": 9}))
 		_check(String(next_attack.group_token) != String(first.group_token), "%s attack index must produce distinct deterministic wave ownership" % ability_id)
 	_check(fingerprints.size() == 12, "All twelve intact abilities must compile to unique plan fingerprints")
 
 
 func _test_cronus_mechanics() -> void:
-	var homing := Factory.build_attack("homing_eye", _context())
+	var homing := _build_attack("homing_eye", _context())
 	for raw_projectile in homing.projectiles:
 		var options := (raw_projectile as Dictionary).options as Dictionary
 		_check(String(options.travel_model) == "soft_homing" and float(options.homing) > 0.0, "Fate Eye must use real soft-homing travel")
 		_check(Vector2(options.frozen_target).is_equal_approx(Vector2(306.0, 792.0)), "Fate Eye lock must snapshot the telegraphed player position")
 	_check(String(_effect(homing, "target_lock").type) == "target_lock", "Fate Eye must publish its target-lock directive")
 
-	var gravity := Factory.build_attack("gravity_ring", _context())
+	var gravity := _build_attack("gravity_ring", _context())
 	_check(_travel_models(gravity) == ["expanding"], "Gravity Ring must be an expanding collision pattern")
 	_check(String(_effect(gravity, "gravity_ring_pulse").type) == "gravity_ring_pulse", "Gravity Ring must publish a bounded radial force")
 	_check(float(_effect(gravity, "gravity_ring_pulse").maximum_speed_delta) <= 82.0, "Gravity Ring force must have an explicit speed-delta cap")
 	_check(_ring_gap_is_empty(gravity, 1.23, 0.62), "Gravity Ring must leave the telegraphed angular gap empty")
 
-	var missiles := Factory.build_attack("bone_missiles", _context())
+	var missiles := _build_attack("bone_missiles", _context())
 	var delays: Array[float] = []
 	for raw_projectile in missiles.projectiles:
 		delays.append(float(((raw_projectile as Dictionary).options as Dictionary).emission_delay_seconds))
@@ -228,7 +311,7 @@ func _test_cronus_mechanics() -> void:
 
 
 func _test_hyperion_mechanics() -> void:
-	var prism := Factory.build_attack("prism_lances", _context())
+	var prism := _build_attack("prism_lances", _context())
 	var prism_effect := _effect(prism, "prism_lane_sequence")
 	_check((prism.projectiles as Array).size() == 3 and int(prism_effect.safe_lane_index) in [0, 1, 2, 3], "Prism Lances must attack three of four warned lanes")
 	for raw_projectile in prism.projectiles:
@@ -236,12 +319,12 @@ func _test_hyperion_mechanics() -> void:
 	var safe_lane_x := float(((prism.safe_paths as Array)[0] as Dictionary).lane_center_x)
 	_check(_minimum_projectile_origin_x_distance(prism, safe_lane_x) >= 80.0, "Prism safe lane must stay physically empty")
 
-	var wings := Factory.build_attack("laser_wings", _context())
+	var wings := _build_attack("laser_wings", _context())
 	var wing_effect := _effect(wings, "lane_afterglow")
 	_check(not wing_effect.is_empty() and float(wing_effect.gap_half_width) >= 68.0, "Laser Wings must publish a wide persistent lane opening")
 	_check(_minimum_projectile_origin_x_distance(wings, float(wing_effect.gap_center_x)) >= float(wing_effect.gap_half_width), "Laser Wing projectiles cannot spawn inside the safe corridor")
 
-	var halo := Factory.build_attack("halo_barrier", _context())
+	var halo := _build_attack("halo_barrier", _context())
 	var barrier := _effect(halo, "temporary_boss_barrier")
 	_check(not barrier.is_empty() and float(barrier.damage_reduction) > 0.0 and float(barrier.damage_reduction) < 0.5, "Halo Choir must create a bounded partial barrier, not invulnerability")
 	_check(float(barrier.duration_seconds) <= 1.6, "Halo barrier must expire quickly")
@@ -249,14 +332,14 @@ func _test_hyperion_mechanics() -> void:
 
 
 func _test_oceanus_mechanics() -> void:
-	var suction := Factory.build_attack("suction_waves", _context())
+	var suction := _build_attack("suction_waves", _context())
 	var pull := _effect(suction, "bounded_pull")
 	_check(not pull.is_empty(), "Suction Waves must publish an explicit pull directive")
 	_check(float(pull.acceleration_px_per_second_sq) <= 88.0 and float(pull.maximum_speed_delta_px_per_second) <= 96.0, "Suction pull acceleration and velocity influence must be capped")
 	_check(float(pull.maximum_position_delta_px) <= 56.0 and float(pull.duration_seconds) <= 1.45, "Suction pull displacement and duration must be capped")
 	_check(_ring_gap_is_empty(suction, 1.23, 0.72), "Suction wave must preserve its calm channel")
 
-	var chain := Factory.build_attack("chain_lightning", _context())
+	var chain := _build_attack("chain_lightning", _context())
 	var linked := _effect(chain, "linked_nodes")
 	_check(_travel_models(chain) == ["node_link"], "Storm Palm must use the real node-link travel model")
 	_check((linked.nodes as Array).size() == 4 and int(linked.maximum_hops) == 3, "Storm Palm must expose a four-node, three-hop chain bound")
@@ -278,7 +361,7 @@ func _test_oceanus_mechanics() -> void:
 		var remains_outside:=maxf(origin.x,end.x)+curve_margin<safe_left if int(link.lane_index)<safe_lane else minf(origin.x,end.x)-curve_margin>safe_right
 		_check(int(link.lane_index)!=safe_lane and remains_outside,"Every full-lifetime Storm link must retire before entering the named safe lane")
 
-	var parasites := Factory.build_attack("parasite_swarm", _context())
+	var parasites := _build_attack("parasite_swarm", _context())
 	var actors := _effect(parasites, "spawn_lunge_actors")
 	_check(_travel_models(parasites) == ["lunge"], "River sprites must use windup-burst-recovery lunge travel")
 	_check(int(actors.actor_cap) == 5 and (actors.actors as Array).size() == 5, "Parasite swarm must enforce its five-actor cap")
@@ -289,14 +372,14 @@ func _test_oceanus_mechanics() -> void:
 
 func _test_mnemosyne_mechanics() -> void:
 	var dash_path := [Vector2(202.0, 802.0), Vector2(245.0, 744.0), Vector2(316.0, 704.0)]
-	var echo := Factory.build_attack("echo_dash", _context({"dash_path": dash_path}))
+	var echo := _build_attack("echo_dash", _context({"dash_path": dash_path}))
 	var echo_options := (((echo.projectiles as Array)[0] as Dictionary).options as Dictionary)
 	var echo_parameters := echo_options.travel_parameters as Dictionary
 	_check(String(echo_options.travel_model) == "recorded_path", "Echo Heart must use recorded-path travel")
 	_check((echo_parameters.path_points as Array) == dash_path, "Echo Heart must replay the supplied bounded player dash path exactly")
 	_check(int(_effect(echo, "recorded_dash_danger_trail").point_cap) == 8, "Echo danger trail must expose the same eight-point input cap")
 
-	var decoys := Factory.build_attack("false_weakpoints", _context())
+	var decoys := _build_attack("false_weakpoints", _context())
 	var decoy_effect := _effect(decoys, "spawn_decoy_weakpoints")
 	_check(int(decoy_effect.decoy_count) == 3 and (decoy_effect.decoy_positions as Array).size() == 3, "Muse Veil must create exactly three visual decoy wounds")
 	_check(not bool(decoy_effect.decoys_take_damage), "False wounds cannot secretly accept real boss damage")
@@ -308,7 +391,7 @@ func _test_weapon_copy_archetypes() -> void:
 	var signatures: Dictionary = {}
 	var expected_counts := {"pulse": 3, "scatter": 5, "rail": 1, "arc": 3, "orbitals": 6}
 	for archetype in Factory.VALID_WEAPON_ARCHETYPES:
-		var copy := Factory.build_attack("weapon_copy", _context({"weapon_archetype": archetype}))
+		var copy := _build_attack("weapon_copy", _context({"weapon_archetype": archetype}))
 		var effect := _effect(copy, "weapon_copy")
 		_check(String(effect.source_archetype) == archetype, "Memory Crown must name copied %s archetype" % archetype)
 		_check((copy.projectiles as Array).size() == int(expected_counts[archetype]), "%s copy must translate to a distinct bounded count" % archetype)
@@ -316,7 +399,7 @@ func _test_weapon_copy_archetypes() -> void:
 		_check(not signatures.has(signature), "%s weapon copy translation cannot alias another archetype" % archetype)
 		signatures[signature] = true
 	_check(signatures.size() == 5, "All five launch weapons require distinct hostile translations")
-	var invalid := Factory.build_attack("weapon_copy", _context({"weapon_archetype": "unsupported"}))
+	var invalid := _build_attack("weapon_copy", _context({"weapon_archetype": "unsupported"}))
 	_check(String(_effect(invalid, "weapon_copy").source_archetype) == "pulse", "Unknown copy archetype must fail closed to the readable pulse translation")
 
 
@@ -337,7 +420,7 @@ func _test_invalid_context_fails_to_safe_bounds() -> void:
 		"dash_path": oversized_path,
 	}
 	for ability_id in Factory.ability_ids():
-		var plan := Factory.build_attack(ability_id, invalid_context)
+		var plan := _build_attack(ability_id, invalid_context)
 		_check(bool(plan.valid), "%s must sanitize malformed context into a playable plan" % ability_id)
 		_check(Factory.validate_attack_plan(plan).is_empty(), "%s sanitized plan must remain valid" % ability_id)
 		_check(_all_projectiles_finite(plan), "%s sanitized plan must contain only finite bounded projectiles" % ability_id)
@@ -345,31 +428,34 @@ func _test_invalid_context_fails_to_safe_bounds() -> void:
 		_check((clean.arena as Rect2) == Factory.DEFAULT_ARENA, "%s invalid arena must fall back to production bounds" % ability_id)
 		_check(float(clean.speed_multiplier) == 1.0 and String(clean.weapon_archetype) == "pulse", "%s invalid scalar context must fail closed" % ability_id)
 		_check((clean.dash_path as Array).size() <= 8, "%s dash history must never exceed the recorded-path cap" % ability_id)
-	_check(not bool(Factory.build_attack("unknown", _context()).valid), "Unknown ability ids must fail closed")
+	_check(not bool(_build_attack("unknown", _context()).valid), "Unknown ability ids must fail closed")
 
 
 func _test_contract_filtering_and_runtime_pool() -> void:
-	var active := {"ability_id": "homing_eye", "status": "active", "runtime_enabled": true, "strength": 1.0}
-	var degraded := {"ability_id": "gravity_ring", "status": "degraded", "runtime_enabled": true, "strength": 0.5}
+	var active := _active_contract("homing_eye")
+	var scaled_active := _active_contract("gravity_ring", {"strength": 0.5})
+	var degraded := _active_contract("gravity_ring", {"status": "degraded", "strength": 0.5})
 	var disabled_status := {"ability_id": "bone_missiles", "status": "disabled", "runtime_enabled": true, "strength": 1.0}
 	var disabled_runtime := {"ability_id": "prism_lances", "status": "active", "runtime_enabled": false, "strength": 1.0}
 	var disabled_strength := {"ability_id": "laser_wings", "status": "active", "runtime_enabled": true, "strength": 0.0}
-	_check(bool(Factory.build_attack("homing_eye", _context(), active).valid), "Active intact contract must compile")
-	var degraded_plan := Factory.build_attack("gravity_ring", _context(), degraded)
-	_check(bool(degraded_plan.valid) and is_equal_approx(float(degraded_plan.strength), 0.5), "Runtime-enabled degraded contract must compile at authored strength")
-	_check(is_equal_approx(float(((degraded_plan.projectiles as Array)[0] as Dictionary).damage), 5.5), "Degraded strength must scale projectile damage exactly once")
+	_check(bool(_build_attack("homing_eye", _context(), active).valid), "Active intact contract must compile")
+	var degraded_plan := _build_attack("gravity_ring", _context(), degraded)
+	_check(not bool(degraded_plan.valid) and String(degraded_plan.reason) == "non_intact_contract", "Factory must reject degraded contracts instead of reviving the intact mechanic")
+	var scaled_plan := Factory.build_attack("gravity_ring", _context(), scaled_active)
+	_check(bool(scaled_plan.valid) and is_equal_approx(float(scaled_plan.strength), 0.5), "Runtime strength must remain bounded on an intact contract")
+	_check(is_equal_approx(float(((scaled_plan.projectiles as Array)[0] as Dictionary).damage), float((scaled_active.intact_tuning as Dictionary).damage) * 0.5), "Intact strength must scale authoritative projectile damage exactly once")
 	for disabled_case in [disabled_status, disabled_runtime, disabled_strength]:
 		var ability_id := String((disabled_case as Dictionary).ability_id)
-		var filtered := Factory.build_attack(ability_id, _context(), disabled_case)
+		var filtered := _build_attack(ability_id, _context(), disabled_case)
 		_check(not bool(filtered.valid) and bool(filtered.filtered) and String(filtered.reason) == "organ_disabled", "%s disabled organ contract must be mechanically filtered" % ability_id)
 		_check((filtered.projectiles as Array).is_empty(), "%s disabled ability cannot leak projectile specs" % ability_id)
-	var mismatch := Factory.build_attack("homing_eye", _context(), {"ability_id": "gravity_ring", "runtime_enabled": true})
+	var mismatch := _build_attack("homing_eye", _context(), {"ability_id": "gravity_ring", "runtime_enabled": true})
 	_check(not bool(mismatch.valid) and bool(mismatch.filtered) and String(mismatch.reason) == "contract_ability_mismatch", "Contract/ability mismatch must fail closed")
 
-	var runtime_pool := Factory.build_runtime_pool([disabled_strength, degraded, active, disabled_runtime, disabled_status], _context())
+	var runtime_pool := Factory.build_runtime_pool([disabled_strength, scaled_active, active, disabled_runtime, disabled_status], _context())
 	_check(bool(runtime_pool.valid), "Mixed runtime pool must validate after disabled filtering")
 	var attacks := runtime_pool.attacks as Array
-	_check(attacks.size() == 2, "Runtime pool must retain only active and degraded abilities")
+	_check(attacks.size() == 2, "Runtime pool must retain only intact active abilities")
 	_check(String((attacks[0] as Dictionary).ability_id) == "homing_eye" and String((attacks[1] as Dictionary).ability_id) == "gravity_ring", "Runtime pool ordering must follow the stable catalog, not input order")
 	_check(runtime_pool.filtered_ability_ids == ["bone_missiles", "prism_lances", "laser_wings"], "Runtime pool must report every organ-filtered ability deterministically")
 	var malformed_pool := Factory.build_runtime_pool([active, active, {"ability_id": "unknown", "runtime_enabled": true}], _context())
@@ -377,7 +463,7 @@ func _test_contract_filtering_and_runtime_pool() -> void:
 
 
 func _test_validator_rejects_tampering() -> void:
-	var baseline := Factory.build_attack("suction_waves", _context())
+	var baseline := _build_attack("suction_waves", _context())
 	var overflow := baseline.duplicate(true)
 	for extra_index in 30:
 		(overflow.projectiles as Array).append(((baseline.projectiles as Array)[0] as Dictionary).duplicate(true))
@@ -420,18 +506,20 @@ func _test_live_runtime_integration() -> void:
 		"phase_index":int(active_plan.phase_index),
 		"projectile_budget_cap":int(active_plan.projectile_budget),
 	})
-	var active_factory:=Factory.build_attack("homing_eye",active_context,{"ability_id":"homing_eye","status":"active","runtime_enabled":true,"strength":1.0})
+	var active_factory:=_build_attack("homing_eye",active_context,{"ability_id":"homing_eye","status":"active","runtime_enabled":true,"strength":1.0,"intact_tuning":(active_plan.intact_tuning as Dictionary).duplicate(true)})
 	var planner_specs:=Planner.build_projectile_specs(active_plan,run._boss_visual.target_position(),run._player.position,1.23,1.0)
 	run._spawn_attack("homing_eye",1.23,run._dash_count,{"ability_id":"homing_eye","status":"active"},active_plan,run._player.position,active_factory)
 	_check(run._projectiles.enemy_active.size()==(active_factory.projectiles as Array).size(),"ACTIVE runtime must spawn Factory specs exactly")
-	_check(run._projectiles.enemy_active.size()!=planner_specs.size(),"ACTIVE runtime must not silently fall back to the old planner projectile alias")
+	_check(planner_specs.is_empty(),"ACTIVE runtime plan must not retain the old planner projectile alias")
 	_check((run._active_boss_effects as Array).size()==1 and String((run._active_boss_effects[0] as Dictionary).type)=="target_lock","ACTIVE runtime must consume Factory effect directives")
 	var active_group:=String((run._projectiles.enemy_active[0] as Dictionary).group)
 	_check(active_group.begins_with("boss_attack:") and run._attack_avoidance_candidates.has(active_group),"Factory projectile ownership must be rebound to the live boss wave")
 	var active_safe:=((active_factory.safe_paths as Array)[0] as Dictionary)
 	_check((run._projectiles.enemy_active as Array).all(func(projectile: Dictionary)->bool:return Vector2(projectile.safe_position).is_equal_approx(Vector2(active_safe.safe_target)) and float(projectile.safe_radius)>=float(active_safe.safe_radius_px)),"ACTIVE runtime must preserve the exact Factory safe disk on every live projectile")
-
 	run.projectiles_clear_and_enemies()
+	run._spawn_attack("homing_eye",1.23,run._dash_count,{"ability_id":"homing_eye","status":"active"},active_plan,run._player.position,{})
+	_check(run._projectiles.enemy_active.is_empty() and run._pending_boss_emissions.is_empty() and run._active_boss_effects.is_empty(),"ACTIVE runtime must fail closed when its Factory plan is missing")
+
 	var basic_plan:=_find_planner_plan(boss,[],Planner.BASIC_ABILITY)
 	var basic_specs:=Planner.build_projectile_specs(basic_plan,run._boss_visual.target_position(),run._player.position,1.23,1.0)
 	run._spawn_attack(Planner.BASIC_ABILITY,1.23,run._dash_count,{"ability_id":Planner.BASIC_ABILITY,"status":Planner.STATUS_BASIC},basic_plan,run._player.position,{})
@@ -446,7 +534,7 @@ func _test_live_runtime_integration() -> void:
 	_check(run._active_boss_effects.is_empty(),"DEGRADED replacement cannot reactivate its intact Factory mechanic")
 
 	run.projectiles_clear_and_enemies()
-	var bone:=Factory.build_attack("bone_missiles",active_context)
+	var bone:=_build_attack("bone_missiles",active_context)
 	run._spawn_attack("bone_missiles",1.23,run._dash_count,{"ability_id":"bone_missiles","status":"active"},{"valid":true,"status":"active"},run._player.position,bone)
 	_check(run._projectiles.enemy_active.size()==1 and run._pending_boss_emissions.size()==6,"Staggered bone salvo must spawn beat zero and queue six real delayed emissions")
 	var bone_group:=String((run._projectiles.enemy_active[0] as Dictionary).group)
@@ -458,7 +546,7 @@ func _test_live_runtime_integration() -> void:
 	_check((run._projectiles.enemy_active as Array).all(func(projectile: Dictionary)->bool:return String(projectile.group)==bone_group),"Every delayed projectile must retain the live wave group")
 
 	run.projectiles_clear_and_enemies()
-	var rail_copy:=Factory.build_attack("weapon_copy",_context({"origin":run._boss_visual.target_position(),"player_position":run._player.position,"weapon_archetype":"rail"}))
+	var rail_copy:=_build_attack("weapon_copy",_context({"origin":run._boss_visual.target_position(),"player_position":run._player.position,"weapon_archetype":"rail"}))
 	run._spawn_attack("weapon_copy",1.23,run._dash_count,{"ability_id":"weapon_copy","status":"active"},{"valid":true,"status":"active"},run._player.position,rail_copy)
 	_check(run._projectiles.enemy_active.is_empty() and run._pending_boss_emissions.size()==1,"A fully delayed copied Rail shot must remain queued rather than spawning early")
 	_check(run._attack_avoidance_candidates.size()==1,"A fully delayed Factory wave must still receive avoidance ownership")
@@ -466,7 +554,7 @@ func _test_live_runtime_integration() -> void:
 	_check(run._projectiles.enemy_active.size()==1 and run._pending_boss_emissions.is_empty(),"Copied Rail delay must resolve to one live projectile")
 
 	run.projectiles_clear_and_enemies()
-	var halo:=Factory.build_attack("halo_barrier",active_context)
+	var halo:=_build_attack("halo_barrier",active_context)
 	run._activate_factory_effects(halo,"barrier:test")
 	_check(is_equal_approx(run._active_boss_barrier_multiplier(),0.65),"Halo directive must become a real 35% boss-damage barrier")
 	run.state=RunSceneClass.RunState.EXTERIOR
@@ -476,7 +564,7 @@ func _test_live_runtime_integration() -> void:
 	_check(is_equal_approx(run.armor_health,935.0),"Boss damage routing must apply the live barrier multiplier exactly once")
 
 	run._clear_boss_attack_runtime()
-	var suction:=Factory.build_attack("suction_waves",active_context)
+	var suction:=_build_attack("suction_waves",active_context)
 	run._activate_factory_effects(suction,"pull:test")
 	run._player.position=Vector2(24.0,650.0)
 	run._player.velocity=Vector2.ZERO
@@ -497,7 +585,7 @@ func _test_live_runtime_integration() -> void:
 	_check(is_zero_approx(float(pull_effect.applied_speed_delta)) and run._player.position.is_equal_approx(position_before),"Published calm channel must suppress the live suction force completely")
 
 	run._clear_boss_attack_runtime()
-	var decoys:=Factory.build_attack("false_weakpoints",active_context)
+	var decoys:=_build_attack("false_weakpoints",active_context)
 	run._activate_factory_effects(decoys,"decoy:test")
 	var decoy_targets:=run._active_decoy_targets()
 	_check(decoy_targets.size()==3 and run._active_decoy_aim_target() is Vector2,"Decoy directive must create three live targets and redirect assisted aim")
@@ -508,7 +596,7 @@ func _test_live_runtime_integration() -> void:
 
 	run._clear_boss_attack_runtime()
 	var echo_path:=[Vector2(190.0,790.0),Vector2(270.0,720.0),Vector2(340.0,700.0)]
-	var echo:=Factory.build_attack("echo_dash",_context({"origin":run._boss_visual.target_position(),"player_position":run._player.position,"dash_path":echo_path}))
+	var echo:=_build_attack("echo_dash",_context({"origin":run._boss_visual.target_position(),"player_position":run._player.position,"dash_path":echo_path}))
 	run._activate_factory_effects(echo,"echo:test")
 	run._player.position=Vector2(270.0,720.0)
 	run._player.invulnerability=0.0
@@ -521,7 +609,7 @@ func _test_live_runtime_integration() -> void:
 	_check(is_equal_approx(run._player.health,health_after_first),"Recorded dash trail maximum-hit cap must prevent repeated damage")
 
 	run._clear_boss_attack_runtime()
-	var wing:=Factory.build_attack("laser_wings",active_context)
+	var wing:=_build_attack("laser_wings",active_context)
 	run._activate_factory_effects(wing,"wing:test")
 	var wing_effect:=run._active_boss_effects[0] as Dictionary
 	run._player.position=Vector2(float((wing_effect.lane_xs as Array)[0]),650.0)

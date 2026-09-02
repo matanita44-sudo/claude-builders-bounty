@@ -139,6 +139,7 @@ func _prepare_capture() -> void:
 		"stage": stage,
 		"stage_index": STAGES.find(stage),
 		"capture_seed": int(CAPTURE_CONFIG.seed),
+		"process_id": OS.get_process_id(),
 		"gate": _request.duplicate(true),
 		"runtime": runtime_snapshot,
 	}

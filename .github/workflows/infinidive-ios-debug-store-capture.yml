@@ -5,11 +5,7 @@ on:
     branches: [infinidive-production]
     paths:
       - "infinidive-game/**"
-      - ".github/scripts/capture_ios_debug_store.sh"
-      - ".github/scripts/prepare_ios_debug_capture_scaffold.py"
-      - ".github/scripts/validate_ios_debug_store_capture.py"
-      - ".github/scripts/validate_ios_simulator_app.py"
-      - ".github/scripts/validate_ios_simulator_screenshot.py"
+      - ".github/scripts/**"
       - ".github/workflows/infinidive-ios-debug-store-capture.yml"
   workflow_dispatch:
 
@@ -38,9 +34,11 @@ jobs:
         run: |
           python3 -m py_compile \
             .github/scripts/prepare_ios_debug_capture_scaffold.py \
-            .github/scripts/validate_ios_debug_store_capture.py
+            .github/scripts/validate_ios_debug_store_capture.py \
+            .github/scripts/validate_ios_simulator_log.py
           python3 .github/scripts/prepare_ios_debug_capture_scaffold.py self-test
           python3 .github/scripts/validate_ios_debug_store_capture.py --self-test
+          python3 .github/scripts/validate_ios_simulator_log.py --self-test
           bash -n .github/scripts/capture_ios_debug_store.sh
       - name: Install verified Godot and iOS export template
         shell: bash

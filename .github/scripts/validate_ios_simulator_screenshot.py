@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import struct
 import tempfile
@@ -64,6 +65,7 @@ def _chunks(payload: bytes) -> list[tuple[bytes, bytes]]:
 def _decode_rgb_rows(
     path: pathlib.Path,
     expected_dimensions: tuple[int, int] | None = None,
+    require_opaque_alpha: bool = False,
 ) -> tuple[int, int, list[bytes]]:
     if path.is_symlink() or not path.is_file():
         raise ScreenshotError(f"PNG input must be a regular non-symlink file: {path}")
@@ -131,10 +133,72 @@ def _decode_rgb_rows(
             for pixel in range(width):
                 source = pixel * 4
                 destination = pixel * 3
+                if require_opaque_alpha and current[source + 3] != 255:
+                    raise ScreenshotError(
+                        f"screenshot contains non-opaque alpha on row {row_index}, pixel {pixel}"
+                    )
                 rgb[destination : destination + 3] = current[source : source + 3]
             rgb_rows.append(bytes(rgb))
         previous = current
     return width, height, rgb_rows
+
+
+def _encode_rgb_png(width: int, height: int, rows: list[bytes]) -> bytes:
+    if width <= 0 or height <= 0 or len(rows) != height:
+        raise ScreenshotError("cannot encode invalid RGB dimensions")
+    scanlines = bytearray()
+    for row in rows:
+        if len(row) != width * 3:
+            raise ScreenshotError("cannot encode malformed RGB row")
+        scanlines.append(0)
+        scanlines.extend(row)
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + kind
+            + data
+            + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+        )
+
+    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    return (
+        PNG_SIGNATURE
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(bytes(scanlines), level=9))
+        + chunk(b"IEND", b"")
+    )
+
+
+def normalize_opaque_rgb(source: pathlib.Path, output: pathlib.Path) -> tuple[int, int]:
+    if output.exists() or output.is_symlink():
+        raise ScreenshotError(f"refusing to overwrite normalized screenshot: {output}")
+    if not output.parent.is_dir() or output.parent.is_symlink():
+        raise ScreenshotError(f"normalized screenshot directory is invalid: {output.parent}")
+    width, height, rows = _decode_rgb_rows(source, require_opaque_alpha=True)
+    payload = _encode_rgb_png(width, height, rows)
+    temporary: pathlib.Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            prefix=f".{output.name}.",
+            suffix=".tmp",
+            dir=output.parent,
+            delete=False,
+        ) as handle:
+            temporary = pathlib.Path(handle.name)
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, output)
+        temporary = None
+    finally:
+        if temporary is not None:
+            try:
+                temporary.unlink()
+            except FileNotFoundError:
+                pass
+    return width, height
 
 
 def _normalized_frame_distance(
@@ -218,7 +282,15 @@ def validate(
     return evidence
 
 
-def _png(width: int, height: int, varied: bool) -> bytes:
+def _png(
+    width: int,
+    height: int,
+    varied: bool,
+    alpha: bool = False,
+    alpha_value: int = 255,
+) -> bytes:
+    if alpha_value < 0 or alpha_value > 255:
+        raise ValueError("alpha fixture value must be an unsigned byte")
     def chunk(kind: bytes, data: bytes) -> bytes:
         return struct.pack(">I", len(data)) + kind + data + struct.pack(
             ">I", zlib.crc32(kind + data) & 0xFFFFFFFF
@@ -232,7 +304,9 @@ def _png(width: int, height: int, varied: bool) -> bytes:
                 rows.extend(((x * 255) // max(1, width - 1), (y * 255) // max(1, height - 1), (x + y) % 256))
             else:
                 rows.extend((0, 0, 0))
-    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+            if alpha:
+                rows.append(alpha_value)
+    header = struct.pack(">IIBBBBB", width, height, 8, 6 if alpha else 2, 0, 0, 0)
     return PNG_SIGNATURE + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
 
 
@@ -257,6 +331,23 @@ def run_self_test() -> None:
             pass
         else:
             raise AssertionError("blank native screenshot fixture was accepted")
+        rgba = root / "opaque-rgba.png"
+        normalized = root / "normalized-rgb.png"
+        rgba.write_bytes(_png(4, 3, True, alpha=True))
+        if normalize_opaque_rgb(rgba, normalized) != (4, 3):
+            raise AssertionError("opaque RGBA normalization returned wrong dimensions")
+        normalized_chunks = _chunks(normalized.read_bytes())
+        normalized_header = [data for kind, data in normalized_chunks if kind == b"IHDR"]
+        if len(normalized_header) != 1 or struct.unpack(">IIBBBBB", normalized_header[0])[3] != 2:
+            raise AssertionError("opaque RGBA normalization did not emit RGB/no-alpha PNG")
+        nonopaque = root / "nonopaque-rgba.png"
+        nonopaque.write_bytes(_png(1, 1, True, alpha=True, alpha_value=254))
+        try:
+            normalize_opaque_rgb(nonopaque, root / "must-not-exist.png")
+        except ScreenshotError:
+            pass
+        else:
+            raise AssertionError("non-opaque RGBA screenshot was normalized instead of rejected")
     print(
         "iOS Simulator screenshot validator self-test: PASS "
         "(varied positive, blank negative, unchanged-launch negative)"
@@ -267,16 +358,25 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("screenshot", nargs="?", type=pathlib.Path)
     parser.add_argument("--forbid-reference", type=pathlib.Path)
+    parser.add_argument("--normalize-rgb", type=pathlib.Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
-        if args.screenshot is not None:
+        if args.screenshot is not None or args.normalize_rgb is not None:
             parser.error("--self-test cannot be combined with a screenshot")
     elif args.screenshot is None:
         parser.error("provide a screenshot or use --self-test")
     try:
         if args.self_test:
             run_self_test()
+        elif args.normalize_rgb is not None:
+            if args.forbid_reference is not None:
+                parser.error("--normalize-rgb cannot be combined with --forbid-reference")
+            width, height = normalize_opaque_rgb(args.screenshot, args.normalize_rgb)
+            print(
+                "iOS Simulator screenshot RGB normalization: PASS "
+                f"({width}x{height}, opaque input, deterministic RGB/no-alpha output)"
+            )
         else:
             evidence = validate(args.screenshot, args.forbid_reference)
             launch_distance = evidence.get("forbidden_reference_distance")

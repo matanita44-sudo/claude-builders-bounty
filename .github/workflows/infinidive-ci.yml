@@ -70,6 +70,7 @@ jobs:
           python3 -m py_compile .github/scripts/validate_store_screenshots.py
           python3 .github/scripts/validate_store_screenshots.py --self-test
           node --check .github/scripts/capture_bright_trailer.cjs
+          node .github/scripts/capture_bright_trailer.cjs --coordinate-self-test
           python3 -m py_compile .github/scripts/validate_bright_trailer.py
           python3 .github/scripts/validate_bright_trailer.py --self-test
           command -v ffmpeg > /dev/null
@@ -91,6 +92,7 @@ jobs:
           python3 .github/scripts/validate_ios_app_icons.py --self-test
           python3 .github/scripts/validate_ios_simulator_app.py --self-test
           python3 .github/scripts/validate_ios_simulator_screenshot.py --self-test
+          python3 .github/scripts/validate_ios_simulator_log.py --self-test
           python3 .github/scripts/select_ios_scaffold.py --self-test
           PYTHONDONTWRITEBYTECODE=1 \
             python3 .github/scripts/validate_ios_release_archive.py --self-test
@@ -748,6 +750,7 @@ jobs:
           xcrun simctl install "${simulator_udid}" "${IOS_SIM_APP}"
 
           launch_started_at="$(date +%s)"
+          launch_log_start="$(date '+%Y-%m-%d %H:%M:%S')"
           set +e
           launch_output="$(xcrun simctl launch "${simulator_udid}" \
             com.matan.infinidive \
@@ -773,26 +776,32 @@ jobs:
 
           # A successful process launch is insufficient evidence: UIKit can
           # keep the launch storyboard visible while Godot is still blocked in
-          # startup. Poll for a genuinely rendered game frame and reject every
-          # capture that still matches the checked-in storyboard source.
+          # startup. Poll for a non-launch, nondegenerate Simulator frame. This
+          # lane deliberately does not claim app-specific UI; the separate
+          # Debug store-capture lane binds six gameplay states to native markers.
           screenshot="${IOS_SIM_EVIDENCE_DIR}/iphone-16-pro-max-boot.png"
           screenshot_attempt_log="${IOS_SIM_EVIDENCE_DIR}/simulator-screenshot-attempts.txt"
           : > "${screenshot_attempt_log}"
           capture_attempt=0
           boot_seconds=0
-          while (( capture_attempt < 15 )); do
-            elapsed_before_capture="$(( $(date +%s) - launch_started_at ))"
-            if (( elapsed_before_capture >= 30 )); then
-              break
-            fi
+          # `simctl io screenshot` can itself take more than ten seconds on a
+          # newly provisioned hosted Simulator. Give the app six seconds before
+          # each bounded observation and validate every returned frame; never
+          # confuse screenshot transport latency with the app's rendered state.
+          while (( capture_attempt < 4 )); do
             capture_attempt="$(( capture_attempt + 1 ))"
-            sleep 2
+            sleep 6
             candidate="${IOS_SIM_EVIDENCE_DIR}/iphone-16-pro-max-attempt-${capture_attempt}.png"
-            xcrun simctl io "${simulator_udid}" screenshot "${candidate}"
-            candidate_seconds="$(( $(date +%s) - launch_started_at ))"
-            if (( candidate_seconds > 30 )); then
-              break
+            if ! python3 -c \
+              'import subprocess,sys; subprocess.run(["xcrun","simctl","io",sys.argv[1],"screenshot",sys.argv[2]],check=True,timeout=45)' \
+              "${simulator_udid}" "${candidate}"; then
+              echo "attempt ${capture_attempt}: screenshot transport failed or exceeded 45 seconds" \
+                >> "${screenshot_attempt_log}"
+              continue
             fi
+            # `date +%s` floors both samples; adding one makes this a truthful
+            # whole-second upper bound rather than an occasionally low duration.
+            candidate_seconds="$(( $(date +%s) - launch_started_at + 1 ))"
             if python3 .github/scripts/validate_ios_simulator_screenshot.py \
               "${candidate}" \
               --forbid-reference infinidive-game/assets/platform/ios/launch_screen.png \
@@ -803,10 +812,10 @@ jobs:
             fi
           done
           if [[ ! -s "${screenshot}" ]]; then
-            echo "Native Simulator did not replace the launch storyboard within 30 seconds" >&2
+            echo "Native Simulator did not produce a non-launch nondegenerate frame in four bounded observations" >&2
             cat "${screenshot_attempt_log}" >&2
             xcrun simctl spawn "${simulator_udid}" log show \
-              --style compact --last 5m \
+              --style compact --start "${launch_log_start}" \
               --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
               > "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log" 2>&1 || true
             sample "${app_pid}" 5 \
@@ -824,18 +833,20 @@ jobs:
             --forbid-reference infinidive-game/assets/platform/ios/launch_screen.png \
             | tee "${IOS_SIM_EVIDENCE_DIR}/simulator-screenshot-validation.txt"
 
+          # Terminate first and allow a bounded unified-log flush so validation
+          # covers the complete launched process rather than a live prefix.
+          xcrun simctl terminate "${simulator_udid}" com.matan.infinidive
+          sleep 2
           xcrun simctl spawn "${simulator_udid}" log show \
-            --style compact --last 5m \
+            --style compact --start "${launch_log_start}" \
             --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
             > "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log" 2>&1
-          if grep -Eiq \
-            'uncaught exception|fatal error|EXC_BAD_ACCESS|EXC_CRASH|crashed|abort trap|\[com\.matan\.infinidive:ERROR\]|SCRIPT ERROR|Parse Error' \
-            "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log"; then
-            echo "Crash, fatal, or app-owned engine error found in native Simulator log" >&2
-            exit 1
-          fi
+          python3 .github/scripts/validate_ios_simulator_log.py \
+            "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log" \
+            --maximum-known-mouse-warnings 1 \
+            --maximum-known-mouse-warnings-per-process 1 \
+            --expected-pid "${app_pid}"
 
-          xcrun simctl terminate "${simulator_udid}" com.matan.infinidive
           python3 - \
             "${IOS_SIM_EVIDENCE_DIR}/native-simulator-evidence.json" \
             "${GITHUB_SHA}" "${GITHUB_RUN_ID}" "${GITHUB_RUN_ATTEMPT}" \
@@ -864,9 +875,10 @@ jobs:
               "architecture": "x86_64",
               "code_signing_allowed": False,
               "english_locale": "en_US",
-              "seconds_until_rendered_game_frame": int(sys.argv[13]),
+              "seconds_until_non_launch_nondegenerate_frame_upper_bound": int(sys.argv[13]),
+              "upper_bound_includes_screenshot_transport": True,
               "rendered_frame_capture_attempt": int(sys.argv[14]),
-              "maximum_allowed_boot_seconds": 30,
+              "bounded_capture_observation_limit": 4,
               "screenshot_pixels": {
                   "width": int(sys.argv[11]),
                   "height": int(sys.argv[12]),
@@ -874,7 +886,7 @@ jobs:
               "termination_after_capture": "passed",
           }
           output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-          print("Native iOS Simulator boot/install/launch/capture validation: PASS")
+          print("Native iOS Simulator boot/install/launch/non-launch-frame validation: PASS")
           PY
       - name: Package native Simulator evidence
         if: success()

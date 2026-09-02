@@ -57,12 +57,14 @@ administrator bypass or direct pushes. Only this branch may execute the signed
 release workflow; its dispatch commit supplies every script and release control.
 
 GitHub delivers `workflow_dispatch` only for workflows present on the default
-branch. This repository's default branch is currently `main`, so the reviewed
-`.github/workflows/infinidive-ios-release.yml` must also be merged byte-for-byte
-to `main` before this path is runnable. The workflow compares that registration
-copy with the protected `infinidive-production` copy and fails closed on drift.
-Until this merge (or an owner-approved default-branch change/dedicated release
-repository) is complete, the workflow is intentionally **ready but blocked**.
+branch. This repository's default branch is `main`; byte-identical registration
+was completed through PR #1 and squash merge
+`4bbdbb3ec41e77ec653775b0d8f3a200b5f93122`. Before every release dispatch,
+verify that `.github/workflows/infinidive-ios-release.yml` still matches the
+protected `infinidive-production` copy. The workflow performs the same check and
+fails closed on drift. Default-branch registration is complete; branch/tag
+protection, the protected environment, Apple signing inputs, and a frozen green
+tag remain separate blockers.
 
 Protect `ios-v*` source tags with a separate repository ruleset. Restrict tag
 creation to release owners and block updates/deletion. A tag must point to a

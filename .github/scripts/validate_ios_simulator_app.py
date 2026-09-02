@@ -16,6 +16,7 @@ EXPECTED_BUNDLE_ID = "com.matan.infinidive"
 EXPECTED_MARKETING_VERSION = "0.1.0"
 EXPECTED_BUILD_VERSION = "1"
 EXPECTED_DISPLAY_NAME = "INFINIDIVE"
+SUPPORTED_LOCALIZATIONS = ["en", "he"]
 EXPECTED_MIN_IOS = "15.0"
 CPU_TYPE_X86_64 = 0x01000007
 CPU_TYPE_ARM64 = 0x0100000C
@@ -83,6 +84,8 @@ def _validate_info(info: dict[str, object], platform: str) -> str:
         "CFBundleShortVersionString": EXPECTED_MARKETING_VERSION,
         "CFBundleVersion": EXPECTED_BUILD_VERSION,
         "CFBundleDisplayName": EXPECTED_DISPLAY_NAME,
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": SUPPORTED_LOCALIZATIONS,
         "CFBundleName": EXPECTED_DISPLAY_NAME,
         "CFBundleSupportedPlatforms": [supported_platform],
         "DTPlatformName": platform_name,
@@ -262,6 +265,8 @@ def _write_fixture(root: pathlib.Path, platform: str) -> tuple[pathlib.Path, pat
     scaffold.mkdir()
     info = {
         "CFBundleDisplayName": EXPECTED_DISPLAY_NAME,
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": SUPPORTED_LOCALIZATIONS,
         "CFBundleExecutable": EXPECTED_DISPLAY_NAME,
         "CFBundleIdentifier": EXPECTED_BUNDLE_ID,
         "CFBundleName": EXPECTED_DISPLAY_NAME,
@@ -327,6 +332,17 @@ def run_self_test() -> None:
         else:
             raise AssertionError("protected-resource negative fixture was accepted")
         del info["NSCameraUsageDescription"]
+        info_path.write_bytes(plistlib.dumps(info, fmt=plistlib.FMT_BINARY))
+
+        info["CFBundleDevelopmentRegion"] = "he"
+        info_path.write_bytes(plistlib.dumps(info, fmt=plistlib.FMT_BINARY))
+        try:
+            validate(app, scaffold, "simulator")
+        except SimulatorAppError:
+            pass
+        else:
+            raise AssertionError("wrong development-region negative fixture was accepted")
+        info["CFBundleDevelopmentRegion"] = "en"
         info_path.write_bytes(plistlib.dumps(info, fmt=plistlib.FMT_BINARY))
 
         (app / "INFINIDIVE.pck").write_bytes(b"drifted compiled pack")

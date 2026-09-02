@@ -560,7 +560,8 @@ func _qa_organ_snapshot(state_name: String) -> Dictionary:
 
 func _qa_ability_snapshot(organ: Dictionary) -> Dictionary:
 	var snapshot := {"id": null, "status": null}
-	var organ_id := String(organ.get("id", ""))
+	var raw_organ_id: Variant = organ.get("id", "")
+	var organ_id := String(raw_organ_id) if typeof(raw_organ_id) in [TYPE_STRING, TYPE_STRING_NAME] else ""
 	if organ_id.is_empty() or _organ_map == null:
 		return snapshot
 	var organ_state_value: Variant = _organ_map.organs.get(organ_id, null)
@@ -577,7 +578,9 @@ func _qa_ability_snapshot(organ: Dictionary) -> Dictionary:
 	return snapshot
 
 func _qa_boss_visual_state(state_name: String, organ: Dictionary) -> Variant:
-	if state_name not in ["EXTERIOR", "CORE"] or String(organ.get("status", "")) != "destroyed":
+	var raw_organ_status: Variant = organ.get("status", "")
+	var organ_status := String(raw_organ_status) if typeof(raw_organ_status) in [TYPE_STRING, TYPE_STRING_NAME] else ""
+	if state_name not in ["EXTERIOR", "CORE"] or organ_status != "destroyed":
 		return null
 	if not is_instance_valid(_boss_visual) or _boss_visual.mode != "exterior":
 		return null
@@ -1367,6 +1370,7 @@ func _update_boss_attacks(delta: float) -> void:
 			"status":String(planner_plan.get("status",BossPatternPlannerScript.STATUS_BASIC)),
 			"variant":String(planner_plan.get("variant","")),
 			"telegraph_multiplier":1.0,
+			"intact_tuning":(planner_plan.get("intact_tuning",{}) as Dictionary).duplicate(true),
 			"pattern":(planner_plan.get("pattern",{}) as Dictionary).duplicate(true),
 		}
 		var target_position:=_player.position
@@ -1434,8 +1438,13 @@ func _spawn_attack(ability: String, safe_angle: float, dash_count_at_telegraph: 
 	_boss_attack_serial += 1
 	var wave_id := "boss_attack:%d" % _boss_attack_serial
 	var warning_dash_count := _dash_count if dash_count_at_telegraph < 0 else dash_count_at_telegraph
-	if bool(factory_plan.get("valid",false)) and String(planner_plan.get("status",""))==BossPatternPlannerScript.STATUS_ACTIVE:
-		_spawn_factory_attack(factory_plan,wave_id)
+	if String(planner_plan.get("status",""))==BossPatternPlannerScript.STATUS_ACTIVE:
+		# ACTIVE plans are exclusively Factory-owned. Never revive the removed
+		# generic intact aliases when authoritative tuning or compilation fails.
+		if bool(factory_plan.get("valid",false)):
+			_spawn_factory_attack(factory_plan,wave_id)
+		else:
+			return
 	elif bool(planner_plan.get("valid",false)):
 		var planned_specs:=BossPatternPlannerScript.build_projectile_specs(planner_plan,origin,frozen_player_position,safe_angle,projectile_speed)
 		for raw_spec in planned_specs:
@@ -4493,12 +4502,24 @@ func _on_result_action(action: String) -> void:
 			_hud.hide_overlay()
 		"share": _share_result()
 
-func _share_result() -> void:
-	var challenge:={"boss":String(boss_definition.id),"seed":int(config.seed),"weapon":String(weapon_definition.id),"difficulty":String(config.difficulty),"modifiers":_result.get("modifiers",[]),"target_score":int(_result.get("score",0)),"target_time_ms":int(elapsed*1000.0)}
+func _share_result() -> bool:
+	# Abyss Retry owns continuation semantics. An ID1 Friend Rift starts fresh and
+	# cannot reproduce its carry/depth/cumulative state, so never copy a code for
+	# an unsupported result even if a stale or synthetic UI signal reaches here.
+	if not ChallengeCode.can_convert_result_to_friend_challenge(_result):
+		if is_instance_valid(_hud):
+			_hud.show_toast(LocalizationService.text("friend_share_unavailable"),VisualTheme.ENEMY)
+		return false
+	if not is_instance_valid(_hud):
+		return false
+	var challenge:={"boss":String(_result.get("boss_id","")),"seed":int(_result.get("seed",0)),"weapon":String(_result.get("weapon","")),"difficulty":String(_result.get("difficulty","")),"modifiers":_result.get("modifiers",[]),"target_score":int(_result.get("score",0)),"target_time_ms":int(float(_result.get("elapsed",0.0))*1000.0)}
 	var code:=ChallengeCode.encode(challenge)
+	if not _hud.show_share_card(_result,code):
+		_hud.show_toast(LocalizationService.text("friend_share_unavailable"),VisualTheme.ENEMY)
+		return false
 	DisplayServer.clipboard_set(code)
-	_hud.show_share_card(_result,code)
 	_hud.show_toast(LocalizationService.text("friend_rift_copied_short",{"code":code.left(16)}),VisualTheme.SHARD)
+	return true
 
 func _toggle_pause() -> void:
 	if _titan_collapse_pending or state in [RunState.DEAD,RunState.VICTORY,RunState.ORGAN_SELECT,RunState.MUTATION_CHOICE]:return

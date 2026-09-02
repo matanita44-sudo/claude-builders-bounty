@@ -2,7 +2,7 @@
 
 This checklist is evidence-based. Check an item only after the artifact or test exists. A configured preset, authored data row, or code path is not equivalent to a validated build or feature.
 
-> Bright Greek-mythic/AION commit `a550ca867506f34856cf337fbe28083a9cdbaec5` is the current deployed evidence candidate. Run `33594396541` passed all seven configured jobs. The reconstructed tree now passes local editor/import and a fresh 21-suite `40,160/0` matrix with exact sentinels and zero unexpected engine/script/parse errors; it is not yet pushed, remotely run, or deployed.
+> The live Pages marker is hardening commit `e7275f5`; its run `33668271115` passed Validate, Web, Android debug, unsigned-iOS scaffold, deploy, 30-minute soak, and unsigned Xcode 26 Simulator/iPhoneOS compilation, but native capture and the later public trailer step failed. Bright Greek-mythic/AION commit `a550ca867506f34856cf337fbe28083a9cdbaec5` therefore remains the latest fully passing public whole-path evidence candidate. The current local tree passes editor/import and a fresh 21-suite `40,709/0` matrix. Its capture fixes still need a final push and remote rerun.
 
 ## 0. Source and version control
 
@@ -12,7 +12,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Prior frozen production tree `67e2c54` is committed and pushed on `infinidive-production`; it is historical evidence, not the active candidate.
 - [x] Bright presentation/story candidate tree `2c77fa2266145323b99f7a349e5283416aec2c1c` is committed and pushed as `a550ca867506f34856cf337fbe28083a9cdbaec5` on `infinidive-production`.
 - [x] The deployed candidate production inventory is fingerprinted as `a0e456bc31c947cb1db2330e40b5069a323168b2b0ac1df553143bf9e9eb9a2c`; the 1,800.026-second soak preserved that value from start to finish. The production calculation deliberately excludes only local-only, untracked, non-exported capture evidence.
-- [ ] The rebuilt post-`a550ca8` hardening working tree is frozen, committed, pushed, and bound to a complete remote evidence chain, including the new Xcode Simulator lane.
+- [x] Hardening checkpoint `e7275f5fc78ad7237da2549ff0396123814ccebc` is committed and pushed; run `33668271115` passed its Linux validation/export/30-minute-soak jobs and both unsigned Xcode compile targets.
+- [ ] The latest post-`e7275f5` capture/tuning/share fixes are frozen, committed, pushed, and bound to a complete remote evidence chain with a fully passing Xcode Simulator capture lane.
 - [ ] Default/production branch is remotely playable and protected appropriately.
 - [ ] Risky migration work has a recoverable branch/tag/checkpoint.
 - [ ] Release version, changelog, and tag agree.
@@ -142,8 +143,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] A privacy data map matches the reviewed `0.1.0` working tree; final signed-binary review is still required.
 - [x] Static bilingual privacy and support page drafts exist in `web_pages/`.
 - [x] `OPEN_SOURCE_NOTICES.md` records the Godot MIT runtime notice and the no-third-party-creative-asset boundary; final-binary notice audit remains required.
-- [x] A bilingual pre-release Draft Terms source exists in `TERMS.md` and `web_pages/terms.html` and is included in deployed candidate `a550ca8`; it is not legally approved.
-- [ ] The rebuilt bilingual public notices page is committed, deployed, link-checked, and reconciled against the exact final archive and asset-license ledger. Local source alone is not public evidence.
+- [x] A bilingual pre-release Draft Terms source exists in `TERMS.md` and `web_pages/terms.html`, is deployed at the public HTTPS path, and is not legally approved.
+- [x] The rebuilt bilingual public notices page is committed, deployed from `e7275f5`, and returns HTTP 200; reconciliation against the exact final archive/asset-license ledger and legal approval remain open.
 - [x] A bounded, checksummed offline leaderboard outbox validates canonical Daily/Friend summaries, separates challenge IDs, rejects duplicates, fails closed with no transport, and is called after every completed run; Story/Abyss calls do not consume it.
 - [x] Bilingual pre-release privacy and support pages are public over HTTPS.
 - [ ] Final legally reviewed Terms/open-source notices and asset-license ledger are public where required.
@@ -153,9 +154,9 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 7. Automated QA and CI
 
-- [x] Latest reconstructed local JUnit-style artifact reports main `2,860/0` with recorded time `12.994` seconds.
-- [x] Deployed `a550ca8` passed remote `28,949/0`. The rebuilt local tree passes `40,160/0` across 21 suites, including focused Titan attack, organ mapping, audio, visual, localized-layout acceptance, and QA-only native-capture gate assertions. Editor/import, exact sentinels, and strict zero-error scanning pass. Remote proof remains pending.
-- [x] Current local bounded soak passes at 8.003 seconds with 98 iterations, 10 restarts/Dives, 98 projectile cycles, six saves, 530 queue events, peak 540, all seven movement models, zero failures, fingerprint `3f5aed099357c66985222681d6b825819e595dbd5ef960e3566003283c37c59a`, and transaction-recovery self-test PASS.
+- [x] Latest local JUnit-style artifact reports main `2,868/0` with recorded time `14.049` seconds.
+- [x] Deployed `a550ca8` passed remote `28,949/0`. The current local tree passes `40,709/0` across 21 suites, including organs `7,354`, Titan attack specs `1,045`, and localized layouts `2,408`. Editor/import, exact sentinels, and strict zero-error scanning pass. The latest exact tree still needs remote proof.
+- [x] Current local bounded soak passes at 8.05 seconds with 97 iterations, 10 restarts/Dives, 97 projectile cycles, six saves, 530 queue events, peak 540, all seven movement models, and zero failures.
 - [x] Editor import and every suite pass the isolated strict wrapper with exact sentinel/count validation and zero engine `ERROR`, script-error, or parse-error lines.
 - [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.
@@ -169,6 +170,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Current deployed Android debug export/structural validation passes in job `100135598026`; artifact `9832975516` is 32,672,331 bytes / `4791955d62324e399a9ab549712946a9a42a4a23b2e913f21bb9ce6b9e59d77d`. No install, AAB, private signing, or Play upload is claimed.
 - [x] Current deployed unsigned iOS scaffold job `100135598028` passes; artifact `9832974829` is 105,809,413 bytes / `ab43770f803d7000859405c50fb99939019dcd942bdfd4291af802b6a62b0943`. No Xcode compilation, archive, signing, Simulator/device install, or TestFlight upload is claimed.
 - [x] Current deployed 30-minute structural soak passes in job `100135598119`; artifact `9833647628` records 1,800.026 seconds, 25,109 cycles, 2,511 restarts/Dives, stable production fingerprint `a0e456bc31c947cb1db2330e40b5069a323168b2b0ac1df553143bf9e9eb9a2c`, zero failures, and zero orphan nodes. Downloaded ZIP SHA-256 is `4607d9dfb3e5c0fdb53dd2666a10922fd6b90a7ace18ef6db0236a15ef8ac245`.
+- [x] Hardening run `33668271115` on `e7275f5` passed Validate, Web export, Android debug, unsigned iOS scaffold, and its source-bound 30-minute soak. This remote checkpoint predates the latest local capture/tuning/share fixes.
 - [x] Deploy job `100141614551` and public-smoke job `100141657457` pass. Public artifact `9833689840` is 4,752,918 bytes / SHA-256 `b5c2034b1398f852846c476f18c49d758c9fc17836607e06983eeb745a1d7f58`, and its deployment marker matches `a550ca867506f34856cf337fbe28083a9cdbaec5`.
 - [x] Historical candidate Web, Android, endurance, deployment, and movement/Dash-only public evidence from run `33572931398` remains retained under artifacts `9825704303`, `9826413723`, and `9826433759`; it is superseded by the `a550ca8` evidence above and is not the active candidate.
 - [x] Historical Android debug export and structural validation also pass in Actions run `33557365042`, attempt 2; this is retained as prior-source evidence only.
@@ -194,7 +196,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Historical 8.049-second pair passes: 88 cycles, 9 restarts / 9 Dives, 6 saves, 529 queued events / 2 reloads / final 500, peak 540, 7/7, transaction `994142d36b9310b4523a7b2f`. It remains comparison evidence only.
 - [x] Historical 90.041-second pair passes: 1,166 cycles, 117 restarts / 117 Dives, 60 saves / 1 reload, 637 queued events / 3 queue reloads / final 500, peak 540, 7/7, transaction `98e69a9b42dd1314f6a16cb9`. It remains comparison evidence only.
 - [x] Historical short `1db2d97a…` pairs complete their two-phase transactions, execute 7/7 travel models, and report zero failures; they remain retained comparison evidence, not the active candidate.
-- [x] The current deployed-candidate 30-minute soak completed 2,511 repeated restarts/Dives with zero recorded failures or orphan nodes; this is Linux headless structural evidence, not physical-device performance or human-play evidence.
+- [x] The retained `a550ca8` 30-minute soak completed 2,511 repeated restarts/Dives with zero recorded failures or orphan nodes; hardening run `33668271115` separately passed a newer `e7275f5` 30-minute soak. Both are Linux headless structural evidence, not physical-device performance or human-play evidence.
 - [ ] Maximum-projectile stress test passes at target frame rate.
 - [x] Historical soak evidence completed 1,353 atomic saves and 22 reload/backup checks, plus 3,224 offline events / 24 queue reloads / final queue 500. These exact counts are not relabelled as current `a550ca8` proof.
 - [ ] Offline/online transition test passes if networking is enabled.
@@ -220,7 +222,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] GitHub Pages deployment completes successfully for runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` in job `100049011404` (Actions run `33565500042`).
 - [x] GitHub Pages deployment completes successfully for current candidate `a550ca867506f34856cf337fbe28083a9cdbaec5` in job `100141614551` (Actions run `33594396541`).
 - [x] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opened prior runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` directly, returned HTTP 200, and passed the historical public-host boot plus synthetic canvas-delivery smoke in job `100049076641`; this is not current-candidate public confirmation.
-- [x] The public URL carries deployment marker `a550ca867506f34856cf337fbe28083a9cdbaec5`, returns HTTP 200, and passes current-candidate public whole-path/reload smoke in job `100141657457`.
+- [x] The latest fully passing public whole-path/reload smoke is job `100141657457` on marker `a550ca867506f34856cf337fbe28083a9cdbaec5`; artifact `9833689840` retains that source-bound evidence.
+- [x] The inspected live deployment marker later advanced to `e7275f5fc78ad7237da2549ff0396123814ccebc` in run `33668271115`; its deploy passed, but its later public bright-trailer step failed, so the live bytes are not marked as a complete public-smoke PASS.
 - [x] Public-smoke artifact `9823113363` retains the before/after screenshots and JSON evidence; it is 90,667 bytes with SHA-256 `5038d055d8cf723b479424b4d099d0e3c036bb4e9eb325cb9c1ee6e00b750985`.
 - [x] Historical public-smoke artifact `9826433759` retains earlier movement/Dash evidence. Current public artifact `9833689840` retains whole-path/reload evidence and hashes to `b5c2034b1398f852846c476f18c49d758c9fc17836607e06983eeb745a1d7f58`.
 - [x] The live game, support, and privacy URLs each return HTTP 200.
@@ -257,13 +260,15 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Godot 4.7 still generates empty Camera, Microphone, and Photo Library usage-description entries even when the preset omits them. The deterministic post-export sanitizer removes only empty reviewed defaults plus `CFBundleSignature`; it rejects non-empty/non-string reviewed descriptions and every new unreviewed `NS*UsageDescription` key, writes atomically, reparses, and passes positive/negative/idempotency self-tests.
 - [x] A fresh local Linux-generated scaffold passed exact custom 780×1688/1170×2532 RGB launch-pixel comparison, rejected the stock Godot splash path, and emitted tracking false with only `FileTimestamp:C617.1`, `SystemBootTime:35F9.1`, and `DiskSpace:E174.1`; collected-data and tracking-domain arrays are absent/empty. This is structural export evidence, not an Apple-platform build result.
 - [x] The deployed-candidate CI unsigned-scaffold job passes remotely; artifact `9832974829` is a sanitized current-source Xcode handoff for `a550ca8`. It uses a fake Team ID only in a temporary project copy, scrubs it from generated project/export-options files, scans the whole artifact, and labels the result as unsigned Linux export evidence.
-- [x] A rebuilt local iOS scaffold repairs scheme-to-target binding and passes metadata, icon, launch, and privacy validators.
+- [x] A regenerated local iOS scaffold repairs scheme-to-target binding, declares exactly `en` and `he` through `CFBundleLocalizations`, and passes metadata, icon, launch, and privacy validators.
 - [x] The protected signed archive-only workflow and fail-closed source/profile/certificate/archive/IPA validator pass local self-tests, source checks, YAML/Bash parsing, full-SHA action-pin checks, trust-chain contract tests, and archive/IPA substitution negatives. No signed artifact is claimed.
-- [ ] Register the byte-identical signed workflow on the default branch, protect `infinidive-production` and immutable `ios-v*` tags, configure the `app-store-production` environment/reviewers, and provide protected Apple signing credentials.
+- [x] The byte-identical signed workflow is registered on default `main` through PR [#1](https://github.com/matanita44-sudo/claude-builders-bounty/pull/1), squash merge `4bbdbb3ec41e77ec653775b0d8f3a200b5f93122`; its workflow blob matches production.
+- [ ] Protect `infinidive-production` and immutable `ios-v*` tags, configure the `app-store-production` environment/reviewers, and provide protected Apple signing credentials.
 - [ ] Calibrate exact Xcode 26 `altool` success/error JSON schemas in a protected run before automated upload can be enabled; the current workflow rejects `upload_to_app_store_connect=true` before secrets.
-- [x] A separate QA-only native store-capture lane is implemented and locally validates its source binding, Debug-only activation, six canonical state markers, exact 1320×2868 RGB/no-alpha contract, bright-identity thresholds, uniqueness, and changed Hunter Eye state. It cannot be called submission evidence before a real macOS run and human review.
-- [ ] The Xcode 26 Simulator lanes pass remotely. They must compile, install, launch, capture the boot frame plus all six current-bright iPhone 16 Pro Max stages, terminate cleanly, and upload source-bound evidence.
-- [ ] The full rebuilt current source is compiled for iOS. The Xcode scaffold can be regenerated structurally on Linux, but no current macOS/Xcode compile has occurred.
+- [x] A separate QA-only native store-capture lane is implemented and locally validates its source binding, Debug-only activation, six canonical state markers, exact 1320×2868 RGB/no-alpha contract, bright-identity thresholds, uniqueness, and changed Hunter Eye state. Debug run `33668271147` compiled/launched and captured Nest, then failed at the Titan snapshot because a nullable value reached `String()`; the defect has a local regression fix.
+- [x] Simulator app-log validation is fail-closed locally: it requires the exact PID from each stage launch, rejects unreviewed Error/Fault plus continuation/crash signatures, bounds each reviewed Godot/Simulator exception per process and in aggregate, requires a complete attributable UTF-8 log, and rejects the historical nullable-snapshot failure fixture.
+- [ ] The Xcode 26 Simulator lanes pass end to end. Run `33668271115` compiled unsigned Release x86_64 Simulator and arm64 iPhoneOS builds but failed during screenshot-loop transport timing; Debug run `33668271147` stopped after the first stage. Local fixes require remote rerun through install/launch/full capture/termination and source-bound artifact upload.
+- [x] Hardening checkpoint `e7275f5` compiled with Xcode 26 for unsigned Release x86_64 Simulator and arm64 iPhoneOS in run `33668271115`. This is compile evidence only, not an archive, signature, physical-device install, or TestFlight build.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
 - [x] The retained unsigned scaffold contains 47 files and records an approximately 368 MB directory size; this does not claim that the scaffold itself was regenerated for the current tree.
 - [ ] Bundle ID, Apple team, capabilities, and minimum iOS version receive final owner/store approval.
@@ -279,8 +284,8 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 ## 12. Store assets and metadata
 
 - [x] Original 1024×1024 app-icon source/raster exists; the raster is verified RGB without alpha.
-- [x] Dedicated Google Play icon raster exists at 512×512, 141,587 bytes, 8-bit/color RGBA; final visual and console-upload validation remain pending.
-- [x] Exact-size RGB/no-alpha iOS icon rasters and custom portrait launch assets are wired in the preset. A fresh local scaffold validates launch pixel parity and metadata; committed remote proof and final signed-archive inspection remain open.
+- [x] Dedicated Google Play icon raster exists at 512×512, 72,562 bytes, 8-bit/color RGBA; final visual and console-upload validation remain pending.
+- [x] Exact-size RGB/no-alpha iOS icon rasters and custom portrait launch assets are wired in the preset. A fresh local scaffold validates launch pixel parity, metadata, and exact English/Hebrew localization declaration; final signed-archive inspection remains open.
 - [ ] App icon is visually tested at small sizes and wired into the final Android asset catalog.
 - [x] Five direct runtime screenshots exist at 1080×1920 with provenance and hashes.
 - [ ] At least one complete 6.9-inch screenshot set is recaptured from the RC at Apple-accepted dimensions; the planned eight-scene narrative is a product choice, not Apple's minimum count.
@@ -296,7 +301,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [ ] English title, subtitle/short description, full description, keywords, captions, and release notes are final and entered in the store consoles.
 - [ ] Hebrew metadata is reviewed by a fluent human and entered only after complete in-game RTL QA.
 - [ ] Age-rating and privacy answers are completed truthfully.
-- [x] Repository-local bilingual Support, Privacy, and Draft Terms pages exist; `a550ca8` deployed the then-current legal pages. Rebuilt public notices are local, unapproved, and not yet deployed or audited against the final binary/archive.
+- [x] Repository-local bilingual Support, Privacy, Draft Terms, and Notices pages exist and are deployed from `e7275f5`; all four inspected HTTPS paths return HTTP 200. They remain pre-release drafts and have not been legally approved or audited against the final signed binary/archive.
 - [ ] Support, privacy, and marketing URLs are public and correct. The deployed support and privacy URLs return HTTP 200; final content/legal/marketing validation remains open.
 - [ ] No screenshot, trailer, claim, testimonial, metric, or award is fabricated.
 

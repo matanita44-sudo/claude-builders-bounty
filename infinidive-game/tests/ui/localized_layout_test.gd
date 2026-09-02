@@ -37,7 +37,7 @@ const CRITICAL_KEYS := {
 		"diver_lost", "nest_remembers", "killed_by", "score_value",
 		"result_loadout", "result_organs_destroyed", "result_mutations",
 		"result_metrics", "friend_target_missed", "dive_again", "share_rift",
-		"return_to_nest"
+		"friend_share_unavailable", "return_to_nest"
 	],
 	"result_card": [
 		"friend_result_card", "colossus_collapsed", "score_value",
@@ -256,6 +256,9 @@ func _result_payload(won: bool) -> Dictionary:
 		"won": won,
 		"cause": "ability:gravity_ring",
 		"score": 98765,
+		"segment_score": 98765,
+		"abyss_score": 0,
+		"mode": "friend",
 		"boss_id": "gravemaw",
 		"weapon": "pulse_needle",
 		"seed": 112233,
@@ -265,7 +268,7 @@ func _result_payload(won: bool) -> Dictionary:
 		"mutations": ["split_chamber", "phase_wake", "hungry_orbit", "needle_through_bone"],
 		"time_text": "02:05",
 		"elapsed": 125.432,
-		"abyss_depth": 27,
+		"abyss_depth": 0,
 		"banked_bio": 456,
 		"challenge_has_target": true,
 		"challenge_target_met": false,

@@ -714,7 +714,17 @@ func show_result(result: Dictionary) -> void:
 		var target_label := VisualTheme.label(LocalizationService.text(target_key), 13, Color("#187B7F") if bool(result.get("challenge_target_met",false)) else Color("#8A5A1D"))
 		target_label.horizontal_alignment = LocalizationService.start_alignment()
 		box.add_child(target_label)
+	var friend_share_available := RiftResultCardClass.can_convert_result_to_friend_challenge(result)
 	for pair in [["retry","dive_again"],["share","share_rift"],["nest","return_to_nest"]]:
+		if String(pair[0]) == "share" and not friend_share_available:
+			var share_notice := VisualTheme.label(LocalizationService.text("friend_share_unavailable"), 11, Color(MYTHIC_INK, 0.72))
+			share_notice.name = "ResultShareUnavailable"
+			share_notice.horizontal_alignment = LocalizationService.start_alignment()
+			share_notice.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			share_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			share_notice.custom_minimum_size.y = 48
+			box.add_child(share_notice)
+			continue
 		var button := Button.new()
 		# Stable semantic names support diagnostics and let headless UI smoke tests
 		# exercise the same buttons a player presses.
@@ -731,8 +741,9 @@ func show_result(result: Dictionary) -> void:
 
 func show_share_card(result: Dictionary, challenge_code: String, nickname: String = "") -> bool:
 	# Sharing is deliberately local and explicit: RunScene owns the clipboard
-	# action, while this HUD renders a truthful, screenshot-ready card for the
-	# exact encoded run. A mismatched/tampered code never replaces the result UI.
+	# action, while this HUD renders a screenshot-ready card bound to the fields
+	# encoded by ID1. Unsupported state or a mismatched/tampered code never
+	# replaces the result UI.
 	var card := RiftResultCardClass.new()
 	if not card.configure(result, challenge_code, nickname):
 		card.free()

@@ -6,6 +6,13 @@ const ALLOWED_BOSSES := ["gravemaw", "seraph_9", "abyss_leviathan", "null_twin"]
 const ALLOWED_WEAPONS := ["pulse_needle", "scatter_maw", "rail_spine", "arc_swarm", "void_orbitals"]
 const ALLOWED_DIFFICULTIES := ["diver", "deep", "abyss"]
 const COMPETITIVE_MODES := ["daily", "friend"]
+const FRIEND_CONVERTIBLE_RESULT_MODES := ["daily", "friend"]
+const CONTINUATION_ONLY_RESULT_FIELDS := [
+	"carried_mutations",
+	"starting_health_ratio",
+	"abyss_cumulative_score",
+	"mutation_choice_count",
+]
 
 ## One versioned rules contract drives both the Daily Rift UI and runtime.
 ## Accessibility presentation preferences (for example reduced motion and
@@ -24,6 +31,23 @@ const DAILY_STANDARD_RULES := {
 
 static func daily_standard_rules() -> Dictionary:
 	return DAILY_STANDARD_RULES.duplicate(true)
+
+
+static func can_convert_result_to_friend_challenge(result: Dictionary) -> bool:
+	# ID1 describes the fixed competitive rules shared by Daily and Friend Rifts.
+	# Story runs can include permanent combat upgrades and player Assist settings,
+	# while Abyss runs carry continuation state. Neither ruleset is encoded by ID1,
+	# so only already-standardized competitive results may become Friend Rifts.
+	if not FRIEND_CONVERTIBLE_RESULT_MODES.has(String(result.get("mode", ""))):
+		return false
+	if int(result.get("abyss_depth", 0)) != 0 or int(result.get("abyss_score", 0)) != 0:
+		return false
+	if result.has("segment_score") and int(result.get("segment_score", 0)) != int(result.get("score", 0)):
+		return false
+	for field_value in CONTINUATION_ONLY_RESULT_FIELDS:
+		if result.has(String(field_value)):
+			return false
+	return true
 
 static func encode(challenge: Dictionary) -> String:
 	var normalized := {

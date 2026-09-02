@@ -16,6 +16,7 @@ EXPECTED_BUILD_VERSION = "1"
 EXPECTED_MIN_IOS = "15.0"
 EXPECTED_DISPLAY_NAME = "INFINIDIVE"
 PORTRAIT_ONLY = ["UIInterfaceOrientationPortrait"]
+SUPPORTED_LOCALIZATIONS = ["en", "he"]
 
 
 class MetadataError(RuntimeError):
@@ -131,6 +132,7 @@ def validate(root: pathlib.Path, preset: pathlib.Path) -> None:
         "CFBundleShortVersionString": "$(MARKETING_VERSION)",
         "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
         "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": SUPPORTED_LOCALIZATIONS,
         "CFBundleDisplayName": "$(INFOPLIST_KEY_CFBundleDisplayName)",
         "ITSAppUsesNonExemptEncryption": False,
         "LSRequiresIPhoneOS": True,
@@ -214,7 +216,7 @@ def validate(root: pathlib.Path, preset: pathlib.Path) -> None:
     print(
         "iOS project metadata validation: PASS "
         f"({EXPECTED_BUNDLE_ID} {EXPECTED_MARKETING_VERSION} ({EXPECTED_BUILD_VERSION}), "
-        "English region, iPhone/portrait-only, target-bound shared scheme, AppIcon, empty entitlements, "
+        "en/he CFBundleLocalizations declaration, iPhone/portrait-only, target-bound shared scheme, AppIcon, empty entitlements, "
         "no protected-resource usage descriptions or retained Team ID)"
     )
 

@@ -4,8 +4,9 @@
 INFINIDIVE does not use the camera, microphone, or photo library. Godot's iOS
 template still emits empty usage-description keys for those capabilities, and
 it emits the optional/deprecated CFBundleSignature key from the export preset.
-This script removes only those known-empty/default values and fails closed if a
-privacy usage description becomes non-empty, has an unexpected type, or a new
+This script removes only those known-empty/default values, injects the reviewed
+English/Hebrew bundle-localization declaration, and fails closed if a privacy
+usage description becomes non-empty, has an unexpected type, or a new
 unreviewed UsageDescription key appears.
 """
 
@@ -26,6 +27,7 @@ PRIVACY_USAGE_KEYS = (
     "NSPhotoLibraryUsageDescription",
 )
 REMOVED_KEYS = (*PRIVACY_USAGE_KEYS, "CFBundleSignature")
+SUPPORTED_LOCALIZATIONS = ["en", "he"]
 MAX_PLIST_BYTES = 2 * 1024 * 1024
 
 
@@ -90,6 +92,10 @@ def _validate_sanitized(plist: dict[str, Any]) -> None:
             "generated application plist still contains forbidden keys: "
             + ", ".join(present)
         )
+    if plist.get("CFBundleLocalizations") != SUPPORTED_LOCALIZATIONS:
+        raise PlistHardeningError(
+            "generated application plist must declare exactly the reviewed English and Hebrew localizations"
+        )
 
 
 def _atomic_write_plist(path: pathlib.Path, plist: dict[str, Any], mode: int) -> None:
@@ -134,6 +140,7 @@ def sanitize(path: pathlib.Path) -> None:
     _validate_unused_descriptions(plist)
     for key in REMOVED_KEYS:
         plist.pop(key, None)
+    plist["CFBundleLocalizations"] = list(SUPPORTED_LOCALIZATIONS)
     _validate_sanitized(plist)
     _atomic_write_plist(path, plist, mode)
     _raw_after, reparsed, _mode_after = _read_plist(path)
@@ -177,6 +184,17 @@ def run_self_test() -> None:
         positive_value = plistlib.loads(first_pass)
         if positive_value.get("UnrelatedValue") != 7:
             raise AssertionError("sanitization changed an unrelated value")
+        if positive_value.get("CFBundleLocalizations") != SUPPORTED_LOCALIZATIONS:
+            raise AssertionError("sanitization did not declare English and Hebrew")
+
+        wrong_localizations = root_path / "wrong-localizations.plist"
+        _write_fixture(wrong_localizations, {"CFBundleLocalizations": ["en"]})
+        try:
+            check(wrong_localizations)
+        except PlistHardeningError:
+            pass
+        else:
+            raise AssertionError("check mode accepted an incomplete localization declaration")
 
         for index, key in enumerate(PRIVACY_USAGE_KEYS):
             negative = root_path / f"negative-{index}.plist"

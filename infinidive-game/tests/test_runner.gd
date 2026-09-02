@@ -491,6 +491,9 @@ func _test_localized_ui() -> void:
 		"won":false,
 		"cause":"ability:homing_eye",
 		"score":12345,
+		"segment_score":3456,
+		"abyss_score":12345,
+		"mode":"abyss",
 		"time_text":"02:34",
 		"banked_bio":88,
 		"abyss_depth":7,
@@ -508,6 +511,7 @@ func _test_localized_ui() -> void:
 	_assert(result_text.contains(LocalizationService.content_text("mutation","split_chamber","name","")), "Result card must list major mutations")
 	_assert(result_text.contains("12345") and result_text.contains("02:34") and result_text.contains("7"), "Result card must include score, time, and depth")
 	_assert(result_text.contains(LocalizationService.STRINGS.he.ability_homing_eye), "Result card must translate the attributable death cause")
+	_assert(result_text.contains(LocalizationService.STRINGS.he.friend_share_unavailable) and hud.overlay.find_child("ResultAction_share",true,false)==null, "Abyss results must explain why they stay local instead of exposing a misleading Friend Rift action")
 	_assert(result_box.get_combined_minimum_size().y <= hud.overlay.size.y-28.0, "Result card must fit inside the 540x960 HUD overlay")
 	_assert(not result_text.contains("@"), "Result card must not expose an email address or private account information")
 	hud.queue_free()
@@ -533,8 +537,11 @@ func _test_result_share_card() -> void:
 	var result := {
 		"won": true,
 		"score": 34567,
+		"segment_score": 34567,
+		"abyss_score": 0,
+		"mode": "friend",
 		"elapsed": 154.321,
-		"abyss_depth": 7,
+		"abyss_depth": 0,
 		"boss_id": "gravemaw",
 		"weapon": "pulse_needle",
 		"seed": 734221,
@@ -561,7 +568,9 @@ func _test_result_share_card() -> void:
 	_assert((model.get("major_mutations", []) as Array).size() == 3 and not (model.major_mutations as Array).has("not_a_mutation"), "Result cards must show at most three catalog-backed major mutations")
 	var mismatched := result.duplicate(true)
 	mismatched.score = int(result.score) + 1
-	_assert(not bool(RiftResultCardClass.build_model(mismatched, code).get("valid", false)), "A result card must reject a code whose score does not match the displayed run")
+	mismatched.segment_score = mismatched.score
+	var mismatched_model := RiftResultCardClass.build_model(mismatched, code)
+	_assert(not bool(mismatched_model.get("valid", false)) and String(mismatched_model.get("reason", "")) == "run_code_mismatch", "A result card must reach its code-binding guard and reject a code whose score does not match the displayed run")
 	var mismatched_modifiers := result.duplicate(true)
 	mismatched_modifiers.modifiers = ["swift"]
 	_assert(not bool(RiftResultCardClass.build_model(mismatched_modifiers, code).get("valid", false)), "A result card must reject a code whose canonical modifiers do not match the displayed run")
@@ -584,13 +593,42 @@ func _test_result_share_card() -> void:
 	_assert(is_instance_valid(code_label) and code_label.text == code and share_text.contains(code), "The graphical card must visibly contain the full offline challenge code")
 	_assert(share_text.contains(expected_boss_name) and share_text.contains(expected_weapon_name), "The graphical card must identify the Titan and weapon loadout")
 	_assert(share_text.contains(expected_organ_name) and share_text.contains(expected_mutation_name), "The graphical card must include destroyed organs and major mutations")
-	_assert(share_text.contains("34567") and share_text.contains("02:34") and share_text.contains("7"), "The graphical card must include score, elapsed time, and depth")
+	_assert(share_text.contains("34567") and share_text.contains(LocalizationService.text("result_card_metrics", {"time":"02:34", "depth":1})), "The graphical card must include score, elapsed time, and normalized fresh-run depth")
 	_assert(share_text.contains("DiverTest") and not share_text.contains("@") and not share_text.contains("matanita44"), "The graphical card may show only the explicit sanitized nickname and no account/private identity")
 	_assert(is_instance_valid(hud.overlay.find_child("ResultCardAction_retry", true, false)) and is_instance_valid(hud.overlay.find_child("ResultCardAction_nest", true, false)), "The graphical card must keep immediate retry and Nest navigation reachable")
 	_assert(card.get_combined_minimum_size().y <= hud.overlay.size.y - 120.0, "The graphical result card and its actions must fit the 540x960 production HUD")
 	var child_before_invalid := hud.overlay.get_child(0)
 	var rejected := not hud.show_share_card(mismatched, code)
 	_assert(rejected and hud.overlay.get_child(0) == child_before_invalid, "A mismatched result/code pair must not replace the visible truthful card")
+	var abyss_result := result.duplicate(true)
+	abyss_result.mode = "abyss"
+	abyss_result.abyss_depth = 7
+	abyss_result.segment_score = 12000
+	abyss_result.abyss_score = int(abyss_result.score)
+	var relabeled_abyss_result := abyss_result.duplicate(true)
+	relabeled_abyss_result.mode = "friend"
+	var carry_only_result := result.duplicate(true)
+	carry_only_result.carried_mutations = ["split_chamber"]
+	var story_result := result.duplicate(true)
+	story_result.mode = "story"
+	var abyss_model := RiftResultCardClass.build_model(relabeled_abyss_result, code)
+	_assert(not ChallengeCodeClass.can_convert_result_to_friend_challenge(story_result) and not ChallengeCodeClass.can_convert_result_to_friend_challenge(abyss_result) and not ChallengeCodeClass.can_convert_result_to_friend_challenge(relabeled_abyss_result) and not ChallengeCodeClass.can_convert_result_to_friend_challenge(carry_only_result) and not bool(abyss_model.get("valid", false)) and String(abyss_model.get("reason", "")) == "unsupported_continuation_state", "Story rules, Abyss mode, relabeled depth/cumulative state, and carry-only state must fail closed before an ID1 result card can be built")
+	hud.show_result(abyss_result)
+	await get_tree().process_frame
+	var abyss_result_root := hud.overlay.get_child(0)
+	var unavailable_label := hud.overlay.find_child("ResultShareUnavailable", true, false) as Label
+	_assert(hud.overlay.find_child("ResultAction_share", true, false) == null and is_instance_valid(unavailable_label) and unavailable_label.text == LocalizationService.text("friend_share_unavailable"), "The Abyss result UI must replace Share Rift with an explicit local-only explanation")
+	_assert(not hud.show_share_card(abyss_result, code) and hud.overlay.get_child(0) == abyss_result_root, "A direct Abyss share-card request must be rejected without replacing the result screen")
+	var blocked_run := RunSceneClass.new()
+	blocked_run._result = abyss_result
+	_assert(not blocked_run._share_result(), "RunScene must reject a synthetic Abyss share action before generating or copying an ID1 code")
+	blocked_run.free()
+	var share_run := RunSceneClass.new()
+	share_run._hud = hud
+	share_run._result = result
+	_assert(share_run._share_result(), "RunScene must build, render, and copy a source-bound ID1 challenge for a standardized Friend Rift result")
+	_assert(is_instance_valid(hud.overlay.find_child("FriendRiftResultCard", true, false)), "RunScene's successful share path must replace the result with the graphical source-bound card")
+	share_run.free()
 	hud.queue_free()
 	await get_tree().process_frame
 	SettingsManager.values.language = original_language
@@ -2112,6 +2150,13 @@ func _test_first_core_hook() -> void:
 	for frame in 80:
 		await get_tree().physics_frame
 	_assert(run.state == RunScene.RunState.EXTERIOR, "Run must enter exterior combat")
+	var untouched_exterior_qa := run.qa_snapshot()
+	_assert(
+		(untouched_exterior_qa.get("organ", {}) as Dictionary).get("id", null) == null
+		and (untouched_exterior_qa.get("ability", {}) as Dictionary).get("id", null) == null
+		and untouched_exterior_qa.get("boss_visual_state", null) == null,
+		"QA snapshot must represent the untouched exterior with JSON nulls instead of constructing String from null"
+	)
 	var touch := InputEventScreenTouch.new()
 	touch.index = 77
 	touch.position = Vector2(270.0, 700.0)
