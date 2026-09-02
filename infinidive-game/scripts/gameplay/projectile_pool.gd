@@ -54,6 +54,20 @@ const PREVIEW_STEP_SECONDS := 1.0/PREVIEW_SAMPLE_RATE_HZ
 const DEFAULT_PREVIEW_SECONDS := 0.8
 const MAX_PREVIEW_SECONDS := 0.82
 const MAX_PREVIEW_SAMPLES := 51
+const TITAN_VISUAL_FAMILIES := {
+	"fate_eye_sickle_star":"sickle_star",
+	"gaia_gravity_seed":"gravity_seed",
+	"adamant_sickle_shard":"adamant_shard",
+	"dawn_prism_lance":"prism_lance",
+	"solar_mantle_ray":"solar_ray",
+	"sun_crown_orb":"halo_orb",
+	"worldstream_tide_orb":"tide_wave",
+	"storm_link_arc":"storm_arc",
+	"river_sprite_actor":"river_sprite",
+	"memory_copy_shot":"memory_copy",
+	"echo_dash_trail":"echo_trail",
+	"muse_decoy_shard":"mirror_shard",
+}
 
 var player_active: Array[Dictionary] = []
 var enemy_active: Array[Dictionary] = []
@@ -1062,6 +1076,13 @@ func _velocity_avoiding_safe_zone(position: Vector2, velocity: Vector2, safe_pos
 		tangent=-tangent
 	return (outward.normalized()*0.74+tangent*0.67).normalized()*velocity.length()
 
+static func enemy_visual_family(visual_token: String, shape: String, travel_model: String) -> String:
+	if TITAN_VISUAL_FAMILIES.has(visual_token):
+		return String(TITAN_VISUAL_FAMILIES[visual_token])
+	if not shape.is_empty() and shape!="spike":
+		return "shape:%s" % shape
+	return "travel:%s" % travel_model
+
 func _draw() -> void:
 	for bullet in player_active:
 		var pos: Vector2 = bullet.position
@@ -1082,28 +1103,81 @@ func _draw() -> void:
 		var pos: Vector2 = bullet.position
 		var radius := float(bullet.radius)
 		var color := Color("#FF9B45") if bool(SettingsManager.get_value("projectile_contrast", false)) else VisualTheme.ENEMY
-		match String(bullet.get("travel_model","linear")):
-			"expanding":
-				draw_circle(pos,radius,Color(color,0.16))
-				draw_arc(pos,radius,0.0,TAU,18,color,3.0)
-			"node_link":
-				draw_arc(pos,radius,-PI*0.8,PI*0.8,9,color,3.0)
-				draw_circle(pos,maxf(1.8,radius*0.3),Color.WHITE)
-			"lunge":
-				var direction := Vector2(bullet.velocity).normalized()
-				var normal := Vector2(-direction.y,direction.x)
-				var points := PackedVector2Array([pos+direction*radius*1.5,pos-direction*radius+normal*radius*0.65,pos-direction*radius-normal*radius*0.65])
-				draw_colored_polygon(points,color)
-				draw_polyline(PackedVector2Array(points+PackedVector2Array([points[0]])),Color(0.05,0.02,0.04,1),2.0)
-			"recorded_path", "delayed_linear":
-				draw_rect(Rect2(pos-Vector2(radius,radius),Vector2(radius*2.0,radius*2.0)),Color(color,0.18),true)
-				draw_arc(pos,radius*1.25,float(bullet.age)*4.0,float(bullet.age)*4.0+PI*1.45,12,color,2.5)
-			"soft_homing":
-				draw_circle(pos,radius,Color(color,0.28))
-				draw_arc(pos,radius,0.0,TAU,14,color,2.5)
-				draw_circle(pos,maxf(1.8,radius*0.28),Color.WHITE)
+		var direction:=Vector2(bullet.velocity).normalized()
+		if direction.length_squared()<0.001:
+			direction=Vector2.DOWN
+		var normal:=Vector2(-direction.y,direction.x)
+		var visual_family:=enemy_visual_family(String(bullet.get("visual_token","")),String(bullet.get("shape","")),String(bullet.get("travel_model","linear")))
+		match visual_family:
+			"sickle_star":
+				draw_arc(pos-normal*radius*0.2,radius*1.15,-PI*0.78,PI*0.78,14,color,3.2)
+				draw_colored_polygon(PackedVector2Array([pos+direction*radius*1.45,pos-direction*radius*0.35+normal*radius*0.42,pos-direction*radius*0.35-normal*radius*0.42]),Color.WHITE)
+			"gravity_seed":
+				draw_circle(pos,radius,Color(color,0.12))
+				draw_arc(pos,radius,0.0,TAU,18,color,2.7)
+				draw_arc(pos,radius*0.55,0.0,TAU,14,Color.WHITE,1.8)
+			"adamant_shard":
+				var shard:=PackedVector2Array([pos+direction*radius*1.9,pos-direction*radius*1.15+normal*radius*0.7,pos-direction*radius*0.55,pos-direction*radius*1.15-normal*radius*0.7])
+				draw_colored_polygon(shard,color)
+				draw_polyline(PackedVector2Array(shard+PackedVector2Array([shard[0]])),Color("#513F52"),2.0,true)
+			"prism_lance":
+				draw_line(pos-direction*radius*2.2,pos+direction*radius*2.4,Color(color,0.28),radius*1.45,true)
+				draw_line(pos-direction*radius*2.0,pos+direction*radius*2.2,Color.WHITE,3.0,true)
+			"solar_ray":
+				var ray:=PackedVector2Array([pos+direction*radius*1.6+normal*radius*0.5,pos+direction*radius*1.6-normal*radius*0.5,pos-direction*radius*1.6-normal*radius*0.5,pos-direction*radius*1.6+normal*radius*0.5])
+				draw_colored_polygon(ray,Color("#FFD45E"))
+				draw_polyline(PackedVector2Array(ray+PackedVector2Array([ray[0]])),color,2.0,true)
+			"halo_orb":
+				draw_circle(pos,radius*0.42,Color.WHITE)
+				draw_arc(pos,radius*1.18,0.2,TAU-0.2,18,Color("#FFD85E"),2.8)
+			"tide_wave":
+				for wave_index in 3:
+					draw_arc(pos-direction*float(wave_index)*radius*0.38,radius*(0.65+float(wave_index)*0.22),-PI*0.7,PI*0.7,12,Color("#52D9F4",0.92-float(wave_index)*0.18),2.2)
+			"storm_arc":
+				var arc_points:=PackedVector2Array([pos-direction*radius*1.4,pos-direction*radius*0.45+normal*radius*0.7,pos+direction*radius*0.15-normal*radius*0.55,pos+direction*radius*1.4])
+				draw_polyline(arc_points,Color.WHITE,4.2,true)
+				draw_polyline(arc_points,Color("#6ADFF5"),2.2,true)
+			"river_sprite":
+				var sprite_points:=PackedVector2Array([pos+direction*radius*1.45,pos-direction*radius+normal*radius,pos-direction*radius*0.42,pos-direction*radius-normal*radius])
+				draw_colored_polygon(sprite_points,Color("#54DDBA"))
+				draw_circle(pos+direction*radius*0.28,maxf(1.5,radius*0.18),Color.WHITE)
+			"memory_copy":
+				for echo_offset in [-1.0,1.0]:
+					draw_line(pos-direction*radius+normal*radius*0.48*echo_offset,pos+direction*radius+normal*radius*0.48*echo_offset,Color("#A58BFF",0.78),2.8,true)
+				draw_circle(pos,radius*0.3,Color.WHITE)
+			"echo_trail":
+				draw_rect(Rect2(pos-Vector2(radius,radius),Vector2(radius*2.0,radius*2.0)),Color("#A98BFF",0.24),true)
+				draw_line(pos-direction*radius*2.4,pos+direction*radius,Color("#6FE5F0",0.82),4.0,true)
+			"mirror_shard":
+				var mirror:=PackedVector2Array([pos+direction*radius*1.5,pos+normal*radius,pos-direction*radius*1.5,pos-normal*radius])
+				draw_colored_polygon(mirror,Color("#F8D8FF",0.88))
+				draw_line(pos-direction*radius,pos+direction*radius,Color("#9C76E8"),2.0,true)
 			_:
-				var points := PackedVector2Array([pos+Vector2(0,-radius),pos+Vector2(radius,0),pos+Vector2(0,radius),pos+Vector2(-radius,0)])
-				draw_colored_polygon(points, color)
-				draw_polyline(PackedVector2Array([points[0],points[1],points[2],points[3],points[0]]), Color(0.05,0.02,0.04,1), 2.0)
-				draw_circle(pos, maxf(1.8, radius * 0.25), Color.WHITE)
+				_draw_enemy_travel_fallback(bullet,pos,radius,color)
+
+func _draw_enemy_travel_fallback(bullet: Dictionary, pos: Vector2, radius: float, color: Color) -> void:
+	match String(bullet.get("travel_model","linear")):
+		"expanding":
+			draw_circle(pos,radius,Color(color,0.16))
+			draw_arc(pos,radius,0.0,TAU,18,color,3.0)
+		"node_link":
+			draw_arc(pos,radius,-PI*0.8,PI*0.8,9,color,3.0)
+			draw_circle(pos,maxf(1.8,radius*0.3),Color.WHITE)
+		"lunge":
+			var direction := Vector2(bullet.velocity).normalized()
+			var normal := Vector2(-direction.y,direction.x)
+			var points := PackedVector2Array([pos+direction*radius*1.5,pos-direction*radius+normal*radius*0.65,pos-direction*radius-normal*radius*0.65])
+			draw_colored_polygon(points,color)
+			draw_polyline(PackedVector2Array(points+PackedVector2Array([points[0]])),Color(0.05,0.02,0.04,1),2.0)
+		"recorded_path", "delayed_linear":
+			draw_rect(Rect2(pos-Vector2(radius,radius),Vector2(radius*2.0,radius*2.0)),Color(color,0.18),true)
+			draw_arc(pos,radius*1.25,float(bullet.age)*4.0,float(bullet.age)*4.0+PI*1.45,12,color,2.5)
+		"soft_homing":
+			draw_circle(pos,radius,Color(color,0.28))
+			draw_arc(pos,radius,0.0,TAU,14,color,2.5)
+			draw_circle(pos,maxf(1.8,radius*0.28),Color.WHITE)
+		_:
+			var points := PackedVector2Array([pos+Vector2(0,-radius),pos+Vector2(radius,0),pos+Vector2(0,radius),pos+Vector2(-radius,0)])
+			draw_colored_polygon(points, color)
+			draw_polyline(PackedVector2Array([points[0],points[1],points[2],points[3],points[0]]), Color(0.05,0.02,0.04,1), 2.0)
+			draw_circle(pos, maxf(1.8, radius * 0.25), Color.WHITE)

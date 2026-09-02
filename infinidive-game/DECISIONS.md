@@ -141,11 +141,11 @@ The Diver, bosses, enemies, projectiles, telegraphs, Nest and transitions are re
 - There is no imported production sprite/animation pipeline yet.
 - Some boss organ changes are represented by status marks rather than detailed anatomical deformation.
 
-## D-010 — Procedural runtime audio
+## D-010 — Offline-rendered deterministic audio
 
 **Status:** Implemented
 
-Short effects and music loops are synthesized into AudioStreamWAV objects from deterministic oscillator/noise recipes.
+Short effects and music loops are synthesized offline into checked-in `AudioStreamWAV` resources from deterministic project-owned oscillator/noise recipes. The production runtime only validates, loads, caches, and plays these resources.
 
 **Why**
 
@@ -154,10 +154,10 @@ Short effects and music loops are synthesized into AudioStreamWAV objects from d
 
 **Consequences**
 
-- SFX use 22,050Hz mono PCM; three music layers use 11,025Hz generated PCM.
-- Four boss profiles and nine music states are selected at runtime, with an eight-entry generated-layer cache and 12 pooled SFX players.
+- SFX use pre-rendered 22,050Hz signed 16-bit mono PCM; three music layers per state use pre-rendered 11,025Hz signed 16-bit mono PCM.
+- Four Titan profiles and nine music states are selected at runtime, with an eight-entry loaded-layer cache and 12 pooled SFX players.
 - Armor-hit, organ-damage, and boss-phase cues are emitted from live gameplay through per-cue rate limits.
-- There are no mastered external stems or browser/device loudness results. Focused headless tests inspect generated PCM, live-call contracts, cache bounds, and throttling while actual headless playback remains disabled. First-use generation and fade/restart transitions still need mobile profiling and listening QA.
+- There are no mastered external stems or browser/device loudness results. Focused headless tests inspect every generated resource and manifest hash, live-call contracts, cache bounds, reproducibility, and throttling while actual headless playback remains disabled. Lazy loading and fade/restart transitions still need mobile profiling and listening QA.
 
 ## D-011 — Offline-first save envelope
 
@@ -236,7 +236,7 @@ The project contains no ad SDK, billing SDK, login, cloud save, networked leader
 
 **Status:** Implemented for the current headless suite
 
-The rebuilt local result totals 29,815 assertions with zero failures across 19 suites. The earlier 15-suite set totals 28,973/0, while visual regression 315, story canon 476, Story Overlay 34, and Player Presentation 17 now run independently. Editor/import plus 19 suite drivers produce 20 logs, 19 exact sentinels, and zero engine/script/parse errors. The 8.01-second bounded soak and transaction-recovery self-test pass. Deployed commit `a550ca8` separately retains remote 28,949/0 and public evidence; the rebuilt delta requires a new frozen remote chain.
+The rebuilt local result totals 40,160 assertions with zero failures across 21 suites. Focused Titan attack, expanded organ transformation, pre-rendered audio, visual, story, localized-layout, and QA-only native-capture gate coverage now run independently. Editor/import plus every suite driver produce exact sentinels and zero unexpected engine/script/parse errors. The source-current 8.003-second bounded soak, all seven movement models, source fingerprint binding, and transaction-recovery self-test pass. Deployed commit `a550ca8` separately retains remote 28,949/0 and public evidence; the rebuilt delta requires a new frozen remote chain.
 
 **Consequences**
 
@@ -332,7 +332,7 @@ The code-drawn production pipeline remains original, while the presentation dire
 **Consequences**
 
 - The deployed source applies the direction to the boss, Last Nest, and run-HUD presentation while retaining touch safe areas, optional Hebrew/RTL support, projectile contrast, and Reduced Motion behavior.
-- Deployed `a550ca8` evidence includes historical remote main `2,726/0`, its complete 15-suite remote matrix, Web export, public whole-path/reload smoke, and retained rendered frames from run `33594396541`; rebuilt local main is `2,733/0`. These validate contracts and automated rendering, not taste, human-play readability, mobile rendering, or commercial art quality.
+- Deployed `a550ca8` evidence includes historical remote main `2,726/0`, its complete 15-suite remote matrix, Web export, public whole-path/reload smoke, and retained rendered frames from run `33594396541`; rebuilt local main is `2,860/0`. These validate contracts and automated rendering, not taste, human-play readability, mobile rendering, or commercial art quality.
 - The public Pages build serves commit `a550ca8` and includes the visual and story pivot. Rebuilt hardening after that commit remains pending revalidation and deployment.
 
 ## D-022 — Canonical Aion prologue through a decoupled story layer

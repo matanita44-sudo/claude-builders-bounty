@@ -7,6 +7,24 @@ const ALLOWED_WEAPONS := ["pulse_needle", "scatter_maw", "rail_spine", "arc_swar
 const ALLOWED_DIFFICULTIES := ["diver", "deep", "abyss"]
 const COMPETITIVE_MODES := ["daily", "friend"]
 
+## One versioned rules contract drives both the Daily Rift UI and runtime.
+## Accessibility presentation preferences (for example reduced motion and
+## contrast) remain personal, while every setting that can affect score/time is
+## fixed so two players receive the same combat challenge.
+const DAILY_STANDARD_RULES := {
+	"id": "daily_standard_v1",
+	"difficulty": "deep",
+	"modifiers": ["daily_standard"],
+	"assist_projectile_speed": 1.0,
+	"assist_telegraph": 1.0,
+	"assist_dash_window": 1.0,
+	"aim_assist": true,
+	"combat_upgrades_enabled": false,
+}
+
+static func daily_standard_rules() -> Dictionary:
+	return DAILY_STANDARD_RULES.duplicate(true)
+
 static func encode(challenge: Dictionary) -> String:
 	var normalized := {
 		"b": String(challenge.get("boss", "gravemaw")),

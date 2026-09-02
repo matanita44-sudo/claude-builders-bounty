@@ -48,7 +48,9 @@ window/ios/suppress_ui_gesture=true
 
 buffering/agile_event_flushing=true
 pointing/emulate_mouse_from_touch=true
+pointing/emulate_mouse_from_touch.mobile=false
 pointing/emulate_touch_from_mouse=true
+pointing/emulate_touch_from_mouse.mobile=false
 sensors/enable_accelerometer=false
 sensors/enable_gravity=false
 sensors/enable_gyroscope=false

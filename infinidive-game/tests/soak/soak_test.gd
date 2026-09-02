@@ -1132,6 +1132,10 @@ func _collect_source_records(path: String, records: Array[String]) -> void:
 		return
 	var directory := DirAccess.open(path)
 	if directory != null:
+		# The external validator fingerprints hidden production controls such as
+		# `.gdignore`. DirAccess hides dotfiles by default, so opt in explicitly to
+		# keep the in-engine and post-run source bindings byte-for-byte identical.
+		directory.include_hidden = true
 		directory.list_dir_begin()
 		var entry := directory.get_next()
 		while not entry.is_empty():

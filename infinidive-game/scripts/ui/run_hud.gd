@@ -2,6 +2,7 @@ class_name RunHUD
 extends CanvasLayer
 
 const SafeAreaHelperScript := preload("res://scripts/ui/safe_area_helper.gd")
+const RiftResultCardClass := preload("res://scripts/ui/result_card.gd")
 const MYTHIC_INK := Color("#17324B")
 const MYTHIC_MARBLE := Color("#EAF3E7")
 const MYTHIC_MARBLE_WARM := Color("#F7EBD2")
@@ -726,6 +727,38 @@ func show_result(result: Dictionary) -> void:
 		_apply_result_action_style(button, action_accent, action == "retry")
 		button.pressed.connect(func(): result_action.emit(action))
 		box.add_child(button)
+
+
+func show_share_card(result: Dictionary, challenge_code: String, nickname: String = "") -> bool:
+	# Sharing is deliberately local and explicit: RunScene owns the clipboard
+	# action, while this HUD renders a truthful, screenshot-ready card for the
+	# exact encoded run. A mismatched/tampered code never replaces the result UI.
+	var card := RiftResultCardClass.new()
+	if not card.configure(result, challenge_code, nickname):
+		card.free()
+		return false
+	_clear_overlay()
+	var won := bool(result.get("won", false))
+	var result_accent := MYTHIC_AQUA if won else MYTHIC_CORAL
+	overlay.add_theme_stylebox_override("panel", _overlay_style(MYTHIC_GOLD))
+	overlay.visible = true
+	var box := VBoxContainer.new()
+	box.name = "FriendRiftShareView"
+	box.layout_direction = LocalizationService.layout_direction()
+	box.add_theme_constant_override("separation", 7)
+	overlay.add_child(box)
+	box.add_child(card)
+	for pair in [["retry", "dive_again"], ["nest", "return_to_nest"]]:
+		var button := Button.new()
+		var action: String = pair[0]
+		button.name = "ResultCardAction_%s" % action
+		button.text = LocalizationService.text(String(pair[1]))
+		button.alignment = LocalizationService.start_alignment()
+		button.custom_minimum_size.y = 44
+		_apply_result_action_style(button, result_accent, action == "retry")
+		button.pressed.connect(func(): result_action.emit(action))
+		box.add_child(button)
+	return true
 
 func show_pause() -> void:
 	_clear_overlay()

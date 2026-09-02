@@ -5,7 +5,7 @@
 **Requirements reviewed:** 2026-09-02\
 **Support contact:** `matanita44@gmail.com`
 
-This file contains candidate English and Hebrew listing copy plus current official asset requirements. It does not mean that INFINIDIVE is store-ready, approved, uploaded, or signed. Public Web evidence remains bound to `a550ca8`; the rebuilt local tree passes `29,815/0` across 19 suites but has no remote/native evidence yet. Human touch feel, Mobile Safari/Chrome, signed native install, TestFlight, and device QA remain unverified.
+This file contains candidate English and Hebrew listing copy plus current official asset requirements. It does not mean that INFINIDIVE is store-ready, approved, uploaded, or signed. Public Web evidence remains bound to `a550ca8`; the rebuilt local tree passes `40,160/0` across 21 suites but has no remote/native evidence yet. Every dark pre-pivot screenshot and trailer is historical evidence only and barred from submission. Human touch feel, Mobile Safari/Chrome, signed native install, TestFlight, and device QA remain unverified.
 
 ## Submission blockers and truth constraints
 

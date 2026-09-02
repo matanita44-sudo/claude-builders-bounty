@@ -1,6 +1,7 @@
 extends Node
 
 const OrganMap := preload("res://scripts/core/organ_ability_map.gd")
+const BossPlanner := preload("res://scripts/core/boss_pattern_planner.gd")
 const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
 const BossVisualClass := preload("res://scripts/gameplay/boss_visual.gd")
 
@@ -27,7 +28,10 @@ func _run() -> void:
 	_test_state_transitions_and_visuals(bosses)
 	_test_exact_described_patterns(bosses)
 	_test_validation_guardrails(bosses)
+	_test_phase_rule_catalog_and_all_orders(bosses)
+	_test_phase_planner_guardrails(bosses)
 	await _test_live_run_scene_consumption(bosses)
+	await _test_live_phase_planner_consumption(bosses)
 	print("INFINIDIVE ORGAN TRANSFORMATION TESTS: %d passed, %d failed" % [passed,failures.size()])
 	AudioManager.shutdown_for_tests()
 	await get_tree().process_frame
@@ -192,6 +196,175 @@ func _test_validation_guardrails(bosses: Array) -> void:
 	_check(not OrganMap.validate_boss_definition(duplicate).is_empty(),"Validator must reject duplicate visual states inside a boss")
 
 
+func _test_phase_rule_catalog_and_all_orders(bosses: Array) -> void:
+	var origin := Vector2(270.0,228.0)
+	var frozen_player := Vector2(214.0,790.0)
+	var safe_angle := 0.41
+	for raw_boss in bosses:
+		var boss := raw_boss as Dictionary
+		var boss_id := String(boss.get("id","?"))
+		var source_snapshot := JSON.stringify(boss)
+		var catalog_errors := BossPlanner.validate_boss_definition(boss)
+		_check(catalog_errors.is_empty(),"%s must expose three valid exterior phase rules: %s" % [boss_id,"; ".join(catalog_errors)])
+		var rules := boss.get("phase_rules",[]) as Array
+		_check(rules.size() == BossPlanner.PHASE_COUNT,"%s must retain exactly three authored phase rules" % boss_id)
+		var phase_signatures: Dictionary = {}
+		for phase_index in range(rules.size()):
+			var rule := rules[phase_index] as Dictionary
+			var signature := BossPlanner.mechanical_signature_for_rule(rule)
+			_check(not signature.is_empty() and not phase_signatures.has(signature),"%s phase %d must be mechanically distinct" % [boss_id,phase_index+1])
+			phase_signatures[signature] = true
+			if phase_index > 0:
+				var previous := rules[phase_index-1] as Dictionary
+				_check(float(rule.telegraph_seconds) < float(previous.telegraph_seconds),"%s phase %d must tighten but preserve its authored telegraph" % [boss_id,phase_index+1])
+				_check(float(rule.cadence_seconds) < float(previous.cadence_seconds),"%s phase %d must use a distinct faster attack rhythm" % [boss_id,phase_index+1])
+				_check(int(rule.projectile_budget) > int(previous.projectile_budget),"%s phase %d must own a distinct bounded projectile budget" % [boss_id,phase_index+1])
+				_check(float(rule.speed_multiplier) > float(previous.speed_multiplier),"%s phase %d must own a distinct bounded movement pressure" % [boss_id,phase_index+1])
+		_check(phase_signatures.size() == 3,"%s must retain three unique mechanical signatures" % boss_id)
+
+		var organ_ids: Array[String] = []
+		var organ_by_id: Dictionary = {}
+		for raw_organ in boss.get("organs",[]):
+			var organ := raw_organ as Dictionary
+			var organ_id := String(organ.id)
+			organ_ids.append(organ_id)
+			organ_by_id[organ_id] = organ
+		var orders := _permutations(organ_ids)
+		_check(orders.size() == 6,"%s must exercise all six organ orders" % boss_id)
+		for raw_order in orders:
+			var order := raw_order as Array
+			for phase_index in BossPlanner.PHASE_COUNT:
+				# Exterior phase N follows N completed dives, so each permutation
+				# exercises the exact organ-state prefix seen in a real run.
+				var destroyed := order.slice(0,phase_index)
+				var selected_abilities: Dictionary = {}
+				for attack_index in 10:
+					var plan := BossPlanner.build_plan(boss,phase_index,destroyed,771901,attack_index)
+					var repeated := BossPlanner.build_plan(boss,phase_index,destroyed,771901,attack_index)
+					_check(bool(plan.get("valid",false)),"%s phase %d order %s attack %d must compile: %s" % [boss_id,phase_index+1,order,attack_index,plan.get("errors",[])])
+					if not bool(plan.get("valid",false)):
+						continue
+					_check(plan == repeated,"%s phase %d order %s attack %d must replay deterministically" % [boss_id,phase_index+1,order,attack_index])
+					_check(BossPlanner.validate_plan(plan).is_empty(),"%s phase %d plan must independently validate" % [boss_id,phase_index+1])
+					_check(int(plan.phase_index) == phase_index and String(plan.boss_id) == boss_id,"%s plan must retain exact boss/phase attribution" % boss_id)
+					_check(float(plan.telegraph_seconds) >= BossPlanner.MIN_TELEGRAPH_SECONDS and float(plan.telegraph_seconds) <= BossPlanner.MAX_TELEGRAPH_SECONDS and float(plan.cadence_seconds) >= BossPlanner.MIN_CADENCE_SECONDS,"%s phase %d must preserve bounded reaction timing" % [boss_id,phase_index+1])
+					_check(int(plan.projectile_count) <= int(plan.projectile_budget) and int(plan.projectile_budget) <= BossPlanner.MAX_PROJECTILE_BUDGET,"%s phase %d cannot exceed its projectile budget" % [boss_id,phase_index+1])
+					_check(_plan_filters_destroyed_organ(plan,destroyed,organ_by_id),"%s phase %d order %s cannot select an intact or disabled destroyed-organ ability" % [boss_id,phase_index+1,order])
+					var specs := BossPlanner.build_projectile_specs(plan,origin,frozen_player,safe_angle)
+					_check(not specs.is_empty() and specs.size() <= int(plan.projectile_budget),"%s phase %d plan must emit a bounded nonzero wave" % [boss_id,phase_index+1])
+					_check(_projectile_specs_are_safe(plan,specs,frozen_player,safe_angle),"%s phase %d plan must retain exact safe geometry and attributable bounded shots" % [boss_id,phase_index+1])
+					selected_abilities[String(plan.ability_id)] = true
+				var available_abilities := _available_cycle_abilities(boss,rules[phase_index] as Dictionary,destroyed)
+				_check(_dictionary_contains_all(selected_abilities,available_abilities),"%s phase %d order %s deterministic stride must not starve a remaining ability" % [boss_id,phase_index+1,order])
+		_check(JSON.stringify(boss) == source_snapshot,"%s planning across all organ orders must never mutate source data" % boss_id)
+
+
+func _permutations(values: Array[String]) -> Array:
+	var result: Array = []
+	for first in values:
+		for second in values:
+			for third in values:
+				if first != second and first != third and second != third:
+					result.append([first,second,third])
+	return result
+
+
+func _test_phase_planner_guardrails(bosses: Array) -> void:
+	if bosses.is_empty():
+		return
+	var boss := (bosses[0] as Dictionary).duplicate(true)
+	var unsafe := boss.duplicate(true)
+	var unsafe_rule := (unsafe.phase_rules[0] as Dictionary).duplicate(true)
+	unsafe_rule.telegraph_seconds = 0.1
+	unsafe_rule.projectile_budget = 200
+	var unsafe_fallback := (unsafe_rule.fallback_pattern as Dictionary).duplicate(true)
+	unsafe_fallback.count = 200
+	unsafe_rule.fallback_pattern = unsafe_fallback
+	unsafe.phase_rules[0] = unsafe_rule
+	_check(BossPlanner.validate_boss_definition(unsafe).size() >= 3,"Phase validator must reject unreadable warnings and unbounded projectile data")
+	var duplicate := boss.duplicate(true)
+	var duplicate_rule := (duplicate.phase_rules[0] as Dictionary).duplicate(true)
+	duplicate_rule.id = String((duplicate.phase_rules[1] as Dictionary).id)
+	duplicate.phase_rules[0] = duplicate_rule
+	_check(not BossPlanner.validate_boss_definition(duplicate).is_empty(),"Phase validator must reject duplicate rule identities")
+	var missing := boss.duplicate(true)
+	missing.phase_rules = (missing.phase_rules as Array).slice(0,2)
+	_check(not BossPlanner.validate_boss_definition(missing).is_empty(),"Phase validator must reject a Titan without three phases")
+	_check(not bool(BossPlanner.build_plan(boss,-1,[],1,0).get("valid",true)),"Planner must reject negative phase input")
+	_check(not bool(BossPlanner.build_plan(boss,0,["unknown_organ"],1,0).get("valid",true)),"Planner must reject unknown destroyed organs without mutating gameplay state")
+	_check(not bool(BossPlanner.build_plan(boss,0,[],1,-1).get("valid",true)),"Planner must reject negative attack indices")
+	var different_seed_seen := false
+	for attack_index in 10:
+		var first := BossPlanner.build_plan(boss,0,[],17,attack_index)
+		var second := BossPlanner.build_plan(boss,0,[],9973,attack_index)
+		if int(first.get("sequence_index",-1)) != int(second.get("sequence_index",-1)):
+			different_seed_seen = true
+			break
+	_check(different_seed_seen,"Distinct run seeds must be able to rotate the deterministic phase sequence")
+
+
+func _plan_filters_destroyed_organ(plan: Dictionary, destroyed: Array, organ_by_id: Dictionary) -> bool:
+	var source_organ := String(plan.get("source_organ",""))
+	var status := String(plan.get("status",""))
+	if source_organ.is_empty():
+		return String(plan.get("ability_id","")) == BossPlanner.BASIC_ABILITY and status == BossPlanner.STATUS_BASIC
+	if not organ_by_id.has(source_organ):
+		return false
+	if source_organ not in destroyed:
+		return status == BossPlanner.STATUS_ACTIVE
+	var organ := organ_by_id[source_organ] as Dictionary
+	var loss := organ.get("loss",{}) as Dictionary
+	return String(loss.get("mode","")) == BossPlanner.LOSS_TRANSFORM and status == BossPlanner.STATUS_DEGRADED and String(plan.get("variant","")) == String(loss.get("variant",""))
+
+
+func _available_cycle_abilities(boss: Dictionary, rule: Dictionary, destroyed: Array) -> Dictionary:
+	var disabled: Dictionary = {}
+	for raw_organ in boss.get("organs",[]):
+		var organ := raw_organ as Dictionary
+		if String(organ.id) in destroyed and String((organ.get("loss",{}) as Dictionary).get("mode","")) == BossPlanner.LOSS_DISABLE:
+			disabled[String(organ.ability)] = true
+	var available: Dictionary = {}
+	for raw_ability in rule.get("ability_cycle",[]):
+		var ability := String(raw_ability)
+		if not disabled.has(ability):
+			available[ability] = true
+	return available
+
+
+func _dictionary_contains_all(actual: Dictionary, expected: Dictionary) -> bool:
+	for raw_key in expected:
+		if not actual.has(String(raw_key)):
+			return false
+	return true
+
+
+func _projectile_specs_are_safe(plan: Dictionary, specs: Array, frozen_player: Vector2, safe_angle: float) -> bool:
+	var pattern := plan.get("pattern",{}) as Dictionary
+	var family := String(pattern.get("family",""))
+	var expected_cause := "ability:%s" % String(plan.get("ability_id",""))
+	var gap_x := clampf(frozen_player.x,80.0,BossPlanner.ARENA_WIDTH-80.0)
+	var safe_flank := int(pattern.get("safe_flank",0))
+	if safe_flank < 0:
+		gap_x = 68.0
+	elif safe_flank > 0:
+		gap_x = BossPlanner.ARENA_WIDTH-68.0
+	for raw_spec in specs:
+		var spec := raw_spec as Dictionary
+		var velocity := Vector2(spec.get("velocity",Vector2.ZERO))
+		var options := spec.get("options",{}) as Dictionary
+		if not velocity.is_finite() or velocity.length() < BossPlanner.MIN_PROJECTILE_SPEED-0.01 or velocity.length() > BossPlanner.MAX_PROJECTILE_SPEED+0.01:
+			return false
+		if float(spec.get("damage",0.0)) < BossPlanner.MIN_DAMAGE or float(spec.get("damage",0.0)) > BossPlanner.MAX_DAMAGE:
+			return false
+		if String(options.get("cause","")) != expected_cause:
+			return false
+		if family == "ring" and absf(wrapf(velocity.angle()-safe_angle,-PI,PI)) < float(pattern.get("safe_arc_radians",0.0))-0.0001:
+			return false
+		if family == "lane" and absf(float(Vector2(spec.origin).x)-gap_x) < float(pattern.get("gap_half_width",0.0))-0.0001:
+			return false
+	return true
+
+
 func _test_live_run_scene_consumption(bosses: Array) -> void:
 	var original_profile := SaveManager.profile.duplicate(true)
 	SaveManager.profile = SaveManager.default_profile()
@@ -218,4 +391,49 @@ func _test_live_run_scene_consumption(bosses: Array) -> void:
 	run.projectiles_clear_and_enemies()
 	run.queue_free()
 	await get_tree().process_frame
+	SaveManager.profile = original_profile
+
+
+func _test_live_phase_planner_consumption(bosses: Array) -> void:
+	var original_profile := SaveManager.profile.duplicate(true)
+	SaveManager.profile = SaveManager.default_profile()
+	for raw_boss in bosses:
+		var boss := raw_boss as Dictionary
+		var run := RunSceneClass.new()
+		run.initialize({"boss":String(boss.id),"weapon":"pulse_needle","difficulty":"deep","seed":881233,"mode":"story"})
+		add_child(run)
+		run.set_physics_process(false)
+		run.set_process(false)
+		await get_tree().process_frame
+		# Exercise the same lifecycle boundary as a completed intro. Factory
+		# projectile helpers intentionally reject direct hostile spawns in INTRO.
+		run.state = RunSceneClass.RunState.EXTERIOR
+		for phase_index in BossPlanner.PHASE_COUNT:
+			run._start_phase(phase_index)
+			run.attack_timer = 0.0
+			run._telegraph.clear()
+			run._projectiles.clear_enemy()
+			run._update_boss_attacks(0.0)
+			var warning := run._telegraph.duplicate(true)
+			var plan := warning.get("planner_plan",{}) as Dictionary
+			_check(bool(plan.get("valid",false)) and int(plan.get("phase_index",-1)) == phase_index,"%s phase %d live combat must consume its authored planner rule" % [boss.id,phase_index+1])
+			_check(run._boss_phase_attack_index == 1 and String(warning.get("contract_family","")) == String(plan.get("pattern_family","")),"%s phase %d warning must expose its deterministic attack index and exact family" % [boss.id,phase_index+1])
+			var warning_target := Vector2(warning.get("target_position",Vector2.INF))
+			run._player.position += Vector2(90.0,0.0)
+			run._telegraph.timer = 0.0
+			run._update_boss_attacks(0.0)
+			var runtime_spec_count := run._projectiles.enemy_active.size() + run._pending_boss_emissions.size()
+			_check(runtime_spec_count > 0 and runtime_spec_count <= int(plan.get("projectile_budget",0)),"%s phase %d live combat must emit or schedule a nonzero budgeted wave" % [boss.id,phase_index+1])
+			_check(is_equal_approx(run.attack_timer,float(plan.get("cadence_seconds",0.0))),"%s phase %d live combat must adopt its data-driven cadence" % [boss.id,phase_index+1])
+			var factory_plan := warning.get("factory_plan",{}) as Dictionary
+			if String(plan.get("status","")) == BossPlanner.STATUS_ACTIVE:
+				var factory_context := factory_plan.get("context",{}) as Dictionary
+				_check(bool(factory_plan.get("valid",false)) and runtime_spec_count == (factory_plan.get("projectiles",[]) as Array).size() and Vector2(factory_context.get("player_position",Vector2.INF)).is_equal_approx(warning_target),"%s phase %d ACTIVE wave must execute the complete Factory plan against the frozen telegraphed target" % [boss.id,phase_index+1])
+			else:
+				var expected_specs := BossPlanner.build_projectile_specs(plan,run._boss_visual.target_position(),warning_target,float(warning.safe_angle),run._difficulty_projectile_speed())
+				_check(factory_plan.is_empty() and run._pending_boss_emissions.is_empty() and run._projectiles.enemy_active.size() == expected_specs.size(),"%s phase %d BASIC/DEGRADED wave must retain the planner path and frozen telegraphed target" % [boss.id,phase_index+1])
+			run._projectiles.clear_enemy()
+		run.projectiles_clear_and_enemies()
+		run.queue_free()
+		await get_tree().process_frame
 	SaveManager.profile = original_profile

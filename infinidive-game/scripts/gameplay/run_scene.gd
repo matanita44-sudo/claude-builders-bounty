@@ -9,6 +9,8 @@ const RoomSpaceScript := preload("res://scripts/core/room_space.gd")
 const RoomDefenderEffectsScript := preload("res://scripts/core/room_defender_effects.gd")
 const MetaGoalServiceScript := preload("res://scripts/services/meta_goal_service.gd")
 const StoryPresentationScript := preload("res://scripts/core/story_presentation.gd")
+const BossPatternPlannerScript := preload("res://scripts/core/boss_pattern_planner.gd")
+const TitanAttackSpecFactoryScript := preload("res://scripts/core/titan_attack_spec_factory.gd")
 const SkyBattleTexture := preload("res://assets/art/backgrounds/sky_battle.png")
 const DivineInteriorTexture := preload("res://assets/art/backgrounds/divine_interior.png")
 const STORY_BOSS_ORDER := ["gravemaw","seraph_9","abyss_leviathan","null_twin"]
@@ -95,6 +97,10 @@ const COMBAT_SFX_INTERVALS := {
 	"organ_damage": 0.09,
 	"boss_phase": 0.45
 }
+const BOSS_EFFECT_MAX_ACTIVE := 24
+const BOSS_EMISSION_MAX_PENDING := 24
+const BOSS_DASH_PATH_MAX_POINTS := 8
+const BOSS_EFFECT_PLAYER_RADIUS := 12.0
 const WEAPON_SYNERGY_TAGS := {
 	"pulse": ["projectile", "timing", "critical", "skill"],
 	"scatter": ["close", "multi", "risk"],
@@ -145,6 +151,9 @@ var wound_memory_timer := 0.0
 var _paused := false
 var _result: Dictionary = {}
 var _result_banked := false
+var _titan_collapse_pending := false
+var _titan_collapse_completion_handled := false
+var _titan_collapse_boss_death_cue_played := false
 var _first_shot_sent := false
 var _first_damage_sent := false
 var _first_dash_sent := false
@@ -215,6 +224,13 @@ var _active_dash_wake_id := 0
 var _last_dash_wake_position := Vector2.ZERO
 var _dash_wake_hits: Dictionary = {}
 var _boss_attack_serial := 0
+var _boss_phase_attack_index := 0
+var _boss_effect_serial := 0
+var _pending_boss_emissions: Array[Dictionary] = []
+var _active_boss_effects: Array[Dictionary] = []
+var _dash_recording_path: Array[Vector2] = []
+var _last_completed_dash_path: Array[Vector2] = []
+var _dash_recording_active := false
 var _attack_avoidance_candidates: Dictionary = {}
 var _combat_sfx_last_played: Dictionary = {}
 
@@ -399,6 +415,9 @@ static func build_degraded_attack_specs(attack_contract: Dictionary, origin: Vec
 
 func initialize(run_config: Dictionary) -> void:
 	config = run_config.duplicate(true)
+	_titan_collapse_pending = false
+	_titan_collapse_completion_handled = false
+	_titan_collapse_boss_death_cue_played = false
 
 func _present_first_breach_story_notice() -> bool:
 	if state != RunState.BREACH_OPEN or String(config.get("mode","story")) != "story" or _hud == null:
@@ -762,7 +781,9 @@ func _apply_config_defaults() -> void:
 		"mode": "story",
 		"modifiers": [],
 		"competitive": false,
-		"abyss_depth": 0
+		"abyss_depth": 0,
+		"abyss_cumulative_score": 0,
+		"daily_ruleset_id": "",
 	}
 	for key in defaults:
 		if not config.has(key):
@@ -771,17 +792,27 @@ func _apply_config_defaults() -> void:
 	# Daily/Friend use one fixed assist profile; Story/Abyss remain personal play.
 	config.competitive = String(config.mode) in ["daily", "friend"]
 	if String(config.mode) == "daily":
+		# Daily combat rules are authoritative and versioned. A stale/tampered
+		# caller cannot opt into Assist values or permanent combat upgrades while
+		# keeping a Daily leaderboard identity.
+		var daily_rules:=ChallengeCode.daily_standard_rules()
+		config.difficulty=String(daily_rules.difficulty)
+		config.modifiers=(daily_rules.modifiers as Array).duplicate()
+		config.daily_ruleset_id=String(daily_rules.id)
 		var utc_day := String(config.get("challenge_day_utc", ""))
 		if not ChallengeCode.is_valid_utc_day(utc_day):
 			utc_day = ChallengeCode.utc_day_key()
 		config.challenge_day_utc = utc_day
 		config.challenge_id = ChallengeCode.daily_challenge_id(config, utc_day)
 	elif String(config.mode) == "friend":
+		config.daily_ruleset_id = ""
 		config.challenge_day_utc = ""
 		config.challenge_id = ChallengeCode.friend_challenge_id(config)
 	else:
+		config.daily_ruleset_id = ""
 		config.challenge_day_utc = ""
 		config.challenge_id = ""
+	config.abyss_cumulative_score = maxi(0,int(config.get("abyss_cumulative_score",0))) if String(config.mode)=="abyss" else 0
 
 func _build_world() -> void:
 	_world = Node2D.new()
@@ -790,6 +821,8 @@ func _build_world() -> void:
 	_boss_visual = BossVisual.new()
 	_boss_visual.position = Vector2(270,170)
 	_boss_visual.setup(boss_definition)
+	_boss_visual.collapse_cue.connect(_on_titan_collapse_cue)
+	_boss_visual.collapse_completed.connect(_on_titan_collapse_completed)
 	_world.add_child(_boss_visual)
 	_projectiles = ProjectilePool.new()
 	_world.add_child(_projectiles)
@@ -866,6 +899,13 @@ func _make_stars() -> void:
 func _physics_process(delta: float) -> void:
 	if _paused or state in [RunState.ORGAN_SELECT,RunState.MUTATION_CHOICE,RunState.DEAD,RunState.VICTORY]:
 		return
+	# BossVisual owns its idle-frame collapse clock. Freeze every gameplay clock
+	# and side effect here until its exact-once completion signal releases the
+	# result; the child continues to advance through its independent _process.
+	if _titan_collapse_pending:
+		queue_redraw()
+		return
+	_update_dash_path_recording()
 	if hit_stop_timer > 0.0:
 		hit_stop_timer -= delta
 		return
@@ -982,6 +1022,10 @@ func _update_combat(delta: float, exterior: bool) -> void:
 	_update_calm_heal(delta)
 	if exterior:
 		wound_memory_timer = maxf(0.0, wound_memory_timer - delta)
+		_update_pending_boss_emissions(delta)
+		_update_active_boss_effects(delta)
+		if state in [RunState.DEAD,RunState.VICTORY] or _titan_collapse_pending:
+			return
 	_update_bio_pickups(delta)
 	_update_enemies(delta)
 	_fire_timer_step(delta)
@@ -993,11 +1037,17 @@ func _update_combat(delta: float, exterior: bool) -> void:
 	for raw_hit in hit_result.target_hits:
 		_target_hit_count += 1
 		_damage_target(raw_hit)
+		if _titan_collapse_pending:
+			return
 	_apply_player_hits(hit_result.player_hits)
 	if state in [RunState.DEAD,RunState.VICTORY]:
 		return
 	_update_dash_wakes(delta, exterior)
+	if _titan_collapse_pending:
+		return
 	_update_orbitals(delta,exterior)
+	if _titan_collapse_pending:
+		return
 	if exterior:
 		_update_boss_attacks(delta)
 	else:
@@ -1025,7 +1075,7 @@ func _awaken_aion_spark() -> void:
 		_player.set_aether_awakened(true)
 	if _hud != null:
 		_hud.show_toast(LocalizationService.text("aion_spark_awakened"),Color("#F1BE48"))
-	AudioManager.play_sfx("mutation_select",1.08,0.72)
+	AudioManager.play_sfx("mutation",1.08,0.72)
 	SettingsManager.pulse_haptic(16,0.42)
 	AnalyticsService.track("tutorial_step",{
 		"step":"aion_spark_awakened",
@@ -1110,6 +1160,9 @@ func _aim_target() -> Vector2:
 		var organ_target := _boss_visual.target_position()
 		return organ_target if _aim_assist_enabled() else Vector2(_player.position.x,organ_target.y)
 	if state in [RunState.EXTERIOR,RunState.CORE]:
+		var decoy_target: Variant = _active_decoy_aim_target()
+		if decoy_target is Vector2 and _aim_assist_enabled():
+			return decoy_target as Vector2
 		var boss_target := _boss_visual.target_position()
 		return boss_target if _aim_assist_enabled() else Vector2(_player.position.x,boss_target.y)
 	return Vector2(_player.position.x,180)
@@ -1119,6 +1172,8 @@ func _target_infos(exterior: bool) -> Array:
 	for enemy in _enemies:
 		result.append({"id":String(enemy.id),"position":Vector2(enemy.position),"radius":float(enemy.radius)})
 	if exterior and state in [RunState.EXTERIOR,RunState.CORE]:
+		for decoy in _active_decoy_targets():
+			result.append(decoy)
 		result.append({"id":"boss","position":_boss_visual.target_position(),"radius":_boss_visual.target_radius()})
 	elif state == RunState.ORGAN_CHAMBER:
 		result.append({"id":"organ","position":_boss_visual.target_position(),"radius":_boss_visual.target_radius()})
@@ -1127,14 +1182,19 @@ func _target_infos(exterior: bool) -> Array:
 func _damage_target(hit: Dictionary) -> void:
 	var target_id := String(hit.id)
 	var amount := float(hit.damage)
-	if target_id == "boss":
+	if target_id.begins_with("boss_decoy:"):
+		_on_boss_decoy_hit(target_id)
+	elif target_id == "boss":
+		amount *= _active_boss_barrier_multiplier()
 		_boss_visual.flash_hit()
 		if state == RunState.CORE:
+			if _titan_collapse_pending:
+				return
 			core_health=maxf(0.0,core_health-amount)
 			_boss_visual.set_health(core_health,core_max)
 			score += int(amount*3.0)
 			if core_health<=0.0:
-				_complete_run(true,"core_collapse")
+				_begin_titan_collapse()
 		elif state == RunState.EXTERIOR:
 			_play_combat_sfx_limited("armor_hit", _rng.randf_range(0.96, 1.04), 0.52)
 			_tutorial_observe(TutorialFlowScript.EVENT_EXPOSED_ARMOR_HIT)
@@ -1278,42 +1338,112 @@ func _update_boss_attacks(delta: float) -> void:
 				String(completed_warning.ability),
 				float(completed_warning.safe_angle),
 				int(completed_warning.get("dash_count_at_start", _dash_count)),
-				completed_warning.get("attack_contract", {}) as Dictionary
+				completed_warning.get("attack_contract", {}) as Dictionary,
+				completed_warning.get("planner_plan", {}) as Dictionary,
+				Vector2(completed_warning.get("target_position", Vector2.INF)),
+				completed_warning.get("factory_plan", {}) as Dictionary
 			)
 			_telegraph.clear()
-			attack_timer=_rng.randf_range(2.1,3.1)-phase*0.08
+			attack_timer=float(completed_warning.get("cadence_seconds",2.5))
 		return
 	attack_timer-=delta
 	if attack_timer<=0.0:
-		var attack_contracts: Array[Dictionary] = [basic_rupture_attack_contract()]
-		attack_contracts.append_array(_organ_map.attack_contracts())
-		var attack_contract := attack_contracts[_rng.randi_range(0,attack_contracts.size()-1)]
-		var ability := String(attack_contract.get("ability_id","basic_rupture"))
-		var telegraph_multiplier := maxf(1.0,float(attack_contract.get("telegraph_multiplier",1.0)))
-		var telegraph_time:=maxf(0.74,0.98-phase*0.04)*telegraph_multiplier*_assist_number("assist_telegraph",1.0)
+		var exterior_phase_index:=clampi(phase,0,BossPatternPlannerScript.PHASE_COUNT-1)
+		var planner_plan:=BossPatternPlannerScript.build_plan(
+			boss_definition,
+			exterior_phase_index,
+			_organ_map.destroyed_organs(),
+			int(config.get("seed",1)),
+			_boss_phase_attack_index
+		)
+		if not bool(planner_plan.get("valid",false)):
+			attack_timer=2.5
+			return
+		_boss_phase_attack_index+=1
+		var ability:=String(planner_plan.get("ability_id",BossPatternPlannerScript.BASIC_ABILITY))
+		var attack_contract:={
+			"ability_id":ability,
+			"source_organ":String(planner_plan.get("source_organ","")),
+			"status":String(planner_plan.get("status",BossPatternPlannerScript.STATUS_BASIC)),
+			"variant":String(planner_plan.get("variant","")),
+			"telegraph_multiplier":1.0,
+			"pattern":(planner_plan.get("pattern",{}) as Dictionary).duplicate(true),
+		}
+		var target_position:=_player.position
+		var phase_rules:=boss_definition.get("phase_rules",[]) as Array
+		var phase_rule:=phase_rules[exterior_phase_index] as Dictionary if exterior_phase_index<phase_rules.size() else {}
+		var phase_speed_multiplier:=clampf(float(phase_rule.get("speed_multiplier",1.0)),BossPatternPlannerScript.MIN_SPEED_MULTIPLIER,BossPatternPlannerScript.MAX_SPEED_MULTIPLIER)
+		var safe_angle:=TitanAttackSpecFactoryScript.deterministic_safe_angle(
+			int(config.get("seed",1)),
+			String(boss_definition.get("id","")),
+			exterior_phase_index,
+			int(planner_plan.get("attack_index",_boss_phase_attack_index-1)),
+			(target_position-_boss_visual.target_position()).angle()
+		)
+		var factory_plan: Dictionary = {}
+		if String(planner_plan.get("status",""))==BossPatternPlannerScript.STATUS_ACTIVE and ability in TitanAttackSpecFactoryScript.ABILITY_IDS:
+			factory_plan=TitanAttackSpecFactoryScript.build_attack(ability,{
+				"arena":TitanAttackSpecFactoryScript.DEFAULT_ARENA,
+				"combat_bounds":_player.combat_bounds,
+				"origin":_boss_visual.target_position(),
+				"player_position":target_position,
+				"safe_angle":safe_angle,
+				"seed":int(config.get("seed",1)),
+				"attack_index":int(planner_plan.get("attack_index",_boss_phase_attack_index-1)),
+				"phase_index":exterior_phase_index,
+				"speed_multiplier":_difficulty_projectile_speed()*phase_speed_multiplier,
+				"projectile_budget_cap":int(planner_plan.get("projectile_budget",TitanAttackSpecFactoryScript.MAX_PROJECTILES_PER_ATTACK)),
+				"weapon_archetype":String(weapon_definition.get("behavior","pulse")),
+				"dash_path":_last_completed_dash_path.duplicate(),
+			},attack_contract)
+			if not bool(factory_plan.get("valid",false)):
+				push_error("Active Titan attack factory rejected %s: %s" % [ability,"; ".join(factory_plan.get("errors",[]) as Array)])
+				attack_timer=float(planner_plan.get("cadence_seconds",2.5))
+				return
+		var factory_telegraph:=float((factory_plan.get("telegraph",{}) as Dictionary).get("seconds",0.0)) if not factory_plan.is_empty() else 0.0
+		var telegraph_time:=maxf(float(planner_plan.get("telegraph_seconds",0.98)),factory_telegraph)*_assist_number("assist_telegraph",1.0)
 		_telegraph={
 			"ability": ability,
 			"timer": telegraph_time,
 			"total": telegraph_time,
-			"safe_angle": _rng.randf_range(-PI,PI),
+			"safe_angle": safe_angle,
 			"dash_count_at_start": _dash_count,
 			"attack_contract": attack_contract,
-			"contract_family": String((attack_contract.get("pattern",{}) as Dictionary).get("family",""))
+			"contract_family": String(planner_plan.get("pattern_family","")),
+			"planner_plan":planner_plan,
+			"factory_plan":factory_plan,
+			"target_position":target_position,
+			"cadence_seconds":float(planner_plan.get("cadence_seconds",2.5)),
 		}
+		if bool(factory_plan.get("valid",false)):
+			var factory_safe_paths:=factory_plan.get("safe_paths",[]) as Array
+			if not factory_safe_paths.is_empty():
+				_telegraph.safe_position=Vector2((factory_safe_paths[0] as Dictionary).get("safe_target",target_position))
 		var transformed_pattern := attack_contract.get("pattern",{}) as Dictionary
 		if String(transformed_pattern.get("family","")) == "lane":
-			_telegraph.gap_x = 68.0 if int(transformed_pattern.get("safe_flank",1)) < 0 else 472.0
+			var safe_flank:=int(transformed_pattern.get("safe_flank",0))
+			_telegraph.gap_x=68.0 if safe_flank<0 else (472.0 if safe_flank>0 else target_position.x)
 		AudioManager.play_sfx("enemy_fire",0.72,0.35)
 
-func _spawn_attack(ability: String, safe_angle: float, dash_count_at_telegraph: int = -1, attack_contract: Dictionary = {}) -> void:
+func _spawn_attack(ability: String, safe_angle: float, dash_count_at_telegraph: int = -1, attack_contract: Dictionary = {}, planner_plan: Dictionary = {}, planned_player_position: Vector2 = Vector2.INF, factory_plan: Dictionary = {}) -> void:
 	var origin:=_boss_visual.target_position()
-	var player_angle:=( _player.position-origin ).angle()
+	var frozen_player_position:=planned_player_position if planned_player_position.is_finite() else _player.position
+	var player_angle:=(frozen_player_position-origin).angle()
 	var projectile_speed:=_difficulty_projectile_speed()
 	var cause_id := "ability:%s" % ability
 	_boss_attack_serial += 1
 	var wave_id := "boss_attack:%d" % _boss_attack_serial
 	var warning_dash_count := _dash_count if dash_count_at_telegraph < 0 else dash_count_at_telegraph
-	if String(attack_contract.get("status","")) == OrganAbilityMap.STATUS_DEGRADED:
+	if bool(factory_plan.get("valid",false)) and String(planner_plan.get("status",""))==BossPatternPlannerScript.STATUS_ACTIVE:
+		_spawn_factory_attack(factory_plan,wave_id)
+	elif bool(planner_plan.get("valid",false)):
+		var planned_specs:=BossPatternPlannerScript.build_projectile_specs(planner_plan,origin,frozen_player_position,safe_angle,projectile_speed)
+		for raw_spec in planned_specs:
+			var spec:=raw_spec as Dictionary
+			var options:=(spec.get("options",{}) as Dictionary).duplicate(true)
+			options.group=wave_id
+			_projectiles.spawn_enemy(Vector2(spec.origin),Vector2(spec.velocity),float(spec.damage),options)
+	elif String(attack_contract.get("status","")) == OrganAbilityMap.STATUS_DEGRADED:
 		var plan := build_degraded_attack_specs(attack_contract,origin,_player.position,safe_angle,projectile_speed)
 		if bool(plan.get("valid",false)):
 			for raw_spec in plan.get("projectiles",[]):
@@ -1355,12 +1485,258 @@ func _spawn_attack(ability: String, safe_angle: float, dash_count_at_telegraph: 
 			if absf(wrapf(angle-safe_angle,-PI,PI))<0.45:
 				continue
 			_projectiles.spawn_enemy(origin,Vector2.from_angle(angle)*205.0*projectile_speed,9.0,{"cause":"ability:basic_rupture","group":wave_id})
-	if _projectiles.enemy_group_size(wave_id) > 0:
+	if _projectiles.enemy_group_size(wave_id)>0 or _pending_boss_emission_count(wave_id)>0 or _active_boss_effect_count(wave_id)>0:
 		_attack_avoidance_candidates[wave_id] = {
 			"contact": false,
 			"dash_count_at_start": warning_dash_count
 		}
 	AudioManager.play_sfx("enemy_fire",_rng.randf_range(0.82,1.02),0.7)
+
+func _spawn_factory_attack(factory_plan: Dictionary, wave_id: String) -> void:
+	if not bool(factory_plan.get("valid",false)) or not TitanAttackSpecFactoryScript.validate_attack_plan(factory_plan).is_empty():
+		return
+	var projectiles:=factory_plan.get("projectiles",[]) as Array
+	var budget:=mini(int(factory_plan.get("projectile_budget",0)),TitanAttackSpecFactoryScript.MAX_PROJECTILES_PER_ATTACK)
+	for projectile_index in mini(projectiles.size(),budget):
+		var raw_spec: Variant=projectiles[projectile_index]
+		if typeof(raw_spec)!=TYPE_DICTIONARY:
+			continue
+		var spec:=(raw_spec as Dictionary).duplicate(true)
+		var options:=(spec.get("options",{}) as Dictionary).duplicate(true)
+		var delay_seconds:=clampf(float(options.get("emission_delay_seconds",0.0)),0.0,1.5)
+		options.erase("emission_delay_seconds")
+		options.group=wave_id
+		options.parent_group=wave_id
+		spec.options=options
+		if delay_seconds>0.0001:
+			if _pending_boss_emissions.size()<BOSS_EMISSION_MAX_PENDING:
+				_pending_boss_emissions.append({
+					"remaining":delay_seconds,
+					"sequence":projectile_index,
+					"wave_id":wave_id,
+					"spec":spec,
+				})
+		else:
+			_spawn_boss_projectile_spec(spec)
+	_activate_factory_effects(factory_plan,wave_id)
+
+func _spawn_boss_projectile_spec(spec: Dictionary) -> bool:
+	if _projectiles==null or state not in [RunState.EXTERIOR,RunState.CORE]:
+		return false
+	return _projectiles.spawn_enemy(
+		Vector2(spec.get("origin",Vector2.ZERO)),
+		Vector2(spec.get("velocity",Vector2.ZERO)),
+		float(spec.get("damage",1.0)),
+		spec.get("options",{}) as Dictionary
+	)
+
+func _update_pending_boss_emissions(delta: float) -> void:
+	if state not in [RunState.EXTERIOR,RunState.CORE]:
+		_pending_boss_emissions.clear()
+		return
+	var index:=0
+	while index<_pending_boss_emissions.size():
+		var emission:=_pending_boss_emissions[index] as Dictionary
+		emission.remaining=maxf(0.0,float(emission.get("remaining",0.0))-maxf(0.0,delta))
+		if float(emission.remaining)>0.0001:
+			_pending_boss_emissions[index]=emission
+			index+=1
+			continue
+		_pending_boss_emissions.remove_at(index)
+		_spawn_boss_projectile_spec(emission.get("spec",{}) as Dictionary)
+
+func _pending_boss_emission_count(wave_id: String) -> int:
+	var result:=0
+	for raw_emission in _pending_boss_emissions:
+		if String((raw_emission as Dictionary).get("wave_id",""))==wave_id:
+			result+=1
+	return result
+
+func _activate_factory_effects(factory_plan: Dictionary, wave_id: String) -> void:
+	var context:=factory_plan.get("context",{}) as Dictionary
+	for raw_directive in factory_plan.get("effect_directives",[]):
+		if _active_boss_effects.size()>=BOSS_EFFECT_MAX_ACTIVE or typeof(raw_directive)!=TYPE_DICTIONARY:
+			break
+		var directive:=(raw_directive as Dictionary).duplicate(true)
+		if not bool(directive.get("bounded",false)):
+			continue
+		var duration:=clampf(float(directive.get("duration_seconds",0.0)),0.0,4.0)
+		_boss_effect_serial+=1
+		directive.runtime_id=_boss_effect_serial
+		directive.remaining=duration
+		directive.elapsed=0.0
+		directive.wave_id=wave_id
+		directive.ability_id=String(factory_plan.get("ability_id",""))
+		directive.cause_token=String(factory_plan.get("cause_token","hostile effect"))
+		directive.origin=Vector2(context.get("origin",_boss_visual.target_position()))
+		directive.hit_count=0
+		directive.applied_speed_delta=0.0
+		directive.applied_position_delta=0.0
+		directive.decoy_flash_index=-1
+		directive.decoy_flash_timer=0.0
+		_active_boss_effects.append(directive)
+
+func _update_active_boss_effects(delta: float) -> void:
+	if state not in [RunState.EXTERIOR,RunState.CORE]:
+		_active_boss_effects.clear()
+		return
+	for index in range(_active_boss_effects.size()-1,-1,-1):
+		var effect:=_active_boss_effects[index] as Dictionary
+		var step:=minf(maxf(0.0,delta),maxf(0.0,float(effect.get("remaining",0.0))))
+		effect.elapsed=float(effect.get("elapsed",0.0))+step
+		effect.remaining=maxf(0.0,float(effect.get("remaining",0.0))-step)
+		effect.decoy_flash_timer=maxf(0.0,float(effect.get("decoy_flash_timer",0.0))-step)
+		_apply_active_boss_effect(effect,step)
+		# Direct hazards can synchronously kill the player; death cleanup clears
+		# this array through projectiles_clear_and_enemies. Never index or remove
+		# from the now-empty collection after the signal returns.
+		if state in [RunState.DEAD,RunState.VICTORY] or index>=_active_boss_effects.size():
+			return
+		if float(effect.remaining)<=0.0001:
+			_active_boss_effects.remove_at(index)
+		else:
+			_active_boss_effects[index]=effect
+
+func _apply_active_boss_effect(effect: Dictionary, delta: float) -> void:
+	match String(effect.get("type","")):
+		"gravity_ring_pulse":
+			_apply_bounded_boss_force(effect,delta,false)
+		"bounded_pull":
+			_apply_bounded_boss_force(effect,delta,true)
+		"lane_afterglow":
+			_apply_lane_afterglow(effect)
+		"recorded_dash_danger_trail":
+			_apply_recorded_dash_trail(effect)
+		# The remaining directives are consumed by one of three concrete runtime
+		# paths: delayed emission, ProjectilePool travel, boss damage routing, or
+		# decoy target/aim routing. They remain active here for bounded rendering
+		# and wave-lifetime attribution.
+		"target_lock","staggered_salvo","prism_lane_sequence","temporary_boss_barrier","linked_nodes","spawn_lunge_actors","weapon_copy","spawn_decoy_weakpoints":
+			pass
+
+func _apply_bounded_boss_force(effect: Dictionary, delta: float, include_position_shift: bool) -> void:
+	if _player==null or delta<=0.0:
+		return
+	var center:=Vector2(effect.get("center",effect.get("origin",Vector2.ZERO)))
+	var offset:=center-_player.position
+	if offset.length_squared()<=0.0001:
+		return
+	if effect.has("safe_angle") and effect.has("safe_half_arc_radians"):
+		var player_bearing:=(_player.position-center).angle()
+		if absf(wrapf(player_bearing-float(effect.safe_angle),-PI,PI))<float(effect.safe_half_arc_radians):
+			return
+	var acceleration:=maxf(0.0,float(effect.get("acceleration_px_per_second_sq",effect.get("radial_acceleration",0.0))))
+	var velocity_cap:=maxf(0.0,float(effect.get("maximum_speed_delta_px_per_second",effect.get("maximum_speed_delta",0.0))))
+	var applied_speed:=maxf(0.0,float(effect.get("applied_speed_delta",0.0)))
+	var speed_step:=minf(maxf(0.0,velocity_cap-applied_speed),acceleration*delta)
+	if speed_step>0.0:
+		_player.velocity+=offset.normalized()*speed_step
+		effect.applied_speed_delta=applied_speed+speed_step
+	if not include_position_shift:
+		return
+	var position_cap:=maxf(0.0,float(effect.get("maximum_position_delta_px",0.0)))
+	var applied_position:=maxf(0.0,float(effect.get("applied_position_delta",0.0)))
+	var position_step:=minf(maxf(0.0,position_cap-applied_position),0.5*acceleration*delta*delta+speed_step*delta*0.35)
+	if position_step<=0.0:
+		return
+	var before:=_player.position
+	_player.position+=offset.normalized()*position_step
+	_player.position.x=clampf(_player.position.x,_player.combat_bounds.position.x,_player.combat_bounds.end.x)
+	_player.position.y=clampf(_player.position.y,_player.combat_bounds.position.y,_player.combat_bounds.end.y)
+	effect.applied_position_delta=applied_position+before.distance_to(_player.position)
+
+func _apply_lane_afterglow(effect: Dictionary) -> void:
+	if int(effect.get("hit_count",0))>=int(effect.get("damage_tick_cap",1)):
+		return
+	var current_y:=float(effect.get("origin_y",228.0))+float(effect.get("travel_speed",0.0))*float(effect.get("elapsed",0.0))
+	var trail_start_y:=current_y-maxf(0.0,float(effect.get("trail_length_px",0.0)))
+	if _player.position.y+BOSS_EFFECT_PLAYER_RADIUS<trail_start_y or _player.position.y-BOSS_EFFECT_PLAYER_RADIUS>current_y:
+		return
+	var clearance:=maxf(1.0,float(effect.get("beam_half_width_px",8.0)))+BOSS_EFFECT_PLAYER_RADIUS
+	for raw_x in effect.get("lane_xs",[]):
+		if absf(_player.position.x-float(raw_x))<=clearance:
+			_apply_boss_effect_damage(effect,float(effect.get("damage",1.0)))
+			return
+
+func _apply_recorded_dash_trail(effect: Dictionary) -> void:
+	if int(effect.get("hit_count",0))>=int(effect.get("maximum_hits",1)):
+		return
+	var raw_path:=effect.get("path_points",[]) as Array
+	if raw_path.size()<2:
+		return
+	var clearance:=maxf(1.0,float(effect.get("trail_radius_px",22.0)))+BOSS_EFFECT_PLAYER_RADIUS
+	for point_index in range(raw_path.size()-1):
+		if _room_point_segment_distance(_player.position,Vector2(raw_path[point_index]),Vector2(raw_path[point_index+1]))<=clearance:
+			_apply_boss_effect_damage(effect,float(effect.get("damage",1.0)))
+			return
+
+func _apply_boss_effect_damage(effect: Dictionary, damage: float) -> void:
+	var group_id:=String(effect.get("wave_id",""))
+	if _attack_avoidance_candidates.has(group_id):
+		var candidate:=_attack_avoidance_candidates[group_id] as Dictionary
+		candidate.contact=true
+		_attack_avoidance_candidates[group_id]=candidate
+	effect.hit_count=int(effect.get("hit_count",0))+1
+	_apply_player_hits([{"damage":maxf(0.0,damage),"cause":String(effect.get("cause_token","hostile effect")),"group":group_id}])
+
+func _active_boss_effect_count(wave_id: String) -> int:
+	var result:=0
+	for raw_effect in _active_boss_effects:
+		if String((raw_effect as Dictionary).get("wave_id",""))==wave_id:
+			result+=1
+	return result
+
+func _active_boss_barrier_multiplier() -> float:
+	var result:=1.0
+	for raw_effect in _active_boss_effects:
+		var effect:=raw_effect as Dictionary
+		if String(effect.get("type",""))=="temporary_boss_barrier":
+			result*=1.0-clampf(float(effect.get("damage_reduction",0.0)),0.0,0.75)
+	return clampf(result,0.25,1.0)
+
+func _active_decoy_aim_target() -> Variant:
+	for index in range(_active_boss_effects.size()-1,-1,-1):
+		var effect:=_active_boss_effects[index] as Dictionary
+		if String(effect.get("type",""))!="spawn_decoy_weakpoints":
+			continue
+		var positions:=effect.get("decoy_positions",[]) as Array
+		if positions.is_empty():
+			continue
+		var decoy_index:=clampi(int(effect.get("aim_decoy_index",0)),0,positions.size()-1)
+		return Vector2(positions[decoy_index])
+	return null
+
+func _active_decoy_targets() -> Array[Dictionary]:
+	var result: Array[Dictionary]=[]
+	for raw_effect in _active_boss_effects:
+		var effect:=raw_effect as Dictionary
+		if String(effect.get("type",""))!="spawn_decoy_weakpoints":
+			continue
+		var positions:=effect.get("decoy_positions",[]) as Array
+		for decoy_index in positions.size():
+			result.append({
+				"id":"boss_decoy:%d:%d" % [int(effect.get("runtime_id",0)),decoy_index],
+				"position":Vector2(positions[decoy_index]),
+				"radius":22.0,
+			})
+	return result
+
+func _on_boss_decoy_hit(target_id: String) -> void:
+	var parts:=target_id.split(":")
+	if parts.size()!=3:
+		return
+	var runtime_id:=int(parts[1])
+	var decoy_index:=int(parts[2])
+	for index in _active_boss_effects.size():
+		var effect:=_active_boss_effects[index] as Dictionary
+		if int(effect.get("runtime_id",-1))!=runtime_id or String(effect.get("type",""))!="spawn_decoy_weakpoints":
+			continue
+		effect.decoy_flash_index=decoy_index
+		effect.decoy_flash_timer=0.14
+		effect.decoy_hit_count=int(effect.get("decoy_hit_count",0))+1
+		_active_boss_effects[index]=effect
+		_play_combat_sfx_limited("armor_hit",1.08,0.28)
+		return
 
 func _update_attack_avoidance(player_hits: Array) -> void:
 	for raw_hit in player_hits:
@@ -1373,7 +1749,7 @@ func _update_attack_avoidance(player_hits: Array) -> void:
 		_attack_avoidance_candidates[group_id] = contacted
 	for raw_group_id in _attack_avoidance_candidates.keys():
 		var group_id := String(raw_group_id)
-		if _projectiles.enemy_group_size(group_id) > 0:
+		if _projectiles.enemy_group_size(group_id)>0 or _pending_boss_emission_count(group_id)>0 or _active_boss_effect_count(group_id)>0:
 			continue
 		var candidate := _attack_avoidance_candidates[group_id] as Dictionary
 		var survived_without_dash := (
@@ -3598,6 +3974,7 @@ func _update_dash_wakes(delta: float, exterior: bool) -> void:
 func projectiles_clear_and_enemies() -> void:
 	_collect_remaining_bio()
 	_cancel_attack_avoidance()
+	_clear_boss_attack_runtime()
 	_projectiles.clear_all()
 	_enemies.clear()
 	_active_room_waves.clear()
@@ -3618,6 +3995,10 @@ func projectiles_clear_and_enemies() -> void:
 	_dash_wakes.clear()
 	_dash_wake_hits.clear()
 
+func _clear_boss_attack_runtime() -> void:
+	_pending_boss_emissions.clear()
+	_active_boss_effects.clear()
+
 func _open_breach() -> void:
 	if state!=RunState.EXTERIOR:
 		return
@@ -3626,6 +4007,7 @@ func _open_breach() -> void:
 	_grant_bio(int(round((70+phase*25)*float(_mutation_engine.stats.get("breach_reward_mul",1.0)))))
 	score+=1200+phase*300
 	_cancel_attack_avoidance()
+	_clear_boss_attack_runtime()
 	_projectiles.clear_enemy()
 	_boss_visual.set_exterior(phase,_organ_map.destroyed_organs(),true,_organ_map.visual_states())
 	_boss_visual.set_health(0,armor_max)
@@ -3807,6 +4189,8 @@ func _return_outside() -> void:
 	wound_memory_timer=float(_mutation_engine.flags.get("breach_window_seconds",0.0))
 	if phase>=3:
 		_transition(RunState.CORE)
+		_boss_phase_attack_index=0
+		_clear_boss_attack_runtime()
 		_phase_first_hit_available = true
 		phase_open_timer = 4.0
 		core_max=float(boss_definition.get("core_health",3600))*_difficulty_hp()
@@ -3834,6 +4218,8 @@ func _return_outside() -> void:
 
 func _start_phase(new_phase: int) -> void:
 	phase=new_phase
+	_boss_phase_attack_index=0
+	_clear_boss_attack_runtime()
 	_phase_first_hit_available = true
 	phase_open_timer = 4.0
 	breach_timer = 0.0
@@ -3861,8 +4247,25 @@ func _request_directional_dash(direction: Vector2) -> void:
 		AudioManager.play_sfx("dash",1.0,0.9)
 		SettingsManager.pulse_haptic(18,0.52)
 
+func _update_dash_path_recording() -> void:
+	if not _dash_recording_active or _player==null:
+		return
+	if _dash_recording_path.is_empty() or _dash_recording_path.back().distance_to(_player.position)>=10.0:
+		if _dash_recording_path.size()<BOSS_DASH_PATH_MAX_POINTS:
+			_dash_recording_path.append(_player.position)
+		else:
+			_dash_recording_path[_dash_recording_path.size()-1]=_player.position
+	if _player.dash_time>0.0:
+		return
+	if _dash_recording_path.size()<2:
+		_dash_recording_path.append(_player.position+Vector2(0.0,-2.0))
+	_last_completed_dash_path=_dash_recording_path.duplicate()
+	_dash_recording_active=false
+
 func _on_dash_started() -> void:
 	_dash_count += 1
+	_dash_recording_path=[_player.position]
+	_dash_recording_active=true
 	_meta_progress("dash_used", {"event_id":"%s:dash:%d" % [run_id,_dash_count]}, false)
 	_tutorial_observe(TutorialFlowScript.EVENT_FIRST_DASH)
 	if bool(_mutation_engine.flags.get("dash_trail",false)):
@@ -3885,10 +4288,43 @@ func _on_player_damaged(amount: float,cause: String) -> void:
 		AnalyticsService.track("first_damage_taken",{"amount":amount,"cause":cause})
 
 func _on_player_died(cause: String) -> void:
+	if _titan_collapse_pending:
+		return
 	_tutorial_observe(TutorialFlowScript.EVENT_PLAYER_DEATH)
 	_complete_run(false,cause)
 
+func _begin_titan_collapse() -> void:
+	if state != RunState.CORE or _titan_collapse_pending or _titan_collapse_completion_handled:
+		return
+	_titan_collapse_pending = true
+	_titan_collapse_boss_death_cue_played = false
+	_player.set_controls_active(false)
+	projectiles_clear_and_enemies()
+	if _boss_visual == null:
+		_on_titan_collapse_completed(String(boss_definition.get("id","")),true,"missing_boss_visual")
+		return
+	var started := _boss_visual.start_collapse(SettingsManager.reduced_motion_enabled())
+	# Invalid profiles complete synchronously from BossVisual. A different
+	# start failure must also release the result gate instead of soft-locking.
+	if not started and _titan_collapse_pending and not _boss_visual.is_collapsing():
+		_on_titan_collapse_completed(String(boss_definition.get("id","")),true,"collapse_start_failed")
+
+func _on_titan_collapse_cue(_cue_index: int, _visual_token: String, audio_token: String) -> void:
+	if not _titan_collapse_pending or audio_token.is_empty():
+		return
+	_titan_collapse_boss_death_cue_played = _titan_collapse_boss_death_cue_played or audio_token == "boss_death"
+	AudioManager.play_sfx(audio_token,1.0,1.0)
+
+func _on_titan_collapse_completed(_boss_id: String, _interrupted: bool, _reason: String) -> void:
+	if not _titan_collapse_pending or _titan_collapse_completion_handled:
+		return
+	_titan_collapse_completion_handled = true
+	_titan_collapse_pending = false
+	_complete_run(true,"core_collapse")
+
 func _complete_run(won: bool,cause: String) -> void:
+	if _titan_collapse_pending and not _titan_collapse_completion_handled:
+		return
 	if state in [RunState.DEAD,RunState.VICTORY]:
 		return
 	_transition(RunState.VICTORY if won else RunState.DEAD)
@@ -3903,7 +4339,9 @@ func _complete_run(won: bool,cause: String) -> void:
 	if won:
 		banked_bio+=int(float(boss_definition.get("reward_bio",300))*reward_mul)
 	var banked_shards:=int(boss_definition.get("reward_shards",1)) if won and String(config.mode)=="story" else 0
-	var final_score := score+int(elapsed*5.0)+organs_destroyed*1200
+	var segment_score := score+int(elapsed*5.0)+organs_destroyed*1200
+	var prior_abyss_score := maxi(0,int(config.get("abyss_cumulative_score",0))) if String(config.mode)=="abyss" else 0
+	var final_score := prior_abyss_score+segment_score if String(config.mode)=="abyss" else segment_score
 	var duration_ms := maxi(1000,int(round(elapsed*1000.0)))
 	var friend_target := evaluate_friend_target(final_score,duration_ms,won,maxi(0,int(config.get("target_score",0))),maxi(0,int(config.get("target_time_ms",0))))
 	_result={
@@ -3911,6 +4349,8 @@ func _complete_run(won: bool,cause: String) -> void:
 		"won":won,
 		"cause":cause,
 		"score":final_score,
+		"segment_score":segment_score,
+		"abyss_score":final_score if String(config.mode)=="abyss" else 0,
 		"elapsed":elapsed,
 		"time_text":"%02d:%02d"%[int(elapsed)/60,int(elapsed)%60],
 		"organs":organs_destroyed,
@@ -3921,6 +4361,7 @@ func _complete_run(won: bool,cause: String) -> void:
 		"boss_id":String(boss_definition.id),
 		"weapon":String(weapon_definition.id),
 		"seed":int(config.seed),
+		"modifiers":ChallengeCode.canonical_modifiers(config.get("modifiers",[])),
 		"mode":String(config.mode)
 		,"story_first_clear":won and String(config.mode)=="story" and not _story_boss_completed_before_run(String(boss_definition.id))
 		,"difficulty":String(config.difficulty)
@@ -3945,7 +4386,12 @@ func _complete_run(won: bool,cause: String) -> void:
 	if _result_banked:
 		_submit_result_offline()
 	_hud.show_result(_result)
-	AudioManager.play_sfx("boss_death" if won else "player_death",1.0,1.0)
+	if not won:
+		AudioManager.play_sfx("player_death",1.0,1.0)
+	elif not _titan_collapse_boss_death_cue_played:
+		# Invalid/missing collapse data has no cue stream, but still receives one
+		# attributable terminal sound through the synchronous completion fallback.
+		AudioManager.play_sfx("boss_death",1.0,1.0)
 	AudioManager.set_music_state("victory" if won else "interior",0.3)
 	SettingsManager.pulse_haptic(110 if won else 65,1.0)
 	AnalyticsService.track("run_complete" if won else "player_death",{"boss":String(boss_definition.id),"seconds":elapsed,"organs":organs_destroyed,"cause":cause})
@@ -4031,6 +4477,7 @@ func _on_result_action(action: String) -> void:
 				retry_config.abyss_depth = next_depth
 				retry_config.boss = String(GameData.bosses[(next_depth-1)%GameData.bosses.size()].id)
 				retry_config.seed = int(config.seed) + next_depth * 104729
+				retry_config.abyss_cumulative_score = int(_result.get("abyss_score",_result.get("score",0)))
 				retry_config.carried_mutations = _selected_mutations.duplicate()
 				retry_config.mutation_choice_count = _mutation_choice_count
 				retry_config.starting_health_ratio = minf(1.0,_player.health_ratio()+0.2)
@@ -4047,13 +4494,14 @@ func _on_result_action(action: String) -> void:
 		"share": _share_result()
 
 func _share_result() -> void:
-	var challenge:={"boss":String(boss_definition.id),"seed":int(config.seed),"weapon":String(weapon_definition.id),"difficulty":String(config.difficulty),"modifiers":config.get("modifiers",[]),"target_score":int(_result.get("score",0)),"target_time_ms":int(elapsed*1000.0)}
+	var challenge:={"boss":String(boss_definition.id),"seed":int(config.seed),"weapon":String(weapon_definition.id),"difficulty":String(config.difficulty),"modifiers":_result.get("modifiers",[]),"target_score":int(_result.get("score",0)),"target_time_ms":int(elapsed*1000.0)}
 	var code:=ChallengeCode.encode(challenge)
 	DisplayServer.clipboard_set(code)
+	_hud.show_share_card(_result,code)
 	_hud.show_toast(LocalizationService.text("friend_rift_copied_short",{"code":code.left(16)}),VisualTheme.SHARD)
 
 func _toggle_pause() -> void:
-	if state in [RunState.DEAD,RunState.VICTORY,RunState.ORGAN_SELECT,RunState.MUTATION_CHOICE]:return
+	if _titan_collapse_pending or state in [RunState.DEAD,RunState.VICTORY,RunState.ORGAN_SELECT,RunState.MUTATION_CHOICE]:return
 	_paused=not _paused
 	_sync_player_controls_for_state()
 	if _paused:_hud.show_pause()
@@ -4070,7 +4518,7 @@ func _sync_player_controls_for_state() -> void:
 		RunState.ORGAN_CHAMBER,
 		RunState.CORE,
 	]
-	_player.set_controls_active(not _paused and state_accepts_input)
+	_player.set_controls_active(not _paused and not _titan_collapse_pending and state_accepts_input)
 
 func _pause_for_application_suspend() -> void:
 	# Choice/result states already freeze simulation and own their modal UI. Keep
@@ -4106,10 +4554,12 @@ func _difficulty_projectile_speed() -> float:
 	return base*_assist_number("assist_projectile_speed",1.0)
 
 func _assist_number(key: String, standard_value: float) -> float:
-	return standard_value if bool(config.get("competitive",false)) else float(SettingsManager.get_value(key,standard_value))
+	if bool(config.get("competitive",false)):
+		return float(ChallengeCode.daily_standard_rules().get(key,standard_value))
+	return float(SettingsManager.get_value(key,standard_value))
 
 func _aim_assist_enabled() -> bool:
-	return true if bool(config.get("competitive",false)) else bool(SettingsManager.get_value("aim_assist",true))
+	return bool(ChallengeCode.daily_standard_rules().aim_assist) if bool(config.get("competitive",false)) else bool(SettingsManager.get_value("aim_assist",true))
 
 func _difficulty_reward() -> float:
 	return {"diver":0.9,"deep":1.0,"abyss":1.35}.get(String(config.difficulty),0.9)
@@ -4168,6 +4618,7 @@ func _draw() -> void:
 		var wake_alpha:=clampf(float(wake.life)/maxf(0.01,float(_mutation_engine.flags.get("dash_trail_duration",1.2))),0.0,1.0)
 		draw_circle(Vector2(wake.position),15.0,Color(VisualTheme.FRIENDLY,wake_alpha*0.18))
 		draw_arc(Vector2(wake.position),13.0,0.0,TAU,18,Color(VisualTheme.SHARD,wake_alpha*0.6),2.0)
+	_draw_active_boss_effects()
 	_draw_telegraph()
 	_draw_orbitals()
 	if state in [RunState.DIVING_IN,RunState.DIVING_OUT]:
@@ -4177,6 +4628,107 @@ func _draw() -> void:
 		draw_arc(Vector2(270,430),maxf(10,radius),0,TAU,64,VisualTheme.VULNERABLE,8.0)
 		if reduced_motion:
 			draw_arc(Vector2(270,430),radius+22.0,0,TAU,64,Color(VisualTheme.FRIENDLY,0.72),3.0)
+func _draw_active_boss_effects() -> void:
+	for raw_effect in _active_boss_effects:
+		var effect:=raw_effect as Dictionary
+		var duration:=maxf(0.01,float(effect.get("duration_seconds",0.01)))
+		var alpha:=clampf(float(effect.get("remaining",0.0))/duration,0.0,1.0)
+		var origin:=Vector2(effect.get("origin",Vector2(270,228)))
+		match String(effect.get("type","")):
+			"target_lock":
+				var target:=Vector2(effect.get("target_snapshot",_player.position))
+				draw_dashed_line(origin,target,Color(VisualTheme.TELEGRAPH,0.22+alpha*0.30),2.0,10.0)
+				draw_arc(target,22.0,0.0,TAU,24,Color(VisualTheme.ENEMY,0.34+alpha*0.36),2.0)
+			"gravity_ring_pulse","bounded_pull":
+				var center:=Vector2(effect.get("center",origin))
+				var radius:=minf(430.0,maxf(70.0,float(effect.get("radius_px",210.0))))
+				draw_arc(center,radius*(0.70+0.30*alpha),0.0,TAU,48,Color(VisualTheme.FRIENDLY,0.08+alpha*0.18),3.0)
+			"lane_afterglow":
+				var current_y:=float(effect.get("origin_y",228.0))+float(effect.get("travel_speed",0.0))*float(effect.get("elapsed",0.0))
+				var trail_start:=current_y-float(effect.get("trail_length_px",0.0))
+				for raw_x in effect.get("lane_xs",[]):
+					draw_line(Vector2(float(raw_x),trail_start),Vector2(float(raw_x),current_y),Color(VisualTheme.TELEGRAPH,0.10+alpha*0.26),float(effect.get("beam_half_width_px",8.0))*0.72,true)
+			"temporary_boss_barrier":
+				var open_angle:=float(effect.get("open_arc_angle",0.0))
+				var open_half:=float(effect.get("open_arc_half_width",0.5))
+				draw_arc(origin,92.0,open_angle+open_half,open_angle-open_half+TAU,52,Color(VisualTheme.SHARD,0.18+alpha*0.42),5.0,true)
+			"linked_nodes":
+				for raw_link in effect.get("links",[]):
+					var link:=raw_link as Dictionary
+					draw_line(Vector2(link.get("from",origin)),Vector2(link.get("to",origin)),Color(VisualTheme.FRIENDLY,0.10+alpha*0.22),2.0,true)
+				for raw_node in effect.get("nodes",[]):
+					draw_circle(Vector2(raw_node),7.0,Color(VisualTheme.TELEGRAPH,0.18+alpha*0.34))
+			"spawn_lunge_actors":
+				for raw_actor in effect.get("actors",[]):
+					var actor:=raw_actor as Dictionary
+					draw_arc(Vector2(actor.get("spawn",origin)),12.0,0.0,TAU,18,Color(VisualTheme.TELEGRAPH,0.16+alpha*0.28),2.0)
+			"recorded_dash_danger_trail":
+				var points:=PackedVector2Array()
+				for raw_point in effect.get("path_points",[]):
+					points.append(Vector2(raw_point))
+				if points.size()>=2:
+					draw_polyline(points,Color(VisualTheme.ENEMY,0.12+alpha*0.36),float(effect.get("trail_radius_px",22.0))*0.72,true)
+					draw_polyline(points,Color(VisualTheme.SHARD,0.26+alpha*0.42),3.0,true)
+			"spawn_decoy_weakpoints":
+				var positions:=effect.get("decoy_positions",[]) as Array
+				for decoy_index in positions.size():
+					var flash:=float(effect.get("decoy_flash_timer",0.0))>0.0 and int(effect.get("decoy_flash_index",-1))==decoy_index
+					var decoy_color:=Color.WHITE if flash else Color(VisualTheme.VULNERABLE,0.32+alpha*0.42)
+					draw_circle(Vector2(positions[decoy_index]),21.0,Color(decoy_color,0.10+alpha*0.12))
+					draw_arc(Vector2(positions[decoy_index]),21.0,0.0,TAU,20,decoy_color,3.0)
+			"staggered_salvo","prism_lane_sequence","weapon_copy":
+				draw_arc(origin,56.0+18.0*(1.0-alpha),0.0,TAU,28,Color(VisualTheme.TELEGRAPH,0.10+alpha*0.22),2.0)
+
+func _draw_factory_telegraph(factory_plan: Dictionary, progress: float, color: Color) -> bool:
+	if not bool(factory_plan.get("valid",false)):
+		return false
+	var context:=factory_plan.get("context",{}) as Dictionary
+	var origin:=Vector2(context.get("origin",_boss_visual.target_position()))
+	var target:=Vector2(context.get("player_position",_player.position))
+	var safe_paths:=factory_plan.get("safe_paths",[]) as Array
+	if safe_paths.is_empty():
+		return false
+	var safe:=safe_paths[0] as Dictionary
+	var safe_target_value: Variant=safe.get("safe_target",null)
+	if not safe_target_value is Vector2 or not (safe_target_value as Vector2).is_finite():
+		return false
+	var safe_target:=safe_target_value as Vector2
+	var corridor_color:=Color(VisualTheme.FRIENDLY,0.48+progress*0.42)
+	if safe.has("center_angle") and safe.has("half_arc_radians"):
+		var safe_angle:=float(safe.center_angle)
+		var safe_half:=float(safe.half_arc_radians)
+		for boundary in [-safe_half,safe_half]:
+			var direction:=Vector2.from_angle(safe_angle+boundary)
+			draw_dashed_line(origin+direction*48.0,origin+direction*250.0,corridor_color,3.0,10.0)
+		draw_arc(origin,82.0+progress*120.0,safe_angle-safe_half,safe_angle+safe_half,28,corridor_color,5.0)
+	elif safe.has("lane_center_x"):
+		var lane_x:=float(safe.lane_center_x)
+		var half_width:=float(safe.get("lane_width_px",96.0))*0.5
+		draw_dashed_line(Vector2(lane_x-half_width,228.0),Vector2(lane_x-half_width,920.0),corridor_color,3.0,12.0)
+		draw_dashed_line(Vector2(lane_x+half_width,228.0),Vector2(lane_x+half_width,920.0),corridor_color,3.0,12.0)
+		draw_rect(Rect2(lane_x-half_width,228.0,half_width*2.0,692.0),Color(VisualTheme.FRIENDLY,0.04+progress*0.05))
+	else:
+		draw_dashed_line(origin,target,color,3.0,11.0)
+	# The Factory resolves the absolute target once against the frozen player
+	# snapshot. Never reconstruct a relative side here: at an edge that can point
+	# outward or disagree with the geometry protected by ProjectilePool.
+	draw_dashed_line(_player.position,safe_target,corridor_color,3.0,10.0)
+	var safe_radius:=float(safe.get("safe_radius_px",34.0))
+	draw_circle(safe_target,safe_radius,Color(VisualTheme.FRIENDLY,0.07+progress*0.09))
+	draw_arc(safe_target,safe_radius,0.0,TAU,28,corridor_color,3.0,true)
+	for raw_effect in factory_plan.get("effect_directives",[]):
+		var effect:=raw_effect as Dictionary
+		match String(effect.get("type","")):
+			"recorded_dash_danger_trail":
+				var path:=PackedVector2Array()
+				for raw_point in effect.get("path_points",[]):
+					path.append(Vector2(raw_point))
+				if path.size()>=2:
+					draw_polyline(path,Color(VisualTheme.ENEMY,0.26+progress*0.48),5.0,true)
+			"spawn_decoy_weakpoints":
+				for raw_position in effect.get("decoy_positions",[]):
+					draw_arc(Vector2(raw_position),22.0,0.0,TAU,20,Color(VisualTheme.TELEGRAPH,0.32+progress*0.48),3.0)
+	return true
 
 func _draw_telegraph() -> void:
 	if _telegraph.is_empty():return
@@ -4188,6 +4740,8 @@ func _draw_telegraph() -> void:
 	var origin:=Vector2(_telegraph.get("pattern_origin",_boss_visual.target_position() if _boss_visual else Vector2(270,220)))
 	var ability:=String(_telegraph.ability)
 	var contract_family:=String(_telegraph.get("contract_family",""))
+	if _draw_factory_telegraph(_telegraph.get("factory_plan",{}) as Dictionary,progress,color):
+		return
 	if _telegraph.has("safe_position"):
 		var safe_position := Vector2(_telegraph.safe_position)
 		draw_circle(safe_position,34.0+sin(_decorative_motion_time()*8.0)*3.0,Color(VisualTheme.FRIENDLY,0.1+progress*0.12))
@@ -4210,12 +4764,16 @@ func _draw_telegraph() -> void:
 		draw_arc(origin,78.0+progress*126.0,safe_angle-safe_arc,safe_angle+safe_arc,24,corridor_color,5.0)
 	elif contract_family in ["lane","sweep"] or ability in ["laser_wings","echo_dash"] or "grid" in ability or "wall" in ability or "lane" in ability:
 		var gap_x:=clampf(float(_telegraph.get("gap_x",_player.position.x)),80.0,460.0)
+		var lane_contract:=_telegraph.get("attack_contract",{}) as Dictionary
+		var lane_pattern:=lane_contract.get("pattern",{}) as Dictionary
+		var gap_half_width:=clampf(float(lane_pattern.get("gap_half_width",62.0)),58.0,150.0)
 		var wall_y:=origin.y
-		draw_dashed_line(Vector2(0,wall_y),Vector2(gap_x-62,wall_y),color,5.0,12.0)
-		draw_dashed_line(Vector2(gap_x+62,wall_y),Vector2(540,wall_y),color,5.0,12.0)
+		draw_dashed_line(Vector2(0,wall_y),Vector2(maxf(0.0,gap_x-gap_half_width),wall_y),color,5.0,12.0)
+		draw_dashed_line(Vector2(minf(540.0,gap_x+gap_half_width),wall_y),Vector2(540,wall_y),color,5.0,12.0)
 	else:
-		draw_dashed_line(origin,_player.position,color,4.0,13.0)
-		draw_circle(_player.position,18+progress*12,color,false,3.0)
+		var target_position:=Vector2(_telegraph.get("target_position",_player.position))
+		draw_dashed_line(origin,target_position,color,4.0,13.0)
+		draw_circle(target_position,18+progress*12,color,false,3.0)
 
 func _draw_room_pattern_telegraph() -> void:
 	var progress:=1.0-float(_telegraph.timer)/maxf(0.01,float(_telegraph.total))

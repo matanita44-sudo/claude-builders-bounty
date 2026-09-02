@@ -61,9 +61,12 @@ def _chunks(payload: bytes) -> list[tuple[bytes, bytes]]:
     return chunks
 
 
-def validate(path: pathlib.Path) -> dict[str, float | int]:
+def _decode_rgb_rows(
+    path: pathlib.Path,
+    expected_dimensions: tuple[int, int] | None = None,
+) -> tuple[int, int, list[bytes]]:
     if path.is_symlink() or not path.is_file():
-        raise ScreenshotError(f"screenshot must be a regular non-symlink file: {path}")
+        raise ScreenshotError(f"PNG input must be a regular non-symlink file: {path}")
     chunks = _chunks(path.read_bytes())
     ihdr = [data for kind, data in chunks if kind == b"IHDR"]
     if len(ihdr) != 1 or len(ihdr[0]) != 13:
@@ -71,9 +74,9 @@ def validate(path: pathlib.Path) -> dict[str, float | int]:
     width, height, bit_depth, color_type, compression, filtering, interlace = struct.unpack(
         ">IIBBBBB", ihdr[0]
     )
-    if (width, height) != (EXPECTED_WIDTH, EXPECTED_HEIGHT):
+    if expected_dimensions is not None and (width, height) != expected_dimensions:
         raise ScreenshotError(
-            f"screenshot is {width}x{height}, expected {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}"
+            f"PNG is {width}x{height}, expected {expected_dimensions[0]}x{expected_dimensions[1]}"
         )
     if bit_depth != 8 or color_type not in (2, 6):
         raise ScreenshotError(
@@ -97,11 +100,7 @@ def validate(path: pathlib.Path) -> dict[str, float | int]:
         )
 
     previous = bytearray(row_bytes)
-    luminance_min = 255
-    luminance_max = 0
-    near_black = 0
-    samples = 0
-    quantized_colors: set[tuple[int, int, int]] = set()
+    rgb_rows: list[bytes] = []
     offset = 0
     for row_index in range(height):
         filter_type = decoded[offset]
@@ -125,9 +124,62 @@ def validate(path: pathlib.Path) -> dict[str, float | int]:
             else:
                 predictor = _paeth(left, above, upper_left)
             current[index] = (value + predictor) & 0xFF
+        if channels == 3:
+            rgb_rows.append(bytes(current))
+        else:
+            rgb = bytearray(width * 3)
+            for pixel in range(width):
+                source = pixel * 4
+                destination = pixel * 3
+                rgb[destination : destination + 3] = current[source : source + 3]
+            rgb_rows.append(bytes(rgb))
+        previous = current
+    return width, height, rgb_rows
+
+
+def _normalized_frame_distance(
+    frame: tuple[int, int, list[bytes]],
+    reference: tuple[int, int, list[bytes]],
+) -> float:
+    frame_width, frame_height, frame_rows = frame
+    reference_width, reference_height, reference_rows = reference
+    total = 0
+    channel_samples = 0
+    # Ignore the top safe-area band where the Simulator adds Dynamic Island
+    # pixels that do not exist in the launch-screen source. The remaining grid
+    # proves that the app replaced the storyboard with a real rendered frame.
+    for grid_y in range(6, 78):
+        normalized_y = grid_y / 80.0
+        frame_y = min(frame_height - 1, int(normalized_y * frame_height))
+        reference_y = min(reference_height - 1, int(normalized_y * reference_height))
+        frame_row = frame_rows[frame_y]
+        reference_row = reference_rows[reference_y]
+        for grid_x in range(1, 40):
+            normalized_x = grid_x / 40.0
+            frame_x = min(frame_width - 1, int(normalized_x * frame_width)) * 3
+            reference_x = min(reference_width - 1, int(normalized_x * reference_width)) * 3
+            for channel in range(3):
+                total += abs(frame_row[frame_x + channel] - reference_row[reference_x + channel])
+                channel_samples += 1
+    if channel_samples == 0:
+        raise ScreenshotError("cannot compare native frame with launch-screen reference")
+    return total / (channel_samples * 255.0)
+
+
+def validate(
+    path: pathlib.Path,
+    forbidden_reference: pathlib.Path | None = None,
+) -> dict[str, float | int]:
+    width, height, rows = _decode_rgb_rows(path, (EXPECTED_WIDTH, EXPECTED_HEIGHT))
+    luminance_min = 255
+    luminance_max = 0
+    near_black = 0
+    samples = 0
+    quantized_colors: set[tuple[int, int, int]] = set()
+    for row_index, current in enumerate(rows):
         if row_index % 8 == 0:
             for pixel in range(0, width, 8):
-                start = pixel * channels
+                start = pixel * 3
                 red, green, blue = current[start : start + 3]
                 luminance = (54 * red + 183 * green + 19 * blue) >> 8
                 luminance_min = min(luminance_min, luminance)
@@ -136,8 +188,6 @@ def validate(path: pathlib.Path) -> dict[str, float | int]:
                 samples += 1
                 if len(quantized_colors) < 1024:
                     quantized_colors.add((red >> 4, green >> 4, blue >> 4))
-        previous = current
-
     non_black_ratio = 1.0 - (near_black / samples)
     luminance_range = luminance_max - luminance_min
     if samples < 10_000:
@@ -148,7 +198,7 @@ def validate(path: pathlib.Path) -> dict[str, float | int]:
             f"(non_black={non_black_ratio:.3f}, luminance_range={luminance_range}, "
             f"colors={len(quantized_colors)})"
         )
-    return {
+    evidence: dict[str, float | int] = {
         "width": width,
         "height": height,
         "sample_count": samples,
@@ -156,6 +206,16 @@ def validate(path: pathlib.Path) -> dict[str, float | int]:
         "luminance_range": luminance_range,
         "quantized_colors": len(quantized_colors),
     }
+    if forbidden_reference is not None:
+        reference = _decode_rgb_rows(forbidden_reference)
+        distance = _normalized_frame_distance((width, height, rows), reference)
+        evidence["forbidden_reference_distance"] = distance
+        if distance < 0.035:
+            raise ScreenshotError(
+                "native screenshot still matches the iOS launch storyboard "
+                f"(normalized RGB distance={distance:.4f})"
+            )
+    return evidence
 
 
 def _png(width: int, height: int, varied: bool) -> bytes:
@@ -184,18 +244,29 @@ def run_self_test() -> None:
         validate(positive)
         blank = root / "blank.png"
         blank.write_bytes(_png(EXPECTED_WIDTH, EXPECTED_HEIGHT, False))
+        validate(positive, blank)
+        try:
+            validate(positive, positive)
+        except ScreenshotError:
+            pass
+        else:
+            raise AssertionError("unchanged launch-screen fixture was accepted")
         try:
             validate(blank)
         except ScreenshotError:
             pass
         else:
             raise AssertionError("blank native screenshot fixture was accepted")
-    print("iOS Simulator screenshot validator self-test: PASS (varied positive, blank negative)")
+    print(
+        "iOS Simulator screenshot validator self-test: PASS "
+        "(varied positive, blank negative, unchanged-launch negative)"
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("screenshot", nargs="?", type=pathlib.Path)
+    parser.add_argument("--forbid-reference", type=pathlib.Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
@@ -207,13 +278,19 @@ def main() -> int:
         if args.self_test:
             run_self_test()
         else:
-            evidence = validate(args.screenshot)
+            evidence = validate(args.screenshot, args.forbid_reference)
+            launch_distance = evidence.get("forbidden_reference_distance")
             print(
                 "iOS Simulator screenshot validation: PASS "
                 f"({evidence['width']}x{evidence['height']}, "
                 f"non-black {evidence['non_black_ratio']:.3f}, "
                 f"luminance range {evidence['luminance_range']}, "
-                f"colors {evidence['quantized_colors']})"
+                f"colors {evidence['quantized_colors']}"
+                + (
+                    f", launch distance {float(launch_distance):.4f})"
+                    if launch_distance is not None
+                    else ")"
+                )
             )
     except (ScreenshotError, AssertionError, OSError, ValueError) as exc:
         print(f"iOS Simulator screenshot validation: FAIL: {exc}")

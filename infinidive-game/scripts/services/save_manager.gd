@@ -10,10 +10,18 @@ const STORY_BEAT_ID_MAX_LENGTH := 64
 const SAVE_PATH := "user://infinidive.save.json"
 const BACKUP_PATH := "user://infinidive.save.backup.json"
 const TEMP_PATH := "user://infinidive.save.tmp.json"
+const TEST_SAVE_PHASES := [
+	"after_temp_flush",
+	"after_backup_delete",
+	"after_primary_rotate",
+	"before_temp_promote",
+	"after_temp_promote",
+]
 
 var profile: Dictionary = {}
 var last_load_source := "default"
 var _test_save_failures_remaining := 0
+var _test_save_failure_phase := ""
 
 func _ready() -> void:
 	load_profile()
@@ -74,13 +82,78 @@ func load_profile() -> Dictionary:
 		last_load_source = "backup"
 		if not loaded.is_empty():
 			recovery_performed.emit("backup")
+			_heal_primary_from_backup()
+	else:
+		# A valid primary is the committed generation. Any temporary file beside it
+		# belongs to an interrupted transaction which never displaced that commit.
+		_remove_save_file(TEMP_PATH, "stale temporary save", false)
+	if loaded.is_empty():
+		loaded = _read_envelope(TEMP_PATH)
+		if not loaded.is_empty():
+			last_load_source = "temporary"
+			recovery_performed.emit("temporary")
+			_promote_temporary_recovery()
 	if loaded.is_empty():
 		profile = default_profile()
 		last_load_source = "default"
+		_remove_save_file(TEMP_PATH, "invalid temporary save", false)
 	else:
 		profile = _migrate_and_merge(loaded)
 	profile_changed.emit(profile.duplicate(true))
 	return profile
+
+func _heal_primary_from_backup() -> bool:
+	# Keep the verified backup untouched while reconstructing the primary. This
+	# makes every interruption in recovery restartable from the same generation.
+	if _read_envelope(BACKUP_PATH).is_empty():
+		return false
+	if not _remove_save_file(TEMP_PATH, "stale temporary save", false):
+		return false
+	var backup_abs := ProjectSettings.globalize_path(BACKUP_PATH)
+	var temp_abs := ProjectSettings.globalize_path(TEMP_PATH)
+	if DirAccess.copy_absolute(backup_abs, temp_abs) != OK or _read_envelope(TEMP_PATH).is_empty():
+		push_warning("SaveManager: unable to stage verified backup recovery")
+		_remove_save_file(TEMP_PATH, "invalid backup recovery stage", false)
+		return false
+	if not _remove_save_file(SAVE_PATH, "invalid primary save", false):
+		return false
+	if DirAccess.rename_absolute(temp_abs, ProjectSettings.globalize_path(SAVE_PATH)) != OK:
+		push_warning("SaveManager: unable to promote verified backup recovery")
+		return false
+	if _read_envelope(SAVE_PATH).is_empty():
+		push_warning("SaveManager: promoted backup recovery did not validate")
+		return false
+	return true
+
+func _promote_temporary_recovery() -> bool:
+	# TEMP_PATH is considered only when neither committed generation validates.
+	# Preserve it until the final rename so even this last-resort recovery has one
+	# verified generation throughout promotion.
+	if _read_envelope(TEMP_PATH).is_empty():
+		return false
+	if not _remove_save_file(SAVE_PATH, "invalid primary save", false):
+		return false
+	var temp_abs := ProjectSettings.globalize_path(TEMP_PATH)
+	if DirAccess.rename_absolute(temp_abs, ProjectSettings.globalize_path(SAVE_PATH)) != OK:
+		push_warning("SaveManager: unable to promote temporary recovery")
+		return false
+	if _read_envelope(SAVE_PATH).is_empty():
+		push_warning("SaveManager: promoted temporary recovery did not validate")
+		return false
+	return true
+
+func _remove_save_file(path: String, label: String, report_error := true) -> bool:
+	if not FileAccess.file_exists(path):
+		return true
+	var error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	if error == OK:
+		return true
+	var message := "SaveManager: unable to remove %s" % label
+	if report_error:
+		push_error(message)
+	else:
+		push_warning(message)
+	return false
 
 func _read_envelope(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
@@ -254,16 +327,47 @@ func save_profile() -> bool:
 	var temp_abs := ProjectSettings.globalize_path(TEMP_PATH)
 	var save_abs := ProjectSettings.globalize_path(SAVE_PATH)
 	var backup_abs := ProjectSettings.globalize_path(BACKUP_PATH)
-	if FileAccess.file_exists(BACKUP_PATH):
-		DirAccess.remove_absolute(backup_abs)
-	if FileAccess.file_exists(SAVE_PATH):
-		if DirAccess.rename_absolute(save_abs, backup_abs) != OK:
-			push_error("SaveManager: failed to rotate backup")
+	if _read_envelope(TEMP_PATH).is_empty():
+		push_error("SaveManager: temporary save failed checksum validation")
+		_remove_save_file(TEMP_PATH, "invalid temporary save", false)
+		return false
+	if _inject_save_phase_failure("after_temp_flush"):
+		return false
+
+	var primary_valid := not _read_envelope(SAVE_PATH).is_empty()
+	var backup_valid := not _read_envelope(BACKUP_PATH).is_empty()
+	if primary_valid:
+		# The primary remains the verified generation until its atomic rename, so
+		# replacing an older backup cannot create a zero-generation window.
+		if not _remove_save_file(BACKUP_PATH, "previous backup save"):
 			return false
+	elif FileAccess.file_exists(BACKUP_PATH) and not backup_valid:
+		# A corrupt backup carries no recovery value and may be retired, but a valid
+		# backup is never touched when the primary is absent or invalid.
+		if not _remove_save_file(BACKUP_PATH, "invalid backup save"):
+			return false
+	if _inject_save_phase_failure("after_backup_delete"):
+		return false
+
+	if primary_valid:
+		if DirAccess.rename_absolute(save_abs, backup_abs) != OK:
+			push_error("SaveManager: failed to rotate verified primary")
+			return false
+	else:
+		if not _remove_save_file(SAVE_PATH, "invalid primary save"):
+			return false
+	if _inject_save_phase_failure("after_primary_rotate"):
+		return false
+	if _inject_save_phase_failure("before_temp_promote"):
+		return false
+
 	if DirAccess.rename_absolute(temp_abs, save_abs) != OK:
-		if FileAccess.file_exists(BACKUP_PATH):
-			DirAccess.rename_absolute(backup_abs, save_abs)
 		push_error("SaveManager: failed atomic save promotion")
+		return false
+	if _read_envelope(SAVE_PATH).is_empty():
+		push_error("SaveManager: promoted primary failed checksum validation")
+		return false
+	if _inject_save_phase_failure("after_temp_promote"):
 		return false
 	profile_changed.emit(profile.duplicate(true))
 	return true
@@ -272,6 +376,19 @@ func inject_isolated_test_save_failures(count: int) -> bool:
 	if OS.get_environment("INFINIDIVE_TEST_ISOLATED") != "1":
 		return false
 	_test_save_failures_remaining = maxi(0,count)
+	return true
+
+func inject_isolated_test_save_phase(phase: String) -> bool:
+	if OS.get_environment("INFINIDIVE_TEST_ISOLATED") != "1" or phase not in TEST_SAVE_PHASES:
+		return false
+	_test_save_failure_phase = phase
+	return true
+
+func _inject_save_phase_failure(phase: String) -> bool:
+	if _test_save_failure_phase != phase:
+		return false
+	_test_save_failure_phase = ""
+	push_warning("SaveManager: injected isolated-test failure at %s" % phase)
 	return true
 
 func update_value(key: String, value: Variant, persist_now := true) -> void:
@@ -286,6 +403,10 @@ func add_currency(bio_matter: int, core_shards: int = 0) -> void:
 
 static func high_score_key_for_run_result(run_result: Dictionary) -> String:
 	var mode := String(run_result.get("mode", "story"))
+	if mode == "abyss":
+		# Abyss is one continuous loop across rotating bosses. A boss-scoped key
+		# would fragment one cumulative run into unrelated records.
+		return "abyss:loop"
 	if mode in ["daily", "friend"]:
 		var challenge_id := String(run_result.get("challenge_id", ""))
 		# Never collapse unidentified competitive results into one mixed board.
@@ -314,8 +435,10 @@ func bank_run(run_result: Dictionary) -> bool:
 		var prior: Dictionary = high_scores.get(score_key, {})
 		var candidate_score := maxi(0, int(run_result.get("score", 0)))
 		var candidate_time := maxf(0.0, float(run_result.get("elapsed", 0.0)))
-		if prior.is_empty() or candidate_score > int(prior.get("score", -1)) or (candidate_score == int(prior.get("score", -1)) and candidate_time < float(prior.get("elapsed", INF))):
-			high_scores[score_key] = {"score": candidate_score, "elapsed": candidate_time, "won": bool(run_result.get("won", false)), "challenge_id":String(run_result.get("challenge_id", ""))}
+		var candidate_depth := maxi(0,int(run_result.get("abyss_depth",0))) if String(run_result.get("mode","story"))=="abyss" else 0
+		var prior_depth := maxi(0,int(prior.get("abyss_depth",0)))
+		if prior.is_empty() or candidate_score > int(prior.get("score", -1)) or (candidate_score == int(prior.get("score", -1)) and (candidate_depth > prior_depth or (candidate_depth == prior_depth and candidate_time < float(prior.get("elapsed", INF))))):
+			high_scores[score_key] = {"score": candidate_score, "segment_score":maxi(0,int(run_result.get("segment_score",candidate_score))), "abyss_depth":candidate_depth, "elapsed": candidate_time, "won": bool(run_result.get("won", false)), "challenge_id":String(run_result.get("challenge_id", ""))}
 	profile.high_scores = high_scores
 	if bool(run_result.get("won", false)):
 		profile.total_wins = int(profile.get("total_wins", 0)) + 1

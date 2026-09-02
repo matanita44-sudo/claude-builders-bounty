@@ -1,13 +1,16 @@
 extends Node
 
 const OrganAbilityMapScript := preload("res://scripts/core/organ_ability_map.gd")
+const BossPatternPlannerScript := preload("res://scripts/core/boss_pattern_planner.gd")
+const TitanCollapseCatalogScript := preload("res://scripts/gameplay/titan_collapse_catalog.gd")
 
 const DATA_FILES := {
 	"bosses": "res://data/bosses.json",
 	"weapons": "res://data/weapons.json",
 	"mutations": "res://data/mutations.json",
 	"upgrades": "res://data/upgrades.json",
-	"rooms": "res://data/rooms.json"
+	"rooms": "res://data/rooms.json",
+	"titan_collapses": "res://data/titan_collapses.json"
 }
 
 var bosses: Array = []
@@ -15,6 +18,7 @@ var weapons: Array = []
 var mutations: Array = []
 var upgrades: Array = []
 var rooms: Array = []
+var titan_collapses: Array = []
 var validation_errors: Array[String] = []
 
 func _ready() -> void:
@@ -27,6 +31,7 @@ func reload_all() -> void:
 	mutations = _read_array(DATA_FILES.mutations)
 	upgrades = _read_array(DATA_FILES.upgrades)
 	rooms = _read_array(DATA_FILES.rooms) if FileAccess.file_exists(DATA_FILES.rooms) else []
+	titan_collapses = _read_array(DATA_FILES.titan_collapses)
 	_validate()
 	if not validation_errors.is_empty():
 		for problem in validation_errors:
@@ -48,6 +53,7 @@ func _validate() -> void:
 	_validate_unique_ids(weapons, "weapon")
 	_validate_unique_ids(mutations, "mutation")
 	_validate_unique_ids(upgrades, "upgrade")
+	validation_errors.append_array(TitanCollapseCatalogScript.validate_catalog(titan_collapses))
 	if bosses.size() < 4:
 		validation_errors.append("Release data requires four bosses")
 	if weapons.size() < 5:
@@ -83,6 +89,7 @@ func _validate() -> void:
 				validation_errors.append("Boss %s has an invalid organ ability map" % boss.get("id", "?"))
 			ability_ids[ability_id] = true
 		validation_errors.append_array(OrganAbilityMapScript.validate_boss_definition(boss))
+		validation_errors.append_array(BossPatternPlannerScript.validate_boss_definition(boss))
 
 func _validate_unique_ids(values: Array, label: String) -> void:
 	var seen: Dictionary = {}

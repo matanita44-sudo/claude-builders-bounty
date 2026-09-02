@@ -226,7 +226,7 @@ Semantic palette:
 
 Projectiles use distinct shapes in addition to color. High-contrast mode changes hostile shots to orange while retaining the angular silhouette and white center.
 
-Audio is synthesized at runtime. The current library contains 24 named one-shots, four boss tonal identities, and three-layer generated music for nine states: Nest, exterior, breach, Dive, interior, organ, low health, core, and victory. `RunScene` selects the boss identity and state/intensity; `armor_hit`, `organ_damage`, and `boss_phase` are connected to live combat with per-cue rate limiting. First-use layer generation is synchronous, transitions fade/restart layers rather than crossfading two complete state sets, and browser/device sound quality, interruption behavior, transition feel, and mastering remain untested. Haptic calls are optional and use Godot's handheld vibration API; Android declares only the normal `android.permission.VIBRATE` permission, which has no runtime prompt and does not collect data.
+Audio ships as 123 deterministic, original pre-rendered `AudioStreamWAV` resources produced offline from project-owned oscillator/noise recipes. The catalog contains 24 named one-shots plus 99 adaptive layers covering four Titan tonal identities and nine states: Nest, exterior, breach, Dive, interior, organ, low health, core, and victory. `RunScene` selects the Titan identity and state/intensity; `armor_hit`, `organ_damage`, and `boss_phase` are connected to live combat with per-cue rate limiting. Runtime loads resources lazily with bounded caches and performs no PCM synthesis during startup or gameplay. Transitions fade/restart layers rather than crossfading two complete state sets, and browser/device sound quality, interruption behavior, transition feel, and mastering remain untested. Haptic calls are optional and use Godot's handheld vibration API; Android declares only the normal `android.permission.VIBRATE` permission, which has no runtime prompt and does not collect data.
 
 ## Onboarding, localization and accessibility
 
@@ -309,7 +309,7 @@ Present and playable in source:
 - Story, local Daily Rift, local Friend Rift and Abyss Loop flows
 - Ten-step tutorial state, replay request, 14 achievements and 19 rotating local contracts
 - Five Nest stages
-- Versioned save, procedural audio, settings and headless tests
+- Versioned save, deterministic original audio, settings and headless tests
 - Native/Web safe-area fitting for the Nest and HUD
 
 Not established by this snapshot:

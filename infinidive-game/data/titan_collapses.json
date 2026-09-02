@@ -1,0 +1,58 @@
+[
+  {
+    "boss_id": "gravemaw",
+    "style_token": "harvest_shatter",
+    "final_token": "broken_sickle_seal",
+    "accent": "#FFC857",
+    "duration_seconds": 2.40,
+    "reduced_motion_duration_seconds": 0.72,
+    "cues": [
+      {"at": 0.00, "visual_token": "cronus_crown_break", "audio_token": "boss_phase"},
+      {"at": 0.24, "visual_token": "cronus_sickle_shards", "audio_token": "armor_hit"},
+      {"at": 0.55, "visual_token": "cronus_golden_sunset", "audio_token": "organ_destroyed"},
+      {"at": 0.84, "visual_token": "cronus_final_seal", "audio_token": "boss_death"}
+    ]
+  },
+  {
+    "boss_id": "seraph_9",
+    "style_token": "sunwheel_eclipse",
+    "final_token": "extinguished_dawn_seal",
+    "accent": "#FF9A47",
+    "duration_seconds": 2.30,
+    "reduced_motion_duration_seconds": 0.72,
+    "cues": [
+      {"at": 0.00, "visual_token": "hyperion_halo_stalls", "audio_token": "boss_phase"},
+      {"at": 0.27, "visual_token": "hyperion_ray_fall", "audio_token": "armor_hit"},
+      {"at": 0.58, "visual_token": "hyperion_eclipse", "audio_token": "organ_destroyed"},
+      {"at": 0.86, "visual_token": "hyperion_final_seal", "audio_token": "boss_death"}
+    ]
+  },
+  {
+    "boss_id": "abyss_leviathan",
+    "style_token": "worldstream_release",
+    "final_token": "calmed_worldstream_seal",
+    "accent": "#49C6DD",
+    "duration_seconds": 2.55,
+    "reduced_motion_duration_seconds": 0.78,
+    "cues": [
+      {"at": 0.00, "visual_token": "oceanus_trident_sinks", "audio_token": "boss_phase"},
+      {"at": 0.22, "visual_token": "oceanus_tide_unbinds", "audio_token": "tissue_hit"},
+      {"at": 0.61, "visual_token": "oceanus_worldriver_returns", "audio_token": "organ_destroyed"},
+      {"at": 0.87, "visual_token": "oceanus_final_seal", "audio_token": "boss_death"}
+    ]
+  },
+  {
+    "boss_id": "null_twin",
+    "style_token": "memory_unweave",
+    "final_token": "silent_memory_seal",
+    "accent": "#B98AE8",
+    "duration_seconds": 2.65,
+    "reduced_motion_duration_seconds": 0.82,
+    "cues": [
+      {"at": 0.00, "visual_token": "mnemosyne_echo_stills", "audio_token": "boss_phase"},
+      {"at": 0.25, "visual_token": "mnemosyne_muse_scatter", "audio_token": "tissue_hit"},
+      {"at": 0.60, "visual_token": "mnemosyne_memory_unwritten", "audio_token": "organ_destroyed"},
+      {"at": 0.88, "visual_token": "mnemosyne_final_seal", "audio_token": "boss_death"}
+    ]
+  }
+]

@@ -6,6 +6,7 @@ const PlayerControllerClass := preload("res://scripts/gameplay/player_controller
 const ProjectilePoolClass := preload("res://scripts/gameplay/projectile_pool.gd")
 const RunHUDClass := preload("res://scripts/ui/run_hud.gd")
 const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
+const TitanCollapseCatalogClass := preload("res://scripts/gameplay/titan_collapse_catalog.gd")
 
 const HIGH_CONTRAST_PROJECTILE := Color("#FF9B45")
 const VISUAL_SCRIPT_PATHS := [
@@ -13,6 +14,7 @@ const VISUAL_SCRIPT_PATHS := [
 	"res://scripts/ui/nest_view.gd",
 	"res://scripts/ui/run_hud.gd",
 	"res://scripts/gameplay/boss_visual.gd",
+	"res://scripts/gameplay/titan_collapse_catalog.gd",
 	"res://scripts/gameplay/player_controller.gd",
 	"res://scripts/gameplay/projectile_pool.gd",
 	"res://scripts/gameplay/run_scene.gd",
@@ -78,6 +80,7 @@ func _run() -> void:
 	await _test_projectile_contrast_contract()
 	await _test_reduced_motion_contract()
 	await _test_boss_visual_states()
+	_test_titan_collapse_contract()
 	await _test_five_nest_states()
 	SaveManager.profile = original_profile
 	SettingsManager.values = original_settings
@@ -270,6 +273,128 @@ func _test_boss_visual_states() -> void:
 	_check(all_tokens.size() == BossVisualClass.SUPPORTED_VISUAL_TOKENS.size(),"BossVisual token registry must match the authored boss catalog exactly")
 	for token_value in BossVisualClass.SUPPORTED_VISUAL_TOKENS:
 		_check(all_tokens.has(String(token_value)),"BossVisual registry cannot contain an unauthored token: %s" % String(token_value))
+
+
+func _test_titan_collapse_contract() -> void:
+	var profiles := TitanCollapseCatalogClass.load_catalog()
+	_check(profiles.size() == 4,"Titan collapse catalog must retain four launch profiles")
+	_check(TitanCollapseCatalogClass.validate_catalog(profiles).is_empty(),"Authored Titan collapse catalog must pass strict validation")
+	var seen_styles: Dictionary = {}
+	var seen_finals: Dictionary = {}
+	var seen_body_transforms: Dictionary = {}
+	for raw_profile in profiles:
+		var profile := raw_profile as Dictionary
+		var boss_id := String(profile.get("boss_id", ""))
+		var style_token := String(profile.get("style_token", ""))
+		var final_token := String(profile.get("final_token", ""))
+		var cues := profile.get("cues", []) as Array
+		var loaded_profile := TitanCollapseCatalogClass.profile_for(boss_id)
+		_check(not loaded_profile.is_empty() and String(loaded_profile.get("style_token", "")) == style_token,"%s collapse profile must round-trip through the validated catalog" % boss_id)
+		_check(not style_token.is_empty() and not seen_styles.has(style_token),"%s must own a distinct collapse visual language" % boss_id)
+		_check(not final_token.is_empty() and not seen_finals.has(final_token),"%s must own a distinct terminal collapse seal" % boss_id)
+		_check(cues.size() == 4,"%s collapse must retain four authored visual/audio beats" % boss_id)
+		_check(float(profile.get("duration_seconds",0.0)) > float(profile.get("reduced_motion_duration_seconds",0.0)) and float(profile.get("reduced_motion_duration_seconds",0.0)) >= 0.1,"%s must publish bounded standard and reduced-motion durations" % boss_id)
+		seen_styles[style_token] = true
+		seen_finals[final_token] = true
+
+		var visual := BossVisualClass.new()
+		visual.setup(GameData.get_boss(boss_id))
+		var started_events: Array = []
+		var cue_events: Array = []
+		var completed_events: Array = []
+		visual.collapse_started.connect(func(started_boss_id: String, duration_seconds: float, reduced_motion: bool) -> void:
+			started_events.append({"boss_id":started_boss_id,"duration":duration_seconds,"reduced":reduced_motion})
+		)
+		visual.collapse_cue.connect(func(cue_index: int, visual_token: String, audio_token: String) -> void:
+			cue_events.append({"index":cue_index,"visual":visual_token,"audio":audio_token})
+		)
+		visual.collapse_completed.connect(func(completed_boss_id: String, interrupted: bool, reason: String) -> void:
+			completed_events.append({"boss_id":completed_boss_id,"interrupted":interrupted,"reason":reason})
+		)
+		_check(visual.start_collapse(false),"%s collapse must start from an authored profile" % boss_id)
+		var start_snapshot := visual.collapse_visual_snapshot()
+		_check(String(start_snapshot.get("style_token","")) == style_token and String(start_snapshot.get("final_token","")) == final_token,"%s BossVisual must expose the authored visual identity" % boss_id)
+		_check(started_events.size() == 1 and String((started_events[0] as Dictionary).get("boss_id","")) == boss_id and not bool((started_events[0] as Dictionary).get("reduced",true)),"%s collapse must emit one typed standard-motion start event" % boss_id)
+		_check(cue_events.size() == 1 and int((cue_events[0] as Dictionary).get("index",-1)) == 0,"%s collapse must emit its time-zero cue immediately" % boss_id)
+		var duration := float(profile.get("duration_seconds",0.0))
+		_check(visual.advance_collapse(duration*0.5),"%s collapse must accept deterministic manual advancement" % boss_id)
+		var midpoint := visual.collapse_visual_snapshot()
+		_check(visual.is_collapsing() and is_equal_approx(float(midpoint.get("progress",0.0)),0.5),"%s collapse midpoint must remain running at exact normalized progress" % boss_id)
+		_check(visual.advance_collapse(duration),"%s collapse must safely consume a frame longer than its remaining duration" % boss_id)
+		_check(visual.is_collapse_complete() and is_equal_approx(visual.collapse_progress(),1.0),"%s collapse must reach a stable completed state" % boss_id)
+		var body_transform := visual.collapse_body_transform()
+		var body_offset := Vector2(body_transform.get("offset",Vector2.ZERO))
+		var body_signature := "%0.3f:%0.3f:%0.3f:%0.3f:%0.3f" % [body_offset.x,body_offset.y,float(body_transform.get("rotation",0.0)),Vector2(body_transform.get("scale",Vector2.ONE)).x,Vector2(body_transform.get("scale",Vector2.ONE)).y]
+		_check(body_offset.length() >= 30.0 and not seen_body_transforms.has(body_signature),"%s standard collapse must end in a distinct physical Titan pose" % boss_id)
+		seen_body_transforms[body_signature] = true
+		_check(completed_events.size() == 1 and not bool((completed_events[0] as Dictionary).get("interrupted",true)) and String((completed_events[0] as Dictionary).get("reason","")) == "sequence_complete","%s collapse must emit exactly one natural completion" % boss_id)
+		_check(cue_events.size() == cues.size() and String((cue_events[-1] as Dictionary).get("audio","")) == "boss_death","%s large-delta completion must emit every cue once and end in boss_death" % boss_id)
+		_check((visual.collapse_active_visual_tokens as Array).size() == cues.size(),"%s collapse must retain every activated visual token for capture/replay" % boss_id)
+		_check(not visual.start_collapse(false) and not visual.advance_collapse(1.0) and completed_events.size() == 1,"%s completed collapse must reject duplicate start, advancement, and completion" % boss_id)
+		visual.free()
+	_check(seen_styles.size() == 4 and seen_finals.size() == 4 and seen_body_transforms.size() == 4,"All four Titans must remain visually distinct through their final collapse frame")
+
+	var reduced_profile := TitanCollapseCatalogClass.profile_for("seraph_9")
+	var reduced_visual := BossVisualClass.new()
+	reduced_visual.setup(GameData.get_boss("seraph_9"))
+	var reduced_completions: Array = []
+	reduced_visual.collapse_completed.connect(func(boss_id: String, interrupted: bool, reason: String) -> void:
+		reduced_completions.append({"boss_id":boss_id,"interrupted":interrupted,"reason":reason})
+	)
+	_check(reduced_visual.start_collapse(true),"Reduced Motion must retain an authored Hyperion collapse path")
+	var reduced_snapshot := reduced_visual.collapse_visual_snapshot()
+	_check(bool(reduced_snapshot.get("reduced_motion",false)) and is_equal_approx(float(reduced_snapshot.get("duration_seconds",0.0)),float(reduced_profile.get("reduced_motion_duration_seconds",-1.0))),"Reduced Motion must select the profile's explicit short duration")
+	_check(is_equal_approx(float(reduced_snapshot.get("visual_progress",0.0)),1.0) and Vector2(reduced_snapshot.get("body_offset",Vector2.ONE)).is_zero_approx() and is_zero_approx(float(reduced_snapshot.get("body_rotation",1.0))),"Reduced Motion must use a stable final tableau instead of spatial animation")
+	_check(reduced_visual.advance_collapse(float(reduced_profile.get("reduced_motion_duration_seconds",0.0))*2.0),"Reduced Motion collapse must complete safely across a large frame")
+	_check(reduced_visual.is_collapse_complete() and reduced_completions.size() == 1,"Reduced Motion collapse must preserve the exact-once completion signal")
+	_check(float(reduced_profile.get("reduced_motion_duration_seconds",0.0)) < float(reduced_profile.get("duration_seconds",0.0)),"Reduced Motion duration must be shorter than the standard sequence")
+	reduced_visual.free()
+
+	var interrupted_visual := BossVisualClass.new()
+	interrupted_visual.setup(GameData.get_boss("null_twin"))
+	var interruption_cues: Array = []
+	var interruption_completions: Array = []
+	interrupted_visual.collapse_cue.connect(func(index: int, visual_token: String, audio_token: String) -> void:
+		interruption_cues.append({"index":index,"visual":visual_token,"audio":audio_token})
+	)
+	interrupted_visual.collapse_completed.connect(func(boss_id: String, interrupted: bool, reason: String) -> void:
+		interruption_completions.append({"boss_id":boss_id,"interrupted":interrupted,"reason":reason})
+	)
+	_check(interrupted_visual.start_collapse(false),"Interruption test must start an authored Mnemosyne sequence")
+	_check(interrupted_visual.advance_collapse(0.01),"A running collapse must advance before interruption")
+	_check(interrupted_visual.interrupt_collapse("scene_transition"),"A running collapse must support immediate interruption completion")
+	var interruption_snapshot := interrupted_visual.collapse_visual_snapshot()
+	_check(interrupted_visual.is_collapse_complete() and bool(interruption_snapshot.get("interrupted",false)) and String(interruption_snapshot.get("completion_reason","")) == "scene_transition","Interrupted collapse must expose its terminal reason")
+	_check(interruption_cues.size() == 1 and interruption_completions.size() == 1 and bool((interruption_completions[0] as Dictionary).get("interrupted",false)),"Interruption must avoid bursting pending audio cues and emit one completion")
+	_check(not interrupted_visual.interrupt_collapse("duplicate") and interruption_completions.size() == 1,"Repeated interruption must not duplicate collapse completion")
+	interrupted_visual.free()
+
+	var duplicate_catalog := profiles.duplicate(true)
+	(duplicate_catalog[1] as Dictionary)["boss_id"] = String((duplicate_catalog[0] as Dictionary).get("boss_id",""))
+	_check(not TitanCollapseCatalogClass.validate_catalog(duplicate_catalog).is_empty(),"Collapse validation must reject duplicate or missing Titan identities")
+	var malformed_cues := profiles.duplicate(true)
+	((malformed_cues[0] as Dictionary).get("cues",[]) as Array)[1] = {"at":0.0,"visual_token":"unknown","audio_token":"unknown"}
+	_check(TitanCollapseCatalogClass.validate_catalog(malformed_cues).size() >= 3,"Collapse validation must reject unsorted timing and unsupported visual/audio tokens")
+	_check(not TitanCollapseCatalogClass.validate_catalog({}).is_empty(),"Collapse validation must reject a non-array root")
+	_check(TitanCollapseCatalogClass.profile_for("unknown_titan").is_empty(),"Unknown Titans must fail closed without borrowing another collapse identity")
+	var missing_profile_visual := BossVisualClass.new()
+	missing_profile_visual.setup({"id":"unknown_titan"})
+	var missing_profile_completions: Array = []
+	missing_profile_visual.collapse_completed.connect(func(boss_id: String, interrupted: bool, reason: String) -> void:
+		missing_profile_completions.append({"boss_id":boss_id,"interrupted":interrupted,"reason":reason})
+	)
+	_check(not missing_profile_visual.start_collapse(false) and missing_profile_visual.is_collapse_complete() and missing_profile_completions.size() == 1 and String((missing_profile_completions[0] as Dictionary).get("reason","")) == "invalid_profile","Missing collapse data must fail safe through the same immediate completion signal")
+	missing_profile_visual.free()
+	var reconfigured_visual := BossVisualClass.new()
+	reconfigured_visual.setup(GameData.get_boss("gravemaw"))
+	var reconfigured_completions: Array = []
+	reconfigured_visual.collapse_completed.connect(func(boss_id: String, interrupted: bool, reason: String) -> void:
+		reconfigured_completions.append({"boss_id":boss_id,"interrupted":interrupted,"reason":reason})
+	)
+	_check(reconfigured_visual.start_collapse(false),"Reconfiguration guard must begin from a valid collapse")
+	reconfigured_visual.setup(GameData.get_boss("seraph_9"))
+	_check(reconfigured_completions.size() == 1 and String((reconfigured_completions[0] as Dictionary).get("boss_id","")) == "gravemaw" and String((reconfigured_completions[0] as Dictionary).get("reason","")) == "boss_reconfigured" and reconfigured_visual.collapse_state == BossVisualClass.CollapseState.IDLE,"Boss replacement must complete the old sequence once before resetting visual state")
+	reconfigured_visual.free()
 
 
 func _test_five_nest_states() -> void:

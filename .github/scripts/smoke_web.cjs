@@ -8,6 +8,11 @@ const targetUrl = process.argv[2];
 const evidenceDir = process.argv[3];
 const chromeBin = process.env.INFINIDIVE_CHROME_BIN;
 const playwrightRoot = process.env.INFINIDIVE_PLAYWRIGHT_ROOT;
+const storeCaptureEnabled = process.env.INFINIDIVE_STORE_CAPTURE === '1';
+const sourceCommit = process.env.INFINIDIVE_SOURCE_COMMIT ?? process.env.GITHUB_SHA ?? '';
+const sourceRepository = process.env.INFINIDIVE_SOURCE_REPOSITORY ?? process.env.GITHUB_REPOSITORY ?? '';
+const sourceRunId = process.env.INFINIDIVE_SOURCE_RUN_ID ?? process.env.GITHUB_RUN_ID ?? '';
+const sourceRunAttempt = process.env.INFINIDIVE_SOURCE_RUN_ATTEMPT ?? process.env.GITHUB_RUN_ATTEMPT ?? '';
 
 if (!targetUrl || !evidenceDir || !chromeBin || !playwrightRoot) {
   throw new Error('Web smoke requires URL, evidence directory, Chrome, and Playwright root');
@@ -15,6 +20,73 @@ if (!targetUrl || !evidenceDir || !chromeBin || !playwrightRoot) {
 
 const { chromium } = require(path.join(playwrightRoot, 'node_modules', 'playwright-core'));
 fs.mkdirSync(evidenceDir, { recursive: true });
+
+const BASE_VIEWPORT = Object.freeze({ width: 540, height: 960 });
+const STORE_VIEWPORT = Object.freeze({ width: 1320, height: 2868 });
+const STORE_CAPTURE_MANIFEST = 'infinidive-store-capture.json';
+const STORE_CAPTURE_CLASSIFICATION = 'current_source_ci_browser_app_store_sized_review_candidate_not_target_device_submission_evidence';
+const STORE_CONTRACT_PATH = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  'infinidive-game',
+  'assets',
+  'store',
+  'gameplay',
+  'capture-manifest.json',
+);
+
+function loadStoreCaptureContract() {
+  if (!storeCaptureEnabled) return null;
+  const document = JSON.parse(fs.readFileSync(STORE_CONTRACT_PATH, 'utf8'));
+  const contract = document?.planned_capture?.ci_store_sized_screenshots;
+  if (!contract || contract.schema_version !== 1
+      || contract.classification !== STORE_CAPTURE_CLASSIFICATION
+      || contract.evidence_manifest !== STORE_CAPTURE_MANIFEST
+      || contract.expected_image?.width !== STORE_VIEWPORT.width
+      || contract.expected_image?.height !== STORE_VIEWPORT.height
+      || contract.expected_image?.device_scale_factor !== 1
+      || contract.expected_image?.post_capture_scaling !== false
+      || !Array.isArray(contract.ordered_stages)
+      || contract.ordered_stages.length < 1) {
+    throw new Error('The static store-capture contract is missing or unsafe');
+  }
+  const orders = new Set();
+  const keys = new Set();
+  const sourceStages = new Set();
+  const files = new Set();
+  for (const stage of contract.ordered_stages) {
+    if (!Number.isInteger(stage.order) || stage.order < 1 || orders.has(stage.order)
+        || typeof stage.key !== 'string' || !/^[a-z0-9-]+$/.test(stage.key) || keys.has(stage.key)
+        || typeof stage.source_stage !== 'string' || !/^[a-z0-9_-]+$/.test(stage.source_stage)
+        || sourceStages.has(stage.source_stage)
+        || typeof stage.snapshot_key !== 'string' || !/^[a-z0-9_]+$/.test(stage.snapshot_key)
+        || typeof stage.file !== 'string' || stage.file !== path.basename(stage.file)
+        || !stage.file.endsWith('.png') || files.has(stage.file)
+        || typeof stage.caption !== 'string' || stage.caption.length < 1
+        || !stage.required_qa || typeof stage.required_qa !== 'object'
+        || Array.isArray(stage.required_qa)) {
+      throw new Error(`Unsafe store-capture stage contract: ${JSON.stringify(stage)}`);
+    }
+    orders.add(stage.order);
+    keys.add(stage.key);
+    sourceStages.add(stage.source_stage);
+    files.add(stage.file);
+  }
+  const sortedOrders = [...orders].sort((left, right) => left - right);
+  if (sortedOrders.some((order, index) => order !== index + 1)) {
+    throw new Error(`Store-capture stage order is not contiguous: ${JSON.stringify(sortedOrders)}`);
+  }
+  if (!/^[0-9a-f]{40,64}$/.test(sourceCommit)
+      || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(sourceRepository)
+      || !/^\d+$/.test(sourceRunId) || Number(sourceRunId) < 1
+      || !/^\d+$/.test(sourceRunAttempt) || Number(sourceRunAttempt) < 1) {
+    throw new Error('Store capture requires a valid commit, repository, run ID, and run attempt source binding');
+  }
+  return contract;
+}
+
+const storeCaptureContract = loadStoreCaptureContract();
 
 const QA_SCHEMA = 'infinidive.qa.v2';
 const EXPECTED_CORE_PATH = [
@@ -436,6 +508,126 @@ async function waitForRunState(expectedState, runGeneration, afterRevision, time
   return snapshot;
 }
 
+function valueAtPath(value, dottedPath) {
+  return dottedPath.split('.').reduce(
+    (cursor, segment) => (cursor && typeof cursor === 'object' ? cursor[segment] : undefined),
+    value,
+  );
+}
+
+function assertStoreStageQa(snapshot, stage) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    throw new Error(`Store stage ${stage.key} has no QA snapshot`);
+  }
+  for (const [field, expected] of Object.entries(stage.required_qa)) {
+    const actual = valueAtPath(snapshot, field);
+    if (actual !== expected) {
+      throw new Error(`Store stage ${stage.key} expected QA ${field}=${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    }
+  }
+}
+
+function storeQaEvidence(snapshot) {
+  return {
+    schema: snapshot.schema ?? null,
+    view: snapshot.view ?? null,
+    state: snapshot.state ?? null,
+    revision: snapshot.revision ?? null,
+    run_generation: snapshot.run_generation ?? null,
+    phase: snapshot.phase ?? null,
+    movement_observed: snapshot.movement_observed ?? null,
+    organ: snapshot.organ ? JSON.parse(JSON.stringify(snapshot.organ)) : null,
+    ability: snapshot.ability ? JSON.parse(JSON.stringify(snapshot.ability)) : null,
+    boss_visual_state: snapshot.boss_visual_state ?? null,
+    mutation: snapshot.mutation ? JSON.parse(JSON.stringify(snapshot.mutation)) : null,
+  };
+}
+
+async function waitForCanvasSize(expectedViewport, label) {
+  await page.waitForFunction(
+    ({ width, height }) => {
+      const canvas = document.getElementById('canvas');
+      const status = document.getElementById('status');
+      return canvas?.width === width
+        && canvas?.height === height
+        && status?.classList.contains('hidden') === true;
+    },
+    expectedViewport,
+    { timeout: 10_000 },
+  );
+  const observed = await page.evaluate(() => {
+    const canvas = document.getElementById('canvas');
+    return { width: canvas?.width ?? 0, height: canvas?.height ?? 0 };
+  });
+  if (observed.width !== expectedViewport.width || observed.height !== expectedViewport.height) {
+    throw new Error(`${label} canvas dimensions are wrong: ${JSON.stringify(observed)}`);
+  }
+}
+
+async function captureStoreScreenshot(result, sourceStage) {
+  if (!storeCaptureContract) return;
+  const stage = storeCaptureContract.ordered_stages.find(
+    (candidate) => candidate.source_stage === sourceStage,
+  );
+  if (!stage) {
+    throw new Error(`No store-capture contract exists for source stage ${JSON.stringify(sourceStage)}`);
+  }
+  if (result.store_capture.stages.some((candidate) => candidate.key === stage.key)) {
+    throw new Error(`Store stage ${stage.key} was captured more than once`);
+  }
+  const contractSnapshot = result.semantic_touch.snapshots[stage.snapshot_key];
+  assertStoreStageQa(contractSnapshot, stage);
+  const originalViewport = page.viewportSize();
+  if (!originalViewport
+      || originalViewport.width !== BASE_VIEWPORT.width
+      || originalViewport.height !== BASE_VIEWPORT.height) {
+    throw new Error(`Store capture began outside the base viewport: ${JSON.stringify(originalViewport)}`);
+  }
+  let screenshot;
+  let liveSnapshot;
+  try {
+    await page.setViewportSize(STORE_VIEWPORT);
+    await waitForCanvasSize(STORE_VIEWPORT, `Store stage ${stage.key}`);
+    await page.evaluate(() => new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    }));
+    liveSnapshot = await qaSnapshot();
+    assertStoreStageQa(liveSnapshot, stage);
+    screenshot = await page.screenshot({
+      path: path.join(evidenceDir, stage.file),
+      fullPage: false,
+      type: 'png',
+    });
+    const afterScreenshotSnapshot = await qaSnapshot();
+    assertStoreStageQa(afterScreenshotSnapshot, stage);
+    if (afterScreenshotSnapshot.view !== liveSnapshot.view
+        || (liveSnapshot.view === 'run'
+          && (afterScreenshotSnapshot.state !== liveSnapshot.state
+            || afterScreenshotSnapshot.run_generation !== liveSnapshot.run_generation))) {
+      throw new Error(`Store stage ${stage.key} changed gameplay state during capture`);
+    }
+  } finally {
+    await page.setViewportSize(BASE_VIEWPORT);
+    await waitForCanvasSize(BASE_VIEWPORT, `Store stage ${stage.key} restore`);
+  }
+  const digest = crypto.createHash('sha256').update(screenshot).digest('hex');
+  result.store_capture.stages.push({
+    order: stage.order,
+    key: stage.key,
+    source_stage: stage.source_stage,
+    snapshot_key: stage.snapshot_key,
+    file: stage.file,
+    caption: stage.caption,
+    sha256: digest,
+    bytes: screenshot.length,
+    width: STORE_VIEWPORT.width,
+    height: STORE_VIEWPORT.height,
+    device_scale_factor: 1,
+    post_capture_scaling: false,
+    qa: storeQaEvidence(liveSnapshot),
+  });
+}
+
 async function captureStageScreenshot(result, stageName) {
   if (!/^[a-z0-9-]+$/.test(stageName)) {
     throw new Error(`Unsafe screenshot stage name: ${JSON.stringify(stageName)}`);
@@ -451,6 +643,56 @@ async function captureStageScreenshot(result, stageName) {
     .createHash('sha256')
     .update(screenshot)
     .digest('hex');
+  await captureStoreScreenshot(result, stageName);
+}
+
+function persistStoreCaptureManifest(result) {
+  if (!storeCaptureContract) return;
+  const orderedStages = [...result.store_capture.stages]
+    .sort((left, right) => left.order - right.order);
+  const expectedCount = storeCaptureContract.ordered_stages.length;
+  const complete = orderedStages.length === expectedCount
+    && orderedStages.every((stage, index) => stage.order === index + 1);
+  const passed = result.status === 'passed'
+    && result.semantic_touch.status === 'passed'
+    && complete;
+  result.store_capture.status = passed ? 'passed' : 'failed';
+  result.store_capture.captured_stage_count = orderedStages.length;
+  result.store_capture.expected_stage_count = expectedCount;
+  const manifest = {
+    schema_version: 1,
+    status: result.store_capture.status,
+    classification: STORE_CAPTURE_CLASSIFICATION,
+    submission_ready_store_asset: false,
+    target_device_evidence: false,
+    source_binding: result.store_capture.source_binding,
+    capture: {
+      surface: 'live_godot_web_export_in_headless_chrome',
+      qa_mode: true,
+      actual_gameplay: true,
+      generated_or_mocked_frames: false,
+      post_capture_scaling: false,
+      compositing: false,
+      viewport_width: STORE_VIEWPORT.width,
+      viewport_height: STORE_VIEWPORT.height,
+      device_scale_factor: 1,
+    },
+    smoke_evidence_manifest: 'infinidive-browser.json',
+    smoke_report_status: result.status,
+    semantic_touch_status: result.semantic_touch.status,
+    expected_stage_count: expectedCount,
+    captured_stage_count: orderedStages.length,
+    stages: orderedStages,
+    limitations: [
+      'Browser capture is not native-iOS or physical-device evidence.',
+      'Human visual review and release-candidate native recapture remain required before store submission.',
+      'The artifact does not prove App Store Connect acceptance or approval.',
+    ],
+  };
+  fs.writeFileSync(
+    path.join(evidenceDir, STORE_CAPTURE_MANIFEST),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  );
 }
 
 async function persistEvidence(result, screenshotAlreadyCaptured = false) {
@@ -478,6 +720,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
       result.evidence_error = boundedDiagnosticText(error);
     }
   }
+  persistStoreCaptureManifest(result);
   fs.writeFileSync(
     path.join(evidenceDir, 'infinidive-browser.json'),
     `${JSON.stringify(result, null, 2)}\n`,
@@ -510,6 +753,23 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
       stage_screenshots: {},
       stage_screenshot_sha256: {},
     },
+    ...(storeCaptureContract ? {
+      store_capture: {
+        status: 'in_progress',
+        manifest: STORE_CAPTURE_MANIFEST,
+        classification: STORE_CAPTURE_CLASSIFICATION,
+        source_binding: {
+          status: 'bound',
+          commit: sourceCommit,
+          repository: sourceRepository,
+          run_id: Number(sourceRunId),
+          run_attempt: Number(sourceRunAttempt),
+          target_url: sanitizedEvidenceUrl(targetUrl),
+          qa_url: sanitizedEvidenceUrl(qaUrl.toString(), true),
+        },
+        stages: [],
+      },
+    } : {}),
   };
 
   try {
@@ -525,7 +785,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
       ],
     });
     context = await browser.newContext({
-      viewport: { width: 540, height: 960 },
+      viewport: BASE_VIEWPORT,
       hasTouch: true,
       isMobile: true,
       deviceScaleFactor: 1,
@@ -711,6 +971,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
       .createHash('sha256')
       .update(beforeInput)
       .digest('hex');
+    await captureStoreScreenshot(result, 'nest');
     result.semantic_touch.stage_screenshots.latest = 'infinidive-browser.png';
     result.semantic_touch.stage = 'start_tap';
     await page.touchscreen.tap(270, 842);
@@ -1117,6 +1378,7 @@ async function persistEvidence(result, screenshotAlreadyCaptured = false) {
       })}`);
     }
     result.semantic_touch.snapshots.outside_return_stable = outsideStableProbe;
+    await captureStoreScreenshot(result, 'outside_return');
 
     const explicitCorePath = [
       runStartProbe,

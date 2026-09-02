@@ -7,6 +7,7 @@ const StoryOverlayScript := preload("res://scripts/ui/story_overlay.gd")
 const StoryPrologueScript := preload("res://scripts/core/story_prologue.gd")
 const StoryServiceScript := preload("res://scripts/services/story_service.gd")
 const StoryPresentationScript := preload("res://scripts/core/story_presentation.gd")
+const NativeStoreCaptureScript := preload("res://scripts/debug/native_store_capture.gd")
 const QA_SCHEMA := "infinidive.qa.v2"
 const QA_PUBLISH_INTERVAL := 0.1
 const QA_RUN_SCALAR_FIELDS := [
@@ -39,6 +40,7 @@ var _story_overlay: StoryOverlay
 var _pending_story_run: Dictionary = {}
 var _pending_story_result: Dictionary = {}
 var _story_catalog: StoryService = StoryServiceScript.new()
+var _native_store_capture: Node
 
 func _ready() -> void:
 	_qa_enabled = _qa_query_enabled()
@@ -46,6 +48,11 @@ func _ready() -> void:
 	if not _story_catalog.initialize():
 		push_error("Story catalog failed validation: %s" % ", ".join(_story_catalog.get_validation_errors()))
 	_show_nest()
+	_native_store_capture = NativeStoreCaptureScript.new()
+	add_child(_native_store_capture)
+	if not _native_store_capture.try_start(self):
+		_native_store_capture.queue_free()
+		_native_store_capture = null
 	if _qa_enabled:
 		_publish_qa_state()
 

@@ -1,0 +1,191 @@
+name: INFINIDIVE iOS Debug Store Capture (QA Only)
+
+on:
+  push:
+    branches: [infinidive-production]
+    paths:
+      - "infinidive-game/**"
+      - ".github/scripts/capture_ios_debug_store.sh"
+      - ".github/scripts/prepare_ios_debug_capture_scaffold.py"
+      - ".github/scripts/validate_ios_debug_store_capture.py"
+      - ".github/scripts/validate_ios_simulator_app.py"
+      - ".github/scripts/validate_ios_simulator_screenshot.py"
+      - ".github/workflows/infinidive-ios-debug-store-capture.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: infinidive-ios-debug-store-capture-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_STATUS: "stable"
+  GODOT_LINUX_SHA256: "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4"
+  GODOT_TEMPLATES_SHA256: "f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011"
+
+jobs:
+  export-debug-scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate debug capture contracts
+        shell: bash
+        run: |
+          python3 -m py_compile \
+            .github/scripts/prepare_ios_debug_capture_scaffold.py \
+            .github/scripts/validate_ios_debug_store_capture.py
+          python3 .github/scripts/prepare_ios_debug_capture_scaffold.py self-test
+          python3 .github/scripts/validate_ios_debug_store_capture.py --self-test
+          bash -n .github/scripts/capture_ios_debug_store.sh
+      - name: Install verified Godot and iOS export template
+        shell: bash
+        env:
+          GODOT_INSTALL_IOS_TEMPLATE: "1"
+        run: bash .github/scripts/install_godot.sh
+      - name: Import current project and export QA-only Debug scaffold
+        shell: bash
+        env:
+          INFINIDIVE_CI_FAKE_TEAM_ID: CISTORE000
+        run: |
+          set -euo pipefail
+          bash .github/scripts/run_godot_checked.sh --suite editor -- \
+            ./godot --headless --path infinidive-game --import
+
+          capture_project="$(mktemp -d "${RUNNER_TEMP}/infinidive-store-debug-project.XXXXXX")"
+          debug_output="${RUNNER_TEMP}/infinidive-ios-debug-store-scaffold"
+          test ! -e "${debug_output}"
+          mkdir -p "${debug_output}"
+          cleanup_capture_project() {
+            rm -rf -- "${capture_project}"
+          }
+          trap cleanup_capture_project EXIT
+          cp -a infinidive-game/. "${capture_project}/"
+          python3 .github/scripts/prepare_ios_debug_capture_scaffold.py inject \
+            --source-preset infinidive-game/export_presets.cfg \
+            --temporary-preset "${capture_project}/export_presets.cfg" \
+            --placeholder-team-id "${INFINIDIVE_CI_FAKE_TEAM_ID}"
+
+          ./godot --headless --path "${capture_project}" --export-debug iOS \
+            "${debug_output}/INFINIDIVE.xcodeproj"
+          test -d "${debug_output}/INFINIDIVE.xcodeproj"
+          application_plists="${RUNNER_TEMP}/infinidive-debug-application-plists.txt"
+          find "${debug_output}" -type f -name '*-Info.plist' -print \
+            | sort > "${application_plists}"
+          test "$(wc -l < "${application_plists}" | tr -d '[:space:]')" = "1"
+          application_plist="$(sed -n '1p' "${application_plists}")"
+          python3 .github/scripts/sanitize_ios_plist.py "${application_plist}"
+          python3 .github/scripts/sanitize_ios_plist.py --check "${application_plist}"
+          python3 .github/scripts/validate_ios_privacy_manifest.py \
+            "${debug_output}/PrivacyInfo.xcprivacy"
+          python3 .github/scripts/prepare_ios_debug_capture_scaffold.py finalize \
+            --root "${debug_output}" \
+            --placeholder-team-id "${INFINIDIVE_CI_FAKE_TEAM_ID}" \
+            --source-sha "${GITHUB_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          python3 .github/scripts/prepare_ios_debug_capture_scaffold.py verify \
+            --root "${debug_output}" \
+            --source-sha "${GITHUB_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" > /dev/null
+          grep -Fxq 'application/app_store_team_id=""' \
+            infinidive-game/export_presets.cfg
+      - name: Transfer ephemeral QA-only Debug scaffold
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: infinidive-qa-only-ios-debug-scaffold-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/infinidive-ios-debug-store-scaffold
+          if-no-files-found: error
+          retention-days: 1
+
+  capture-native-stages:
+    needs: export-debug-scaffold
+    runs-on: macos-26-intel
+    timeout-minutes: 50
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Download source-bound QA-only Debug scaffold
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: infinidive-qa-only-ios-debug-scaffold-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/infinidive-ios-debug-store-scaffold
+      - name: Verify scaffold and compile unsigned Debug Simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          scaffold_root="${RUNNER_TEMP}/infinidive-ios-debug-store-scaffold"
+          xcode_project="$(
+            python3 .github/scripts/prepare_ios_debug_capture_scaffold.py verify \
+              --root "${scaffold_root}" \
+              --source-sha "${GITHUB_SHA}" \
+              --run-id "${GITHUB_RUN_ID}" \
+              --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          )"
+          test -d "${xcode_project}"
+
+          xcode_version="$(xcodebuild -version | awk 'NR == 1 { print $2 }')"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          case "${xcode_version}" in 26|26.*) ;; *) exit 1 ;; esac
+          case "${simulator_sdk}" in 26|26.*) ;; *) exit 1 ;; esac
+          derived_data="${RUNNER_TEMP}/infinidive-store-debug-derived-data"
+          test ! -e "${derived_data}"
+          xcodebuild \
+            -project "${xcode_project}" \
+            -scheme INFINIDIVE \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "${derived_data}" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            DEVELOPMENT_TEAM= \
+            ARCHS=x86_64 \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build 2>&1 | tee "${RUNNER_TEMP}/infinidive-store-debug-xcodebuild.log"
+
+          shopt -s nullglob
+          applications=("${derived_data}"/Build/Products/Debug-iphonesimulator/*.app)
+          shopt -u nullglob
+          test "${#applications[@]}" -eq 1
+          debug_app="${applications[0]}"
+          python3 .github/scripts/validate_ios_simulator_app.py \
+            --app "${debug_app}" \
+            --scaffold "${scaffold_root}" \
+            --platform simulator
+          {
+            echo "INFINIDIVE_IOS_DEBUG_APP=${debug_app}"
+            echo "INFINIDIVE_XCODE_VERSION=${xcode_version}"
+            echo "INFINIDIVE_SIMULATOR_SDK=${simulator_sdk}"
+          } >> "${GITHUB_ENV}"
+      - name: Capture and validate six truthful current-bright stages
+        shell: bash
+        run: |
+          bash .github/scripts/capture_ios_debug_store.sh \
+            "${INFINIDIVE_IOS_DEBUG_APP}" \
+            "${RUNNER_TEMP}/infinidive-native-ios-store-capture"
+          cp "${RUNNER_TEMP}/infinidive-store-debug-xcodebuild.log" \
+            "${RUNNER_TEMP}/infinidive-native-ios-store-capture/xcodebuild-debug.log"
+          (
+            cd "${RUNNER_TEMP}/infinidive-native-ios-store-capture"
+            for evidence_file in *; do
+              if [[ -f "${evidence_file}" && "${evidence_file}" != "SHA256SUMS" ]]; then
+                shasum -a 256 "${evidence_file}"
+              fi
+            done
+          ) | LC_ALL=C sort -k 2 \
+            > "${RUNNER_TEMP}/infinidive-native-ios-store-capture/SHA256SUMS"
+      - name: Upload QA-only native iOS store captures
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: infinidive-qa-only-native-ios-store-capture-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/infinidive-native-ios-store-capture
+          if-no-files-found: warn
+          retention-days: 14

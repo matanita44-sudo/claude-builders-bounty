@@ -1,6 +1,14 @@
 class_name BossVisual
 extends Node2D
 
+const TitanCollapseCatalogClass := preload("res://scripts/gameplay/titan_collapse_catalog.gd")
+
+signal collapse_started(boss_id: String, duration_seconds: float, reduced_motion: bool)
+signal collapse_cue(cue_index: int, visual_token: String, audio_token: String)
+signal collapse_completed(boss_id: String, interrupted: bool, reason: String)
+
+enum CollapseState { IDLE, RUNNING, COMPLETE }
+
 const SUPPORTED_VISUAL_TOKENS := [
 	"blinded_hunter_eye",
 	"collapsed_gravity_lung",
@@ -27,6 +35,16 @@ var health_ratio := 1.0
 var hit_flash := 0.0
 var pulse_time := 0.0
 var spin := 0.0
+var collapse_state := CollapseState.IDLE
+var collapse_profile: Dictionary = {}
+var collapse_elapsed := 0.0
+var collapse_duration := 0.0
+var collapse_reduced_motion := false
+var collapse_active_visual_tokens: Array[String] = []
+var collapse_interrupted := false
+var collapse_completion_reason := ""
+var _collapse_next_cue_index := 0
+var _collapse_completion_emitted := false
 
 const EXTERIOR_CENTER := Vector2(0, 58)
 const INK_OUTLINE := Color("#18132E")
@@ -40,8 +58,173 @@ const TITAN_TEXTURES := {
 }
 
 func setup(boss_definition: Dictionary) -> void:
+	if is_collapsing():
+		interrupt_collapse("boss_reconfigured")
 	definition = boss_definition.duplicate(true)
+	# Resolve and validate the tiny data profile during scene setup, never on the
+	# final damage frame where synchronous I/O could disturb hit feel.
+	reset_collapse()
 	queue_redraw()
+
+
+func start_collapse(reduced_motion_override: Variant = null) -> bool:
+	if collapse_state != CollapseState.IDLE:
+		return false
+	var boss_id := String(definition.get("id", ""))
+	if collapse_profile.is_empty():
+		collapse_profile = TitanCollapseCatalogClass.profile_for(boss_id)
+	collapse_reduced_motion = (
+		bool(reduced_motion_override)
+		if typeof(reduced_motion_override) == TYPE_BOOL
+		else SettingsManager.reduced_motion_enabled()
+	)
+	collapse_elapsed = 0.0
+	collapse_interrupted = false
+	collapse_completion_reason = ""
+	_collapse_next_cue_index = 0
+	_collapse_completion_emitted = false
+	collapse_active_visual_tokens.clear()
+	mode = "exterior"
+	breach_open = false
+	selected_organ = {}
+	if collapse_profile.is_empty():
+		# A missing or invalid launch profile must never strand RunScene waiting
+		# for presentation. Emit the same exact-once completion contract used by
+		# a normal sequence so rewards remain owned by the caller.
+		collapse_duration = 0.0
+		collapse_state = CollapseState.RUNNING
+		collapse_started.emit(boss_id, 0.0, collapse_reduced_motion)
+		_finish_collapse(true, "invalid_profile")
+		return false
+	collapse_duration = float(collapse_profile.get(
+		"reduced_motion_duration_seconds" if collapse_reduced_motion else "duration_seconds",
+		0.0
+	))
+	collapse_state = CollapseState.RUNNING
+	collapse_started.emit(boss_id, collapse_duration, collapse_reduced_motion)
+	_emit_due_collapse_cues(0.0)
+	if collapse_duration <= 0.0:
+		_finish_collapse(true, "zero_duration")
+	queue_redraw()
+	return true
+
+
+func advance_collapse(delta_seconds: float) -> bool:
+	if not is_collapsing() or delta_seconds <= 0.0 or is_nan(delta_seconds) or is_inf(delta_seconds):
+		return false
+	collapse_elapsed = minf(collapse_duration, collapse_elapsed + delta_seconds)
+	var progress := collapse_progress()
+	_emit_due_collapse_cues(progress)
+	if collapse_elapsed >= collapse_duration:
+		_finish_collapse(false, "sequence_complete")
+	else:
+		queue_redraw()
+	return true
+
+
+func interrupt_collapse(reason: String = "interrupted") -> bool:
+	if not is_collapsing():
+		return false
+	# Interruption completes the wait contract immediately without bursting all
+	# remaining audio cues at once (important for backgrounding and scene exit).
+	# Large frame hitches still consume every crossed cue through advance_collapse.
+	collapse_elapsed = collapse_duration
+	_finish_collapse(true, reason if not reason.is_empty() else "interrupted")
+	return true
+
+
+func reset_collapse() -> void:
+	collapse_state = CollapseState.IDLE
+	collapse_profile = TitanCollapseCatalogClass.profile_for(String(definition.get("id", ""))) if not definition.is_empty() else {}
+	collapse_elapsed = 0.0
+	collapse_duration = 0.0
+	collapse_reduced_motion = false
+	collapse_active_visual_tokens.clear()
+	collapse_interrupted = false
+	collapse_completion_reason = ""
+	_collapse_next_cue_index = 0
+	_collapse_completion_emitted = false
+
+
+func is_collapsing() -> bool:
+	return collapse_state == CollapseState.RUNNING
+
+
+func is_collapse_complete() -> bool:
+	return collapse_state == CollapseState.COMPLETE
+
+
+func collapse_progress() -> float:
+	if collapse_state == CollapseState.COMPLETE:
+		return 1.0
+	if collapse_state == CollapseState.IDLE or collapse_duration <= 0.0:
+		return 0.0
+	return clampf(collapse_elapsed / collapse_duration, 0.0, 1.0)
+
+
+func collapse_visual_snapshot() -> Dictionary:
+	var body_transform := collapse_body_transform()
+	return {
+		"boss_id": String(definition.get("id", "")),
+		"state": collapse_state,
+		"style_token": String(collapse_profile.get("style_token", "")),
+		"final_token": String(collapse_profile.get("final_token", "")),
+		"active_visual_tokens": collapse_active_visual_tokens.duplicate(),
+		"progress": collapse_progress(),
+		"visual_progress": 1.0 if collapse_reduced_motion and collapse_state != CollapseState.IDLE else collapse_progress(),
+		"duration_seconds": collapse_duration,
+		"reduced_motion": collapse_reduced_motion,
+		"next_cue_index": _collapse_next_cue_index,
+		"interrupted": collapse_interrupted,
+		"completion_reason": collapse_completion_reason,
+		"body_offset": body_transform.offset,
+		"body_rotation": body_transform.rotation,
+		"body_scale": body_transform.scale
+	}
+
+
+func collapse_body_transform() -> Dictionary:
+	if collapse_state == CollapseState.IDLE or collapse_reduced_motion:
+		return {"offset":Vector2.ZERO,"rotation":0.0,"scale":Vector2.ONE}
+	var eased := collapse_progress()
+	eased *= eased
+	match String(collapse_profile.get("style_token", "")):
+		"harvest_shatter":
+			return {"offset":Vector2(-10.0,46.0)*eased,"rotation":-0.055*eased,"scale":Vector2(1.0-0.035*eased,1.0-0.065*eased)}
+		"sunwheel_eclipse":
+			return {"offset":Vector2(8.0,52.0)*eased,"rotation":0.042*eased,"scale":Vector2(1.0-0.055*eased,1.0-0.055*eased)}
+		"worldstream_release":
+			return {"offset":Vector2(4.0,66.0)*eased,"rotation":0.068*eased,"scale":Vector2(1.0+0.018*eased,1.0-0.090*eased)}
+		"memory_unweave":
+			return {"offset":Vector2(-7.0,39.0)*eased,"rotation":-0.038*eased,"scale":Vector2(1.0+0.040*eased,1.0-0.072*eased)}
+		_:
+			return {"offset":Vector2(0.0,44.0)*eased,"rotation":0.0,"scale":Vector2.ONE}
+
+
+func _emit_due_collapse_cues(normalized_progress: float) -> void:
+	var cues: Array = collapse_profile.get("cues", [])
+	while _collapse_next_cue_index < cues.size():
+		var cue := cues[_collapse_next_cue_index] as Dictionary
+		if float(cue.get("at", 1.0)) > normalized_progress + 0.000001:
+			break
+		var visual_token := String(cue.get("visual_token", ""))
+		var audio_token := String(cue.get("audio_token", ""))
+		if not visual_token.is_empty() and not collapse_active_visual_tokens.has(visual_token):
+			collapse_active_visual_tokens.append(visual_token)
+		collapse_cue.emit(_collapse_next_cue_index, visual_token, audio_token)
+		_collapse_next_cue_index += 1
+
+
+func _finish_collapse(interrupted: bool, reason: String) -> void:
+	if _collapse_completion_emitted:
+		return
+	_collapse_completion_emitted = true
+	collapse_state = CollapseState.COMPLETE
+	collapse_interrupted = interrupted
+	collapse_completion_reason = reason
+	collapse_elapsed = collapse_duration
+	queue_redraw()
+	collapse_completed.emit(String(definition.get("id", "")), interrupted, reason)
 
 func set_exterior(new_phase: int, new_destroyed: Array[String], is_breach_open: bool, new_visual_states: Dictionary = {}) -> void:
 	mode = "exterior"
@@ -102,6 +285,7 @@ func _process(delta: float) -> void:
 	if not SettingsManager.reduced_motion_enabled():
 		pulse_time += delta
 		spin += delta * (0.16 + phase * 0.025)
+	advance_collapse(delta)
 	hit_flash = maxf(0.0, hit_flash - delta) if SettingsManager.damage_flash_intensity() > 0.0 else 0.0
 	queue_redraw()
 
@@ -182,6 +366,8 @@ func _draw_exterior() -> void:
 		var ring_start := spin * (-1.0 if ring % 2 else 0.72) + ring * 0.58
 		var ring_span := TAU * (0.44 + ring * 0.055)
 		draw_arc(EXTERIOR_CENTER + Vector2(0, 8), ring_radius, ring_start, ring_start + ring_span, 48, Color(_palette(1, VisualTheme.VULNERABLE), 0.024 + ring * 0.012), 2.0 if ring < 4 else 1.0, true)
+	var body_transform := collapse_body_transform()
+	draw_set_transform(Vector2(body_transform.offset),float(body_transform.rotation),Vector2(body_transform.scale))
 	if not _draw_titan_texture(boss_id):
 		match boss_id:
 			"seraph_9": _draw_hyperion()
@@ -189,9 +375,11 @@ func _draw_exterior() -> void:
 			"null_twin": _draw_mnemosyne()
 			_: _draw_cronus()
 	_draw_divine_transformations()
+	draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 	_draw_organ_status()
 	if breach_open:
 		_draw_breach()
+	_draw_collapse_presentation()
 
 func _draw_titan_texture(boss_id: String) -> bool:
 	var texture: Texture2D = TITAN_TEXTURES.get(boss_id)
@@ -468,6 +656,140 @@ func _draw_breach() -> void:
 		draw_arc(center+Vector2(0,depth_ring*1.5),ring_radius,spin*(0.4+depth_ring*0.08),spin*(0.4+depth_ring*0.08)+TAU*0.76,28,Color(tunnel_color,0.12+depth_ring*0.095),2.5,true)
 	draw_circle(center+Vector2(0,6),5.0+beat*0.8,Color(BIO_TEAL,0.9))
 	draw_circle(center+Vector2(-1.5,4.5),2.0,Color.WHITE)
+
+
+func _draw_collapse_presentation() -> void:
+	if collapse_state == CollapseState.IDLE or collapse_profile.is_empty():
+		return
+	var progress := collapse_progress()
+	# Reduced Motion shows stable authored tableaux while the short cue timeline
+	# still gives screen readers/audio/haptics a deterministic completion point.
+	var visual_progress := 1.0 if collapse_reduced_motion else progress
+	var accent := Color(String(collapse_profile.get("accent", "#FFC857")))
+	var stage := collapse_active_visual_tokens.size()
+	var center := EXTERIOR_CENTER + Vector2(0, 8)
+	var ring_alpha := 0.16 if collapse_reduced_motion else 0.08 + (1.0 - progress) * 0.20
+	draw_circle(center, 55.0 + visual_progress * 82.0, Color(accent, ring_alpha))
+	draw_arc(center, 91.0 + visual_progress * 58.0, -PI * 0.94, PI * 0.78, 64, Color(accent, 0.34), 5.0, true)
+	match String(collapse_profile.get("style_token", "")):
+		"harvest_shatter":
+			_draw_harvest_collapse(center, visual_progress, stage, accent)
+		"sunwheel_eclipse":
+			_draw_sunwheel_collapse(center, visual_progress, stage, accent)
+		"worldstream_release":
+			_draw_worldstream_collapse(center, visual_progress, stage, accent)
+		"memory_unweave":
+			_draw_memory_collapse(center, visual_progress, stage, accent)
+	if stage >= 4 or collapse_state == CollapseState.COMPLETE:
+		_draw_collapse_final_seal(center, accent, String(collapse_profile.get("final_token", "")))
+
+
+func _draw_harvest_collapse(center: Vector2, progress: float, stage: int, accent: Color) -> void:
+	if stage >= 1:
+		var crown_center := center + Vector2(0, -104)
+		draw_polyline(PackedVector2Array([
+			crown_center + Vector2(-30, 8), crown_center + Vector2(-18, -12),
+			crown_center + Vector2(-5, 3), crown_center + Vector2(5, -19),
+			crown_center + Vector2(16, 4), crown_center + Vector2(31, -9)
+		]), Color(accent, 0.92), 7.0, true)
+		draw_line(crown_center + Vector2(-34, 13), crown_center + Vector2(34, -14), Color("#FF6475"), 4.0, true)
+	if stage >= 2:
+		for shard in 9:
+			var angle := -PI * 0.86 + float(shard) * PI * 1.72 / 8.0
+			var distance := 44.0 + progress * (48.0 + float(shard % 3) * 13.0)
+			var point := center + Vector2.from_angle(angle) * distance
+			var tangent := Vector2(-sin(angle), cos(angle))
+			var outward := Vector2.from_angle(angle)
+			draw_colored_polygon(PackedVector2Array([
+				point - tangent * 6.0, point + outward * 16.0, point + tangent * 6.0
+			]), Color(accent.lightened(0.16), 0.82))
+	if stage >= 3:
+		var horizon_y := center.y + 76.0
+		draw_line(Vector2(-154, horizon_y), Vector2(154, horizon_y), Color(accent, 0.76), 8.0, true)
+		draw_line(Vector2(-132, horizon_y + 9), Vector2(132, horizon_y + 9), Color("#FF8B66", 0.44), 3.0, true)
+
+
+func _draw_sunwheel_collapse(center: Vector2, progress: float, stage: int, accent: Color) -> void:
+	var sun_center := center + Vector2(0, -101)
+	if stage >= 1:
+		draw_arc(sun_center, 72.0, PI * 0.12, PI * 0.86, 32, Color(accent, 0.92), 8.0, true)
+		draw_arc(sun_center, 72.0, PI * 1.10, PI * 1.78, 32, Color("#FF6475", 0.76), 8.0, true)
+	if stage >= 2:
+		for ray in 12:
+			var angle := float(ray) * TAU / 12.0
+			var inner := sun_center + Vector2.from_angle(angle) * 82.0
+			var fall := Vector2(0, 28.0 + progress * (52.0 + float(ray % 3) * 10.0))
+			var outer := inner + Vector2.from_angle(angle) * 20.0 + fall
+			draw_line(inner, outer, Color(accent, 0.72), 5.0, true)
+	if stage >= 3:
+		var eclipse_radius := 22.0 + progress * 39.0
+		draw_circle(sun_center, eclipse_radius + 7.0, Color("#FFF0A8", 0.36))
+		draw_circle(sun_center + Vector2(6, 0), eclipse_radius, Color(INK_OUTLINE, 0.82))
+		draw_arc(sun_center, eclipse_radius + 4.0, -PI * 0.55, PI * 0.55, 32, Color(accent, 0.92), 5.0, true)
+
+
+func _draw_worldstream_collapse(center: Vector2, progress: float, stage: int, accent: Color) -> void:
+	if stage >= 1:
+		var trident_x := center.x + 118.0
+		draw_line(Vector2(trident_x, center.y - 96.0), Vector2(trident_x, center.y + 112.0), Color("#F6D36B", 0.76), 8.0, true)
+		draw_line(Vector2(trident_x - 19.0, center.y - 82.0), Vector2(trident_x + 20.0, center.y - 101.0), Color("#FF6475", 0.86), 5.0, true)
+	if stage >= 2:
+		for tide in 4:
+			var radius := 74.0 + float(tide) * 24.0 + progress * 33.0
+			draw_arc(center + Vector2(0, 24.0), radius, -PI * 0.91, PI * 0.32, 52, Color(accent, 0.24 + float(tide) * 0.09), 7.0 - float(tide), true)
+	if stage >= 3:
+		for drop in 11:
+			var angle := -PI * 0.86 + float(drop) * PI * 1.72 / 10.0
+			var radius := 62.0 + progress * (61.0 + float(drop % 2) * 18.0)
+			var point := center + Vector2.from_angle(angle) * radius + Vector2(0, 38.0)
+			draw_circle(point, 4.0 + float(drop % 3), Color("#C8FFF4", 0.76))
+			draw_line(point, point + Vector2(0, 12.0), Color(accent, 0.48), 2.0, true)
+
+
+func _draw_memory_collapse(center: Vector2, progress: float, stage: int, accent: Color) -> void:
+	if stage >= 1:
+		for side_value in [-1.0, 1.0]:
+			var side := float(side_value)
+			var echo_x: float = float(side) * (48.0 + progress * 63.0)
+			draw_polyline(PackedVector2Array([
+				center + Vector2(echo_x, -93), center + Vector2(echo_x + side * 17.0, -35),
+				center + Vector2(echo_x + side * 11.0, 47), center + Vector2(echo_x, 111)
+			]), Color(accent, 0.26), 16.0, true)
+	if stage >= 2:
+		for muse in 9:
+			var angle := PI + float(muse) * PI / 8.0
+			var radius := 64.0 + progress * (35.0 + float(muse % 2) * 14.0)
+			var point := center + Vector2(cos(angle) * radius, sin(angle) * radius * 0.72) - Vector2(0, 48)
+			draw_circle(point, 5.0, Color("#FFF0A8", 0.86))
+			draw_circle(point, 2.0, Color.WHITE)
+	if stage >= 3:
+		for fragment in 7:
+			var angle := -PI * 0.78 + float(fragment) * PI * 1.56 / 6.0
+			var distance := 42.0 + progress * (54.0 + float(fragment % 3) * 12.0)
+			var point := center + Vector2.from_angle(angle) * distance
+			var half_size := Vector2(8.0, 12.0)
+			draw_colored_polygon(PackedVector2Array([
+				point - half_size, point + Vector2(half_size.x, -half_size.y),
+				point + half_size, point + Vector2(-half_size.x, half_size.y)
+			]), Color("#FFE3F3", 0.64))
+			draw_line(point + Vector2(-4, -5), point + Vector2(4, 5), Color(accent, 0.72), 2.0, true)
+
+
+func _draw_collapse_final_seal(center: Vector2, accent: Color, final_token: String) -> void:
+	var seal_center := center + Vector2(0, 18)
+	draw_circle(seal_center, 35.0, Color(INK_OUTLINE, 0.78))
+	draw_arc(seal_center, 31.0, 0.0, TAU, 40, Color(accent, 0.94), 6.0, true)
+	draw_colored_polygon(PackedVector2Array([
+		seal_center + Vector2(0, -20), seal_center + Vector2(20, 0),
+		seal_center + Vector2(0, 20), seal_center + Vector2(-20, 0)
+	]), Color("#FFF8E5", 0.92))
+	draw_line(seal_center + Vector2(-14, -14), seal_center + Vector2(14, 14), Color("#FF6475"), 5.0, true)
+	draw_line(seal_center + Vector2(14, -14), seal_center + Vector2(-14, 14), Color(accent.darkened(0.24)), 3.0, true)
+	# The token is intentionally consumed by drawing state even though text is
+	# not painted into combat; tests and replay capture can identify the exact
+	# terminal tableau without inspecting pixels.
+	if final_token.is_empty():
+		draw_circle(seal_center, 3.0, Color("#FF6475"))
 
 func _draw_broken_divine_node(node_position: Vector2, color: Color, glyph: String) -> void:
 	_draw_soft_glow(node_position,20.0,Color("#FF6F75"),0.7)

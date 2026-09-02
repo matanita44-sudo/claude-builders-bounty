@@ -170,6 +170,7 @@ func _test_canonical_identity_and_story_queue_isolation() -> void:
 	_check(SaveManagerClass.high_score_key_for_run_result({"mode":"daily","challenge_id":String(daily.challenge_id)}) == "daily:%s" % String(daily.challenge_id), "Daily high-score storage must include challenge identity")
 	_check(SaveManagerClass.high_score_key_for_run_result({"mode":"friend","challenge_id":friend_id}) == "friend:%s" % friend_id, "Friend high-score storage must include challenge identity")
 	_check(SaveManagerClass.high_score_key_for_run_result({"mode":"story","boss_id":"gravemaw","difficulty":"diver"}) == "story:gravemaw:diver", "Story high scores must retain their separate local key")
+	_check(SaveManagerClass.high_score_key_for_run_result({"mode":"abyss","boss_id":"null_twin","difficulty":"abyss"}) == "abyss:loop", "Abyss high scores must use one cumulative loop identity across rotating bosses")
 
 	var tiny_config := RemoteConfigClass._safe_defaults()
 	tiny_config.limits.offline_submission_queue = 1

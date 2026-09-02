@@ -31,7 +31,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Creative-asset boundary
 
-No third-party creative asset is present in the reviewed repository inventory. Runtime visuals, procedural audio, brand SVGs, raster store exports, gameplay captures, and the social/Apple-candidate trailer audio are original project work described in `ASSET_LICENSES.md`. Trailer audio was rendered only from the shipped procedural-audio implementation; it contains no external sample, recording, voice, music, or audio library. The project currently includes no external sprite pack, texture pack, icon library, typeface file, sampled sound effect, recorded music, stock image, or copied store artwork.
+No third-party creative asset is present in the reviewed repository inventory. Runtime visuals, deterministic offline-rendered audio, brand SVGs, raster store exports, gameplay captures, and trailer audio are original project work described in `ASSET_LICENSES.md`. Shipped game and trailer audio are generated only from project-owned synthesis recipes; they contain no external sample, recording, voice, music, or audio library. The project currently includes no external sprite pack, texture pack, icon library, typeface file, sampled sound effect, recorded music, stock image, or copied store artwork.
 
 Godot's default/runtime font and platform/export-template components are engine dependencies, not project-authored creative assets. The final distribution audit must inspect Godot's `COPYRIGHT.txt` and the exact native/Web export contents for bundled third-party library notices; this draft does not replace those upstream notices.
 

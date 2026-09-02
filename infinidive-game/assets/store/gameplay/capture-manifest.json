@@ -69,6 +69,181 @@
         "Independent proof of source revision after evidence is detached from its workflow run"
       ]
     },
+    "ci_store_sized_screenshots": {
+      "status": "per_run_current_source_review_candidate_contract",
+      "schema_version": 1,
+      "classification": "current_source_ci_browser_app_store_sized_review_candidate_not_target_device_submission_evidence",
+      "presentation_identity": "Bright Greek-mythic/AION presentation with CRONUS and the unarmed Keeper",
+      "storage": "Generated from the actual tested Godot Web export and retained as a dedicated workflow artifact; no image is committed into this legacy media directory.",
+      "source_binding": {
+        "required": true,
+        "embedded_fields": [
+          "commit",
+          "repository",
+          "run_id",
+          "run_attempt",
+          "target_url"
+        ],
+        "validation": "The artifact validator compares commit, run ID, and run attempt against the active workflow context."
+      },
+      "evidence_manifest": "infinidive-store-capture.json",
+      "smoke_manifest": "infinidive-browser.json",
+      "expected_image": {
+        "format": "PNG",
+        "width": 1320,
+        "height": 2868,
+        "device_scale_factor": 1,
+        "capture_surface": "Headless CI Chrome viewport rendering the live Godot Web export at 1320x2868",
+        "post_capture_scaling": false
+      },
+      "ordered_stages": [
+        {
+          "order": 1,
+          "key": "fight-titan",
+          "source_stage": "aion-spark-combat",
+          "snapshot_key": "after_move",
+          "file": "infinidive-store-01-fight-titan.png",
+          "caption": "Fight a living Titan.",
+          "required_qa": {
+            "view": "run",
+            "state": "EXTERIOR",
+            "movement_observed": true
+          }
+        },
+        {
+          "order": 2,
+          "key": "open-breach",
+          "source_stage": "breach-open",
+          "snapshot_key": "breach_open",
+          "file": "infinidive-store-02-open-breach.png",
+          "caption": "Tear open a breach.",
+          "required_qa": {
+            "view": "run",
+            "state": "BREACH_OPEN"
+          }
+        },
+        {
+          "order": 3,
+          "key": "choose-organ",
+          "source_stage": "organ-select",
+          "snapshot_key": "organ_select",
+          "file": "infinidive-store-03-choose-organ.png",
+          "caption": "Choose which power to break.",
+          "required_qa": {
+            "view": "run",
+            "state": "ORGAN_SELECT"
+          }
+        },
+        {
+          "order": 4,
+          "key": "dive-inside",
+          "source_stage": "internal-route",
+          "snapshot_key": "internal_rooms",
+          "file": "infinidive-store-04-dive-inside.png",
+          "caption": "Dive through a living labyrinth.",
+          "required_qa": {
+            "view": "run",
+            "state": "INTERNAL_ROOMS",
+            "organ.id": "hunter_eye",
+            "organ.status": "selected"
+          }
+        },
+        {
+          "order": 5,
+          "key": "organ-chamber",
+          "source_stage": "organ-chamber",
+          "snapshot_key": "organ_chamber",
+          "file": "infinidive-store-05-organ-chamber.png",
+          "caption": "Confront the Hunter Eye.",
+          "required_qa": {
+            "view": "run",
+            "state": "ORGAN_CHAMBER",
+            "organ.id": "hunter_eye",
+            "organ.status": "selected"
+          }
+        },
+        {
+          "order": 6,
+          "key": "claim-mutation",
+          "source_stage": "mutation-choice",
+          "snapshot_key": "mutation_choice",
+          "file": "infinidive-store-06-claim-mutation.png",
+          "caption": "Destroy an organ. Claim its power.",
+          "required_qa": {
+            "view": "run",
+            "state": "MUTATION_CHOICE",
+            "organ.id": "hunter_eye",
+            "organ.status": "destroyed",
+            "ability.id": "homing_eye",
+            "ability.status": "degraded"
+          }
+        },
+        {
+          "order": 7,
+          "key": "change-titan",
+          "source_stage": "outside_return",
+          "snapshot_key": "outside_return_stable",
+          "file": "infinidive-store-07-change-titan.png",
+          "caption": "Return to a Titan you changed from within.",
+          "required_qa": {
+            "view": "run",
+            "state": "EXTERIOR",
+            "phase": 1,
+            "organ.status": "destroyed",
+            "ability.status": "degraded",
+            "boss_visual_state": "blinded_hunter_eye"
+          }
+        },
+        {
+          "order": 8,
+          "key": "last-nest",
+          "source_stage": "nest",
+          "snapshot_key": "nest",
+          "file": "infinidive-store-08-last-nest.png",
+          "caption": "Rebuild The Last Nest.",
+          "required_qa": {
+            "view": "nest"
+          }
+        },
+        {
+          "order": 9,
+          "key": "begin-unarmed",
+          "source_stage": "run-start-unarmed",
+          "snapshot_key": "run_start",
+          "file": "infinidive-store-09-begin-unarmed.png",
+          "caption": "Begin unarmed. Awaken the Aion Spark.",
+          "required_qa": {
+            "view": "run",
+            "state": "EXTERIOR",
+            "phase": 0,
+            "movement_observed": false
+          }
+        }
+      ],
+      "validator": {
+        "command": "python3 .github/scripts/validate_store_screenshots.py /absolute/path/to/smoke-evidence --expected-commit COMMIT --expected-repository OWNER/REPOSITORY --expected-run-id RUN_ID --expected-run-attempt ATTEMPT",
+        "checks": [
+          "The full semantic Web smoke passed before the capture set is accepted",
+          "The manifest is bound to the active workflow commit, run ID, and run attempt",
+          "The exact ordered stage contract and QA-state assertions match",
+          "Every screenshot is a regular non-symlink file with a matching SHA-256",
+          "Every PNG fully decodes at exactly 1320x2868 with valid CRCs and filters",
+          "Every frame has non-degenerate luminance and color variation",
+          "All stage screenshot digests are distinct"
+        ]
+      },
+      "claims_allowed": [
+        "Exact 1320x2868 real-gameplay review candidates from the current tested Godot Web export",
+        "Commit- and workflow-bound evidence for the current bright Greek-mythic/AION presentation",
+        "No post-capture scaling, compositing, generated frames, fabricated UI, or mocked gameplay"
+      ],
+      "claims_prohibited": [
+        "Physical-device or native-iOS capture evidence",
+        "A claim that App Store Connect accepted or approved any screenshot",
+        "Final submission-ready status before human visual review and native release-candidate recapture",
+        "Safe-area, physical-input, native-rendering, or store-review evidence"
+      ]
+    },
     "release_candidate_store_media": {
       "status": "still_required",
       "requirements": "Fresh human-reviewed captures from the frozen release candidate through supported target-device workflows, followed by current store-spec and console-processing validation. CI stage screenshots cannot satisfy this requirement."

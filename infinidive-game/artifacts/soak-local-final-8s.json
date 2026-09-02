@@ -1,0 +1,124 @@
+{
+	"counts": {
+		"boss_restarts": 10,
+		"dive_transitions": 10,
+		"enemy_projectiles_spawned": 11772,
+		"iterations": 98,
+		"offline_events_queued": 530,
+		"offline_queue_final_size": 500,
+		"offline_queue_reloads": 2,
+		"player_projectiles_spawned": 5999,
+		"projectile_cycles": 98,
+		"projectile_model_steps": {
+			"delayed_linear": 1680,
+			"expanding": 1682,
+			"linear": 1682,
+			"lunge": 1682,
+			"node_link": 1682,
+			"recorded_path": 1683,
+			"soft_homing": 1681
+		},
+		"projectile_models_executed": {
+			"delayed_linear": 1680,
+			"expanding": 1682,
+			"linear": 1682,
+			"lunge": 1682,
+			"node_link": 1682,
+			"recorded_path": 1683,
+			"soft_homing": 1681
+		},
+		"projectile_models_requested": {
+			"delayed_linear": 1680,
+			"expanding": 1682,
+			"linear": 1682,
+			"lunge": 1682,
+			"node_link": 1682,
+			"recorded_path": 1683,
+			"soft_homing": 1681
+		},
+		"save_reloads": 0,
+		"save_writes": 6
+	},
+	"display_server": "headless",
+	"elapsed_wall_seconds": 8.003,
+	"engine": {
+		"build": "official",
+		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
+		"hex": 263938,
+		"major": 4,
+		"minor": 7,
+		"patch": 2,
+		"status": "stable",
+		"string": "4.7.2-stable (official)",
+		"timestamp": 0
+	},
+	"failures": [],
+	"finished_at_utc": "2026-09-02T18:13:44",
+	"memory": {
+		"end_bytes": 53332823,
+		"peak_bytes": 53332823,
+		"sample_count": 4,
+		"slope_bytes_per_minute": 219311.72736436,
+		"stable_delta_bytes": 10940,
+		"stable_sample_count": 2,
+		"stable_start_bytes": 53321883,
+		"start_bytes": 47773239,
+		"warmup_seconds": 1.6006
+	},
+	"memory_samples": [
+		{
+			"elapsed_seconds": 0.0,
+			"memory_bytes": 47773239,
+			"node_count": 11,
+			"object_count": 1549,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 1.019,
+			"memory_bytes": 51131027,
+			"node_count": 11,
+			"object_count": 1558,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 5.01,
+			"memory_bytes": 53321883,
+			"node_count": 11,
+			"object_count": 1556,
+			"orphan_node_count": 0
+		},
+		{
+			"elapsed_seconds": 8.003,
+			"memory_bytes": 53332823,
+			"node_count": 11,
+			"object_count": 1556,
+			"orphan_node_count": 0
+		}
+	],
+	"object_counts": {
+		"baseline_nodes": 11,
+		"baseline_objects": 1549,
+		"final_nodes": 10,
+		"final_objects": 1554
+	},
+	"passed": true,
+	"peaks": {
+		"enemy_projectiles": 350,
+		"node_count": 43,
+		"object_count": 1647,
+		"orphan_node_count": 0,
+		"player_projectiles": 190,
+		"total_projectiles": 540
+	},
+	"report_markdown_sha256": "75be3e8f40f651129e3cc47505d75506429d24805cc5b283ea902bf56e84839b",
+	"report_transaction_complete": true,
+	"report_transaction_id": "ce0fd4cbb9437940ef9eb436",
+	"requested_duration_seconds": 8.0,
+	"schema": 1,
+	"scope": "Linux Godot headless structural soak; not device FPS, thermal, battery, GPU, or touch performance",
+	"seed": 2039070,
+	"source_changed_during_run": false,
+	"source_fingerprint_end": "3f5aed099357c66985222681d6b825819e595dbd5ef960e3566003283c37c59a",
+	"source_fingerprint_start": "3f5aed099357c66985222681d6b825819e595dbd5ef960e3566003283c37c59a",
+	"started_at_utc": "2026-09-02T18:13:36"
+}

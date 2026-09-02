@@ -9,7 +9,9 @@ const PlayerControllerClass := preload("res://scripts/gameplay/player_controller
 const BossVisualClass := preload("res://scripts/gameplay/boss_visual.gd")
 const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
 const RunHUDClass := preload("res://scripts/ui/run_hud.gd")
+const RiftResultCardClass := preload("res://scripts/ui/result_card.gd")
 const MainClass := preload("res://scripts/ui/main.gd")
+const NativeStoreCaptureClass := preload("res://scripts/debug/native_store_capture.gd")
 const NestViewClass := preload("res://scripts/ui/nest_view.gd")
 const SafeAreaHelperClass := preload("res://scripts/ui/safe_area_helper.gd")
 const TutorialFlowClass := preload("res://scripts/core/tutorial_flow.gd")
@@ -62,10 +64,12 @@ func _run_all() -> void:
 	_test_mutations()
 	_test_localization_and_settings()
 	await _test_localized_ui()
+	await _test_result_share_card()
 	await _test_accessibility_behaviors()
 	_test_analytics_contract()
 	_test_room_generation()
 	_test_project_configuration()
+	_test_native_store_capture_gate()
 	_test_safe_area_math()
 	await _test_projectile_pool()
 	await _test_player_movement()
@@ -75,6 +79,7 @@ func _run_all() -> void:
 	await _test_mutation_weapon_runtime()
 	await _test_meta_save_handoff()
 	await _test_save_recovery()
+	await _test_save_transaction_fault_matrix()
 	await _test_save_migration_and_banking()
 	await _test_result_lifecycle_replay_guard()
 	await _test_repeated_abyss_continuation()
@@ -82,6 +87,7 @@ func _run_all() -> void:
 	await _test_reset_local_data_integration()
 	await _test_tutorial_scene_handoff()
 	await _test_first_core_hook()
+	await _test_titan_collapse_runtime_gate()
 	await _test_complete_boss_runs_and_orders()
 	_write_junit()
 	print("INFINIDIVE TESTS: %d passed, %d failed" % [passed, failures.size()])
@@ -391,6 +397,47 @@ func _test_localized_ui() -> void:
 	_assert(english_nest._tagline.text == LocalizationService.STRINGS.en.tagline, "Fresh Nest UI must render its primary copy in English")
 	_assert(english_nest._hunt_button.text == LocalizationService.STRINGS.en.begin_dive, "Fresh primary action must render in English")
 	_assert(english_nest._boss_title.text == String(GameData.get_boss("gravemaw").get("name", "")), "Fresh boss selection must use the English catalog name")
+	english_nest._show_rift()
+	await get_tree().process_frame
+	var english_rift_text:=_collect_ui_text(english_nest._overlay)
+	_assert(english_rift_text.contains(LocalizationService.STRINGS.en.daily_reset) and english_rift_text.contains("00:00 UTC"), "English Daily Rift must display its exact 00:00 UTC reset")
+	_assert(english_rift_text.contains(LocalizationService.text("daily_standard_profile",{"difficulty":LocalizationService.text("deep")})), "English Daily Rift must display the complete fixed competitive profile")
+	var daily_payloads: Array[Dictionary] = []
+	english_nest.start_requested.connect(func(payload:Dictionary):daily_payloads.append(payload.duplicate(true)))
+	var daily_button:=english_nest._overlay.find_child("DailyRiftButton",true,false) as Button
+	_assert(daily_button!=null, "Daily Rift must expose a semantic launch control")
+	if daily_button!=null:
+		daily_button.pressed.emit()
+	var daily_rules:=ChallengeCodeClass.daily_standard_rules()
+	var daily_payload:Dictionary=daily_payloads[0] if not daily_payloads.is_empty() else {}
+	_assert(
+		daily_payloads.size()==1
+		and String(daily_payload.get("difficulty",""))==String(daily_rules.difficulty)
+		and daily_payload.get("modifiers",[])==daily_rules.modifiers
+		and String(daily_payload.get("daily_ruleset_id",""))==String(daily_rules.id)
+		and bool(daily_payload.get("competitive",false)),
+		"Daily launch must use the same versioned fixed profile shown in the UI"
+	)
+	var normalized_daily:=RunSceneClass.new()
+	normalized_daily.initialize(daily_payload.merged({"difficulty":"diver","modifiers":["tampered"],"daily_ruleset_id":"stale"},true))
+	normalized_daily._apply_config_defaults()
+	var saved_assist_values:=SettingsManager.values.duplicate(true)
+	SettingsManager.values.assist_projectile_speed=0.6
+	SettingsManager.values.assist_telegraph=1.6
+	SettingsManager.values.assist_dash_window=1.5
+	SettingsManager.values.aim_assist=false
+	_assert(
+		String(normalized_daily.config.difficulty)==String(daily_rules.difficulty)
+		and normalized_daily.config.modifiers==daily_rules.modifiers
+		and String(normalized_daily.config.daily_ruleset_id)==String(daily_rules.id)
+		and is_equal_approx(normalized_daily._assist_number("assist_projectile_speed",1.0),float(daily_rules.assist_projectile_speed))
+		and is_equal_approx(normalized_daily._assist_number("assist_telegraph",1.0),float(daily_rules.assist_telegraph))
+		and is_equal_approx(normalized_daily._assist_number("assist_dash_window",1.0),float(daily_rules.assist_dash_window))
+		and normalized_daily._aim_assist_enabled()==bool(daily_rules.aim_assist),
+		"Daily runtime must reject caller/user overrides for every score-affecting standard setting"
+	)
+	SettingsManager.values=saved_assist_values
+	normalized_daily.free()
 	english_nest._show_settings()
 	await get_tree().process_frame
 	var language_option := english_nest._overlay.find_child("LanguageOption",true,false) as OptionButton
@@ -415,7 +462,8 @@ func _test_localized_ui() -> void:
 	nest._show_rift()
 	await get_tree().process_frame
 	var rift_text := _collect_ui_text(nest._overlay)
-	_assert(rift_text.contains(LocalizationService.STRINGS.he.daily_reset), "Daily Rift must visibly show its deterministic UTC reset")
+	_assert(rift_text.contains(LocalizationService.STRINGS.he.daily_reset) and rift_text.contains("00:00 UTC"), "Daily Rift must visibly show its deterministic UTC reset")
+	_assert(rift_text.contains(LocalizationService.text("daily_standard_profile",{"difficulty":LocalizationService.text("deep")})), "Hebrew Daily Rift must display the complete fixed competitive profile")
 	nest._show_settings()
 	await get_tree().process_frame
 	var settings_text := _collect_ui_text(nest._overlay)
@@ -477,6 +525,75 @@ func _collect_ui_text(node:Node)->String:
 	for child in node.get_children():
 		fragments.append(_collect_ui_text(child))
 	return "\n".join(fragments)
+
+
+func _test_result_share_card() -> void:
+	var original_language := String(SettingsManager.values.get("language", "en"))
+	SettingsManager.values.language = "en"
+	var result := {
+		"won": true,
+		"score": 34567,
+		"elapsed": 154.321,
+		"abyss_depth": 7,
+		"boss_id": "gravemaw",
+		"weapon": "pulse_needle",
+		"seed": 734221,
+		"difficulty": "deep",
+		"modifiers": ["dense"],
+		"destroyed_organs": ["hunter_eye", "gravity_lung", "not_an_organ"],
+		"mutations": ["split_chamber", "phase_wake", "hungry_orbit", "echo_shot", "not_a_mutation"],
+	}
+	var challenge := {
+		"boss": result.boss_id,
+		"weapon": result.weapon,
+		"seed": result.seed,
+		"difficulty": result.difficulty,
+		"modifiers": ["dense"],
+		"target_score": result.score,
+		"target_time_ms": int(float(result.elapsed) * 1000.0),
+	}
+	var code := ChallengeCodeClass.encode(challenge)
+	var model: Dictionary = RiftResultCardClass.build_model(result, code, "  Diver@Test:/  ")
+	_assert(bool(model.get("valid", false)), "A result card model must accept the exact offline Friend Rift code for its run")
+	_assert(String(model.get("challenge_code", "")) == code, "The result card must retain the complete copyable challenge code")
+	_assert(String(model.get("nickname", "")) == "DiverTest", "Optional result-card nicknames must be bounded and strip address/URL separators")
+	_assert((model.get("destroyed_organs", []) as Array).size() == 2 and not (model.destroyed_organs as Array).has("not_an_organ"), "Result cards must drop organ IDs that do not belong to the displayed Titan")
+	_assert((model.get("major_mutations", []) as Array).size() == 3 and not (model.major_mutations as Array).has("not_a_mutation"), "Result cards must show at most three catalog-backed major mutations")
+	var mismatched := result.duplicate(true)
+	mismatched.score = int(result.score) + 1
+	_assert(not bool(RiftResultCardClass.build_model(mismatched, code).get("valid", false)), "A result card must reject a code whose score does not match the displayed run")
+	var mismatched_modifiers := result.duplicate(true)
+	mismatched_modifiers.modifiers = ["swift"]
+	_assert(not bool(RiftResultCardClass.build_model(mismatched_modifiers, code).get("valid", false)), "A result card must reject a code whose canonical modifiers do not match the displayed run")
+	_assert(not bool(RiftResultCardClass.build_model(result, code + "X").get("valid", false)), "A result card must reject a tampered challenge code")
+	_assert(RiftResultCardClass.sanitize_nickname("A".repeat(40)).length() == RiftResultCardClass.MAX_NICKNAME_LENGTH, "Optional result-card nicknames must have a strict display length cap")
+
+	var hud := RunHUDClass.new()
+	add_child(hud)
+	await get_tree().process_frame
+	var rendered := hud.show_share_card(result, code, "Diver@Test:/")
+	await get_tree().process_frame
+	var share_text := _collect_ui_text(hud.overlay)
+	var card := hud.overlay.find_child("FriendRiftResultCard", true, false) as Control
+	var code_label := hud.overlay.find_child("ResultCardCode", true, false) as Label
+	var expected_boss_name := String(GameData.get_boss("gravemaw").get("name", "CRONUS"))
+	var expected_weapon_name := String(GameData.get_weapon("pulse_needle").get("name", "AION SPARK"))
+	var expected_organ_name := String((GameData.get_boss("gravemaw").get("organs", [])[0] as Dictionary).get("name", "FATE EYE"))
+	var expected_mutation_name := String(GameData.get_mutation("echo_shot").get("name", "ECHO SHOT"))
+	_assert(rendered and is_instance_valid(card), "Share must render a graphical Friend Rift result card inside the production HUD")
+	_assert(is_instance_valid(code_label) and code_label.text == code and share_text.contains(code), "The graphical card must visibly contain the full offline challenge code")
+	_assert(share_text.contains(expected_boss_name) and share_text.contains(expected_weapon_name), "The graphical card must identify the Titan and weapon loadout")
+	_assert(share_text.contains(expected_organ_name) and share_text.contains(expected_mutation_name), "The graphical card must include destroyed organs and major mutations")
+	_assert(share_text.contains("34567") and share_text.contains("02:34") and share_text.contains("7"), "The graphical card must include score, elapsed time, and depth")
+	_assert(share_text.contains("DiverTest") and not share_text.contains("@") and not share_text.contains("matanita44"), "The graphical card may show only the explicit sanitized nickname and no account/private identity")
+	_assert(is_instance_valid(hud.overlay.find_child("ResultCardAction_retry", true, false)) and is_instance_valid(hud.overlay.find_child("ResultCardAction_nest", true, false)), "The graphical card must keep immediate retry and Nest navigation reachable")
+	_assert(card.get_combined_minimum_size().y <= hud.overlay.size.y - 120.0, "The graphical result card and its actions must fit the 540x960 production HUD")
+	var child_before_invalid := hud.overlay.get_child(0)
+	var rejected := not hud.show_share_card(mismatched, code)
+	_assert(rejected and hud.overlay.get_child(0) == child_before_invalid, "A mismatched result/code pair must not replace the visible truthful card")
+	hud.queue_free()
+	await get_tree().process_frame
+	SettingsManager.values.language = original_language
 
 func _test_accessibility_behaviors() -> void:
 	var original_values := SettingsManager.values.duplicate(true)
@@ -703,6 +820,33 @@ func _test_project_configuration() -> void:
 		and projected_mutation.size() == 3 and not projected_mutation.has("future_private"),
 		"Web QA projection must fail closed on future top-level, nested, and oversized-array fields"
 	)
+
+func _test_native_store_capture_gate() -> void:
+	var environment := {
+		"CI": "true",
+		"INFINIDIVE_NATIVE_STORE_CAPTURE": "ios-simulator-ci-v1",
+	}
+	var activation := "--infinidive-native-store-capture=ios-simulator-ci-v1"
+	for stage in NativeStoreCaptureClass.STAGES:
+		var accepted: Dictionary = NativeStoreCaptureClass.evaluate_request(
+			true,
+			true,
+			environment,
+			PackedStringArray([activation, "--infinidive-capture-stage=%s" % stage])
+		)
+		_assert(String(accepted.get("stage", "")) == String(stage), "Debug iOS capture gate must accept the exact CI contract for stage %s" % stage)
+	_assert(NativeStoreCaptureClass.evaluate_request(false, true, environment, PackedStringArray([activation, "--infinidive-capture-stage=nest"])).is_empty(), "Release builds must never activate native store capture")
+	_assert(NativeStoreCaptureClass.evaluate_request(true, false, environment, PackedStringArray([activation, "--infinidive-capture-stage=nest"])).is_empty(), "Non-iOS builds must never activate native store capture")
+	var non_ci := environment.duplicate(true)
+	non_ci.CI = "false"
+	_assert(NativeStoreCaptureClass.evaluate_request(true, true, non_ci, PackedStringArray([activation, "--infinidive-capture-stage=nest"])).is_empty(), "Native store capture must require the explicit CI environment")
+	var wrong_token := environment.duplicate(true)
+	wrong_token.INFINIDIVE_NATIVE_STORE_CAPTURE = "wrong"
+	_assert(NativeStoreCaptureClass.evaluate_request(true, true, wrong_token, PackedStringArray([activation, "--infinidive-capture-stage=nest"])).is_empty(), "Native store capture must require the exact environment token")
+	_assert(NativeStoreCaptureClass.evaluate_request(true, true, environment, PackedStringArray(["--infinidive-capture-stage=nest"])).is_empty(), "Native store capture must reject a missing activation argument")
+	_assert(NativeStoreCaptureClass.evaluate_request(true, true, environment, PackedStringArray([activation, activation, "--infinidive-capture-stage=nest"])).is_empty(), "Native store capture must reject duplicate activation arguments")
+	_assert(NativeStoreCaptureClass.evaluate_request(true, true, environment, PackedStringArray([activation])).is_empty(), "Native store capture must reject a missing stage argument")
+	_assert(NativeStoreCaptureClass.evaluate_request(true, true, environment, PackedStringArray([activation, "--infinidive-capture-stage=unknown"])).is_empty(), "Native store capture must reject an unknown stage")
 
 func _test_safe_area_math() -> void:
 	var visible := Rect2(Vector2.ZERO, Vector2(540.0, 960.0))
@@ -1195,11 +1339,136 @@ func _test_save_recovery() -> void:
 	var corrupt := FileAccess.open(SaveManager.SAVE_PATH,FileAccess.WRITE)
 	corrupt.store_string("{corrupt")
 	corrupt = null
+	SaveManager.profile.bio_matter = 789
+	_assert(
+		SaveManager.inject_isolated_test_save_phase("before_temp_promote") and not SaveManager.save_profile(),
+		"A save interrupted beside an invalid primary must fail without claiming the new generation"
+	)
+	var protected_backup := SaveManager._read_envelope(SaveManager.BACKUP_PATH)
+	_assert(
+		int(protected_backup.get("bio_matter",-1)) == 123,
+		"An invalid primary must never replace or delete the last verified backup during save rotation"
+	)
 	var recovered: Dictionary = SaveManager.load_profile()
 	_assert(int(recovered.bio_matter) == 123 and SaveManager.last_load_source == "backup", "Corruption must recover the prior backup")
+	var healed_primary := SaveManager._read_envelope(SaveManager.SAVE_PATH)
+	var retained_backup := SaveManager._read_envelope(SaveManager.BACKUP_PATH)
+	_assert(
+		int(healed_primary.get("bio_matter",-1)) == 123
+		and int(retained_backup.get("bio_matter",-1)) == 123
+		and not FileAccess.file_exists(SaveManager.TEMP_PATH),
+		"Backup recovery must heal primary while retaining the verified backup and cleaning its temporary stage"
+	)
 	SaveManager.profile = original
 	SaveManager.save_profile()
 	await get_tree().process_frame
+
+func _test_save_transaction_fault_matrix() -> void:
+	var original := SaveManager.profile.duplicate(true)
+	var precommit_phases := ["after_temp_flush","after_backup_delete","after_primary_rotate","before_temp_promote"]
+	var backup_boot_phases := ["after_primary_rotate","before_temp_promote"]
+	for phase_value in SaveManager.TEST_SAVE_PHASES:
+		var phase := String(phase_value)
+		for path in [SaveManager.SAVE_PATH,SaveManager.BACKUP_PATH,SaveManager.TEMP_PATH]:
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		SaveManager.profile = SaveManager.default_profile()
+		SaveManager.profile.bio_matter = 100
+		_assert(SaveManager.save_profile() and SaveManager.save_profile(), "%s fault setup must create two verified committed generations" % phase)
+		var run_id := "qa-save-phase-%s" % phase
+		var run_result := {
+			"run_id":run_id,
+			"banked_bio":25,
+			"banked_shards":0,
+			"won":false,
+			"boss_id":"gravemaw",
+			"mode":"story",
+			"difficulty":"diver",
+		}
+		_assert(SaveManager.inject_isolated_test_save_phase(phase), "%s must arm only under isolated test execution" % phase)
+		_assert(not SaveManager.bank_run(run_result), "%s injected transaction must report an interrupted bank" % phase)
+		var valid_generations := 0
+		for path in [SaveManager.SAVE_PATH,SaveManager.BACKUP_PATH,SaveManager.TEMP_PATH]:
+			if not SaveManager._read_envelope(path).is_empty():
+				valid_generations += 1
+		_assert(valid_generations >= 1, "%s interruption must leave at least one checksum-verified generation" % phase)
+
+		var expected_committed := phase not in precommit_phases
+		var expected_source := "backup" if phase in backup_boot_phases else "primary"
+		var first_arguments: Array[String] = [
+			"--expected-source=%s" % expected_source,
+			"--expected-bio=%d" % (125 if expected_committed else 100),
+			"--expected-runs=%d" % (1 if expected_committed else 0),
+			"--expect-temp-absent=true",
+		]
+		if expected_committed:
+			first_arguments.append("--expected-run-ids=%s" % run_id)
+			first_arguments.append("--reject-run-id=%s" % run_id)
+			first_arguments.append("--reject-bio=25")
+		else:
+			first_arguments.append("--accept-run-id=%s" % run_id)
+			first_arguments.append("--accept-bio=25")
+		var first_probe := _run_process_relaunch_probe(first_arguments)
+		_assert(
+			int(first_probe.exit_code) == 0
+			and (String(first_probe.log).contains("replay_rejected=true") if expected_committed else String(first_probe.log).contains("bank_accepted=true")),
+			"%s first relaunch must recover deterministically and settle the reward once: %s" % [phase,String(first_probe.log)]
+		)
+
+		var second_probe := _run_process_relaunch_probe([
+			"--expected-source=primary",
+			"--expected-bio=125",
+			"--expected-runs=1",
+			"--expected-run-ids=%s" % run_id,
+			"--expect-temp-absent=true",
+			"--reject-run-id=%s" % run_id,
+			"--reject-bio=25",
+		])
+		_assert(
+			int(second_probe.exit_code) == 0 and String(second_probe.log).contains("replay_rejected=true"),
+			"%s second relaunch must retain exactly one currency award and receipt: %s" % [phase,String(second_probe.log)]
+		)
+
+	# A first-ever interrupted write has no primary or backup. Its verified temp is
+	# the only recoverable generation, so boot must promote it exactly once.
+	for path in [SaveManager.SAVE_PATH,SaveManager.BACKUP_PATH,SaveManager.TEMP_PATH]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	SaveManager.profile = SaveManager.default_profile()
+	SaveManager.profile.bio_matter = 321
+	_assert(SaveManager.inject_isolated_test_save_phase("after_temp_flush") and not SaveManager.save_profile(), "First-save recovery setup must leave one verified temporary generation")
+	_assert(SaveManager._read_envelope(SaveManager.SAVE_PATH).is_empty() and not SaveManager._read_envelope(SaveManager.TEMP_PATH).is_empty(), "First-save interruption must expose only its verified temporary generation")
+	var temporary_probe := _run_process_relaunch_probe([
+		"--expected-source=temporary",
+		"--expected-bio=321",
+		"--expected-runs=0",
+		"--expect-temp-absent=true",
+	])
+	_assert(int(temporary_probe.exit_code) == 0, "Temporary-only relaunch must promote and clean the sole verified generation: %s" % String(temporary_probe.log))
+	var promoted_probe := _run_process_relaunch_probe([
+		"--expected-source=primary",
+		"--expected-bio=321",
+		"--expected-runs=0",
+		"--expect-temp-absent=true",
+	])
+	_assert(int(promoted_probe.exit_code) == 0, "Promoted temporary recovery must become the stable primary on the following relaunch: %s" % String(promoted_probe.log))
+
+	SaveManager.profile = original
+	_assert(SaveManager.save_profile() and SaveManager.save_profile(), "Save fault matrix must restore matching verified profile generations")
+	await get_tree().process_frame
+
+func _run_process_relaunch_probe(user_arguments: Array[String]) -> Dictionary:
+	var child_output: Array = []
+	var child_args := PackedStringArray([
+		"--headless",
+		"--path", ProjectSettings.globalize_path("res://"),
+		"--scene", "res://tests/progression/ProcessRelaunchProbe.tscn",
+		"--",
+	])
+	for argument in user_arguments:
+		child_args.append(argument)
+	var child_exit := OS.execute(OS.get_executable_path(),child_args,child_output,true,false)
+	return {"exit_code":child_exit,"log":"\n".join(PackedStringArray(child_output))}
 
 func _test_meta_save_handoff() -> void:
 	var original := SaveManager.profile.duplicate(true)
@@ -1473,6 +1742,7 @@ func _test_repeated_abyss_continuation() -> void:
 		"seed":912733,
 		"mode":"abyss",
 		"abyss_depth":1,
+		"abyss_cumulative_score":0,
 		"carried_mutations":["split_chamber"],
 		"mutation_choice_count":1
 	}
@@ -1480,6 +1750,8 @@ func _test_repeated_abyss_continuation() -> void:
 	var hp_scales: Array[float] = []
 	var damage_scales: Array[float] = []
 	var projectile_scales: Array[float] = []
+	var expected_cumulative_score:=0
+	var last_banked_result:Dictionary={}
 	for continuation_index in range(5):
 		var run := RunSceneClass.new()
 		run.initialize(next_config)
@@ -1494,11 +1766,13 @@ func _test_repeated_abyss_continuation() -> void:
 		_assert(
 			int(run.config.abyss_depth) == current_depth
 			and String(run.config.mode) == "abyss"
+			and int(run.config.abyss_cumulative_score)==expected_cumulative_score
 			and run._selected_mutations.has("split_chamber")
 			and run._mutation_choice_count == 1,
 			"Abyss depth %d must restore its mode, carried mutation, and mutation-choice count" % current_depth
 		)
 		run.elapsed = 24.0 + current_depth
+		run.score=1000*current_depth
 		run.run_bio = 40 * current_depth
 		run._player.health = run._player.max_health * 0.4
 		for organ_value in run.boss_definition.organs:
@@ -1506,13 +1780,33 @@ func _test_repeated_abyss_continuation() -> void:
 		run.organs_destroyed = 3
 		var finished_payloads: Array[Dictionary] = []
 		run.run_finished.connect(func(payload: Dictionary): finished_payloads.append(payload.duplicate(true)))
+		var expected_segment_score:=run.score+int(run.elapsed*5.0)+run.organs_destroyed*1200
+		expected_cumulative_score+=expected_segment_score
 		run._complete_run(true, "abyss_continuation_regression")
+		last_banked_result=run._result.duplicate(true)
 		_assert(
 			run.state == RunSceneClass.RunState.VICTORY
 			and run._result_banked
 			and int(run._result.get("abyss_depth", 0)) == current_depth
+			and int(run._result.get("segment_score",-1))==expected_segment_score
+			and int(run._result.get("abyss_score",-1))==expected_cumulative_score
+			and int(run._result.get("score",-1))==expected_cumulative_score
 			and int(run._result.get("banked_shards", -1)) == 0,
-			"Abyss depth %d victory must bank once without Story-only Core Shards" % current_depth
+			"Abyss depth %d victory must expose its segment and cumulative loop score while banking no Story-only Core Shards" % current_depth
+		)
+		var duplicate_snapshot:={
+			"bio":int(SaveManager.profile.bio_matter),
+			"runs":int(SaveManager.profile.total_runs),
+			"wins":int(SaveManager.profile.total_wins),
+			"record":(SaveManager.profile.get("high_scores",{}) as Dictionary).get("abyss:loop",{}).duplicate(true),
+		}
+		_assert(not SaveManager.bank_run(run._result),"Abyss depth %d exact reward receipt must reject a duplicate bank"%current_depth)
+		_assert(
+			int(SaveManager.profile.bio_matter)==int(duplicate_snapshot.bio)
+			and int(SaveManager.profile.total_runs)==int(duplicate_snapshot.runs)
+			and int(SaveManager.profile.total_wins)==int(duplicate_snapshot.wins)
+			and (SaveManager.profile.get("high_scores",{}) as Dictionary).get("abyss:loop",{})==duplicate_snapshot.record,
+			"Rejected Abyss depth %d replay must not duplicate currency, totals, or the cumulative record"%current_depth
 		)
 		var seed_before := int(run.config.seed)
 		run._on_result_action("retry")
@@ -1526,8 +1820,9 @@ func _test_repeated_abyss_continuation() -> void:
 		_assert(
 			int(retry_config.get("abyss_depth", 0)) == expected_depth
 			and String(retry_config.get("boss", "")) == expected_boss
-			and int(retry_config.get("seed", 0)) == seed_before + expected_depth * 104729,
-			"Abyss continuation %d must advance depth, rotate boss, and derive the next deterministic seed" % current_depth
+			and int(retry_config.get("seed", 0)) == seed_before + expected_depth * 104729
+			and int(retry_config.get("abyss_cumulative_score",-1))==expected_cumulative_score,
+			"Abyss continuation %d must advance depth, carry score, rotate boss, and derive the next deterministic seed" % current_depth
 		)
 		_assert(
 			(retry_config.get("carried_mutations", []) as Array).has("split_chamber")
@@ -1542,14 +1837,33 @@ func _test_repeated_abyss_continuation() -> void:
 	_assert(
 		int(SaveManager.profile.total_runs) == 5
 		and int(SaveManager.profile.total_wins) == 5
-		and int(next_config.abyss_depth) == 6,
-		"Five repeated Abyss victories must produce five banked runs and a playable depth-six configuration"
+		and int(next_config.abyss_depth) == 6
+		and int(next_config.abyss_cumulative_score)==expected_cumulative_score,
+		"Five repeated Abyss victories must produce five banked runs and a cumulative-score depth-six configuration"
 	)
 	var processed: Array = SaveManager.profile.get("processed_run_ids", [])
 	var every_receipt_present := true
 	for expected_run_id in expected_run_ids:
 		every_receipt_present = every_receipt_present and processed.has(expected_run_id)
 	_assert(every_receipt_present, "Repeated Abyss continuation must retain every exact-once reward receipt")
+	_assert(SaveManager.save_profile(),"Repeated Abyss cumulative record must persist before a reload")
+	var reloaded_profile:=SaveManager.load_profile()
+	var abyss_record:Dictionary=(reloaded_profile.get("high_scores",{}) as Dictionary).get("abyss:loop",{})
+	_assert(
+		int(abyss_record.get("score",-1))==expected_cumulative_score
+		and int(abyss_record.get("abyss_depth",-1))==5
+		and int(abyss_record.get("segment_score",-1))>0,
+		"Abyss save reload must retain one global cumulative score/depth record across rotating bosses"
+	)
+	var reloaded_duplicate_snapshot:={"bio":int(reloaded_profile.bio_matter),"runs":int(reloaded_profile.total_runs),"wins":int(reloaded_profile.total_wins),"record":abyss_record.duplicate(true)}
+	_assert(not SaveManager.bank_run(last_banked_result),"A reloaded Abyss receipt must still reject the already-banked final depth")
+	_assert(
+		int(SaveManager.profile.bio_matter)==int(reloaded_duplicate_snapshot.bio)
+		and int(SaveManager.profile.total_runs)==int(reloaded_duplicate_snapshot.runs)
+		and int(SaveManager.profile.total_wins)==int(reloaded_duplicate_snapshot.wins)
+		and (SaveManager.profile.get("high_scores",{}) as Dictionary).get("abyss:loop",{})==reloaded_duplicate_snapshot.record,
+		"Reloaded Abyss duplicate rejection must preserve rewards and the cumulative score/depth record"
+	)
 	var scales_increase := true
 	for scale_index in range(1, hp_scales.size()):
 		scales_increase = (
@@ -1900,6 +2214,142 @@ func _test_first_core_hook() -> void:
 	SaveManager.profile = original_profile
 	SaveManager.save_profile()
 
+func _test_titan_collapse_runtime_gate() -> void:
+	var original_profile := SaveManager.profile.duplicate(true)
+	var original_settings := SettingsManager.values.duplicate(true)
+	SaveManager.profile = SaveManager.default_profile()
+	SettingsManager.values = SaveManager.profile.settings.duplicate(true)
+	_assert(SaveManager.save_profile(), "Titan-collapse runtime tests must begin from a persisted isolated profile")
+
+	var standard := RunSceneClass.new()
+	standard.initialize({
+		"boss":"gravemaw",
+		"weapon":"pulse_needle",
+		"difficulty":"deep",
+		"seed":920401,
+		"mode":"friend",
+		"modifiers":["swift","dense"],
+	})
+	add_child(standard)
+	await get_tree().process_frame
+	standard.run_id = "qa-collapse-standard"
+	standard.state = RunSceneClass.RunState.CORE
+	standard.phase = 3
+	for raw_organ_id in standard._organ_map.organs.keys():
+		standard._organ_map.destroy_organ(String(raw_organ_id))
+	standard.organs_destroyed = 3
+	standard.core_max = 120.0
+	standard.core_health = 120.0
+	standard._boss_visual.set_health(standard.core_health,standard.core_max)
+	standard._projectiles.spawn_enemy(Vector2(270,300),Vector2.DOWN*180.0,5.0,{"group":"collapse-stale"})
+	standard._pending_boss_emissions = [{"remaining":1.0,"wave_id":"collapse-stale","spec":{}}]
+	standard._active_boss_effects = [{"type":"target_lock","remaining":1.0,"wave_id":"collapse-stale"}]
+	standard._attack_avoidance_candidates["collapse-stale"] = {"contact":false,"dash_count_at_start":0}
+	standard._telegraph = {"ability":"homing_eye","timer":1.0}
+	var standard_runs_before := int(SaveManager.profile.total_runs)
+	standard._damage_target({"id":"boss","damage":standard.core_max+1.0,"behavior":"pulse"})
+	_assert(
+		standard._titan_collapse_pending
+		and not standard._titan_collapse_completion_handled
+		and standard.state == RunSceneClass.RunState.CORE
+		and is_zero_approx(standard.core_health)
+		and not standard._player.controls_active,
+		"Core zero must enter the gated collapse with controls locked instead of completing the run early"
+	)
+	_assert(
+		standard._projectiles.player_active.is_empty()
+		and standard._projectiles.enemy_active.is_empty()
+		and standard._pending_boss_emissions.is_empty()
+		and standard._active_boss_effects.is_empty()
+		and standard._attack_avoidance_candidates.is_empty()
+		and standard._telegraph.is_empty(),
+		"Collapse entry must atomically clear projectiles, telegraphs, delayed emissions, and attack effects"
+	)
+	_assert(standard._result.is_empty() and not standard._result_banked and int(SaveManager.profile.total_runs) == standard_runs_before,"A running Titan collapse must not show or bank a premature victory result")
+	var frozen_elapsed := standard.elapsed
+	standard._physics_process(0.5)
+	_assert(standard._titan_collapse_pending and is_equal_approx(standard.elapsed,frozen_elapsed) and standard.state == RunSceneClass.RunState.CORE,"RunScene physics and gameplay clocks must remain frozen while collapse presentation is pending")
+	var collapse_progress_before := standard._boss_visual.collapse_progress()
+	standard._boss_visual._process(0.25)
+	_assert(standard._boss_visual.collapse_progress() > collapse_progress_before and standard._result.is_empty(),"BossVisual must advance independently without releasing the pending result")
+	standard._boss_visual.advance_collapse(standard._boss_visual.collapse_duration+0.1)
+	_assert(
+		standard.state == RunSceneClass.RunState.VICTORY
+		and not standard._titan_collapse_pending
+		and standard._titan_collapse_completion_handled
+		and standard._result_banked
+		and bool(standard._result.get("won",false))
+		and standard._result.get("modifiers",[]) == ["dense","swift"]
+		and int(SaveManager.profile.total_runs) == standard_runs_before+1,
+		"The natural completion signal must release exactly one canonical, banked victory result"
+	)
+	var standard_bio_after := int(SaveManager.profile.bio_matter)
+	standard._on_titan_collapse_completed("gravemaw",false,"duplicate")
+	standard._complete_run(true,"duplicate")
+	_assert(int(SaveManager.profile.total_runs) == standard_runs_before+1 and int(SaveManager.profile.bio_matter) == standard_bio_after,"Duplicate collapse and completion callbacks cannot bank rewards twice")
+	standard.queue_free()
+	await get_tree().process_frame
+
+	SettingsManager.values.reduced_motion = true
+	var reduced := RunSceneClass.new()
+	reduced.initialize({"boss":"seraph_9","weapon":"pulse_needle","difficulty":"deep","seed":920402,"mode":"friend"})
+	add_child(reduced)
+	await get_tree().process_frame
+	reduced.run_id = "qa-collapse-reduced"
+	reduced.state = RunSceneClass.RunState.CORE
+	for raw_organ_id in reduced._organ_map.organs.keys():
+		reduced._organ_map.destroy_organ(String(raw_organ_id))
+	reduced.organs_destroyed = 3
+	reduced.core_max = 80.0
+	reduced.core_health = 80.0
+	reduced._damage_target({"id":"boss","damage":81.0,"behavior":"pulse"})
+	var reduced_snapshot := reduced._boss_visual.collapse_visual_snapshot()
+	_assert(
+		reduced._titan_collapse_pending
+		and bool(reduced_snapshot.get("reduced_motion",false))
+		and is_equal_approx(float(reduced_snapshot.get("duration_seconds",0.0)),float(reduced._boss_visual.collapse_profile.get("reduced_motion_duration_seconds",-1.0))),
+		"RunScene must pass the live Reduced Motion preference into the authored short collapse path"
+	)
+	reduced._boss_visual.advance_collapse(reduced._boss_visual.collapse_duration+0.1)
+	_assert(reduced.state == RunSceneClass.RunState.VICTORY and reduced._result_banked,"Reduced Motion completion must release the same banked victory contract")
+	reduced.queue_free()
+	await get_tree().process_frame
+
+	SettingsManager.values.reduced_motion = false
+	var invalid := RunSceneClass.new()
+	invalid.initialize({"boss":"abyss_leviathan","weapon":"pulse_needle","difficulty":"deep","seed":920403,"mode":"friend"})
+	add_child(invalid)
+	await get_tree().process_frame
+	invalid.run_id = "qa-collapse-invalid"
+	invalid.state = RunSceneClass.RunState.CORE
+	for raw_organ_id in invalid._organ_map.organs.keys():
+		invalid._organ_map.destroy_organ(String(raw_organ_id))
+	invalid.organs_destroyed = 3
+	invalid.core_max = 60.0
+	invalid.core_health = 60.0
+	invalid._boss_visual.definition = {"id":"unknown_titan"}
+	invalid._boss_visual.collapse_profile.clear()
+	var invalid_runs_before := int(SaveManager.profile.total_runs)
+	invalid._damage_target({"id":"boss","damage":61.0,"behavior":"pulse"})
+	_assert(
+		invalid.state == RunSceneClass.RunState.VICTORY
+		and not invalid._titan_collapse_pending
+		and invalid._titan_collapse_completion_handled
+		and invalid._result_banked
+		and invalid._boss_visual.collapse_completion_reason == "invalid_profile"
+		and int(SaveManager.profile.total_runs) == invalid_runs_before+1,
+		"An invalid collapse profile must synchronously fail safe through the same exact-once victory gate"
+	)
+	invalid._on_titan_collapse_completed("unknown_titan",true,"duplicate")
+	_assert(int(SaveManager.profile.total_runs) == invalid_runs_before+1,"Invalid-profile fallback must reject a duplicate completion signal")
+	invalid.queue_free()
+	await get_tree().process_frame
+
+	SettingsManager.values = original_settings
+	SaveManager.profile = original_profile
+	_assert(SaveManager.save_profile(), "Titan-collapse runtime tests must restore the original isolated profile")
+
+
 func _test_complete_boss_runs_and_orders() -> void:
 	var original_profile := SaveManager.profile.duplicate(true)
 	SaveManager.profile = SaveManager.default_profile()
@@ -1978,6 +2428,8 @@ func _simulate_complete_boss_run(boss: Dictionary, organ_order: Array, seed: int
 
 	_assert(run.state == RunScene.RunState.CORE and run._organ_map.alive_organs().is_empty(), "%s must expose its core only after all three organs" % boss.id)
 	run._damage_target({"id":"boss","damage":run.core_max+1.0,"behavior":"pulse"})
+	_assert(run.state == RunScene.RunState.CORE and run._titan_collapse_pending and run._result.is_empty() and not run._result_banked,"%s order %d must wait for its authored collapse before victory banking" % [boss.id,order_index])
+	run._boss_visual.advance_collapse(run._boss_visual.collapse_duration+0.1)
 	_assert(run.state == RunScene.RunState.VICTORY, "%s order %d must reach victory after core collapse" % [boss.id,order_index])
 	_assert(bool(run._result.get("won",false)) and int(run._result.get("organs",0)) == 3, "%s victory result must record all three organs" % boss.id)
 	_assert(String(run._result.get("boss_id","")) == String(boss.id) and int(run._result.get("seed",0)) == seed, "%s victory result must preserve deterministic challenge identity" % boss.id)

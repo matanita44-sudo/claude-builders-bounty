@@ -364,7 +364,10 @@ func _show_research()->void:
 
 func _show_rift()->void:
 	var outer:=_overlay_box(LocalizationService.text("rift"),LocalizationService.text("rift_subtitle"))
-	var daily:=Button.new();daily.text="%s\n%s · %s"%[LocalizationService.text("daily"),LocalizationService.text("seed_value",{"value":ChallengeCode.daily_seed()}),LocalizationService.text("daily_reset")];daily.custom_minimum_size.y=76;daily.pressed.connect(_start_daily);outer.add_child(daily)
+	var preview:=_daily_challenge()
+	var preview_boss:=GameData.get_boss(String(preview.boss))
+	var preview_weapon:=GameData.get_weapon(String(preview.weapon))
+	var daily:=Button.new();daily.name="DailyRiftButton";daily.text="%s\n%s · %s\n%s · %s\n%s"%[LocalizationService.text("daily"),LocalizationService.content_text("boss",String(preview.boss),"name",String(preview_boss.get("name",""))),LocalizationService.content_text("weapon",String(preview.weapon),"name",String(preview_weapon.get("name",""))),LocalizationService.text("seed_value",{"value":int(preview.seed)}),LocalizationService.text("daily_reset"),LocalizationService.text("daily_standard_profile",{"difficulty":LocalizationService.text(String(preview.difficulty))})];daily.custom_minimum_size.y=124;daily.pressed.connect(_start_daily);outer.add_child(daily)
 	var input:=LineEdit.new();input.layout_direction=LocalizationService.layout_direction();input.alignment=LocalizationService.start_alignment();input.placeholder_text=LocalizationService.text("paste_code");input.custom_minimum_size.y=54;outer.add_child(input)
 	var open:=Button.new();open.text=LocalizationService.text("open_rift");open.custom_minimum_size.y=58;open.pressed.connect(func():_open_friend_code(input.text));outer.add_child(open)
 	var create:=Button.new();create.text=LocalizationService.text("create_friend_rift");create.custom_minimum_size.y=58;create.pressed.connect(_create_friend_code);outer.add_child(create)
@@ -378,10 +381,27 @@ func _show_rift()->void:
 		var label := VisualTheme.label("%s · %s" % [contract_name,status],11,VisualTheme.BIO if bool(contract.get("completed",false)) else VisualTheme.MUTED);label.horizontal_alignment=LocalizationService.start_alignment();label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.custom_minimum_size.y=34;outer.add_child(label)
 
 func _start_daily()->void:
-	var utc_date:=Time.get_date_dict_from_system(true);var seed:=ChallengeCode.daily_seed(utc_date);var boss:Dictionary=GameData.bosses[seed%GameData.bosses.size()];var weapon:Dictionary=GameData.weapons[(seed/7)%GameData.weapons.size()]
-	AnalyticsService.track("daily_rift_start",{"seed":seed})
-	var challenge:={"boss":String(boss.id),"weapon":String(weapon.id),"difficulty":"deep","seed":seed,"mode":"daily","competitive":true,"modifiers":["daily_standard"],"challenge_day_utc":ChallengeCode.utc_day_key(utc_date)}
+	var challenge:=_daily_challenge()
+	AnalyticsService.track("daily_rift_start",{"seed":int(challenge.seed),"ruleset":String(challenge.daily_ruleset_id)})
 	challenge.challenge_id=ChallengeCode.daily_challenge_id(challenge,String(challenge.challenge_day_utc));start_requested.emit(challenge)
+
+func _daily_challenge(utc_date:Dictionary={}) -> Dictionary:
+	var use_date:=utc_date if not utc_date.is_empty() else Time.get_date_dict_from_system(true)
+	var seed:=ChallengeCode.daily_seed(use_date)
+	var boss:Dictionary=GameData.bosses[seed%GameData.bosses.size()]
+	var weapon:Dictionary=GameData.weapons[(seed/7)%GameData.weapons.size()]
+	var rules:=ChallengeCode.daily_standard_rules()
+	return {
+		"boss":String(boss.id),
+		"weapon":String(weapon.id),
+		"difficulty":String(rules.difficulty),
+		"seed":seed,
+		"mode":"daily",
+		"competitive":true,
+		"modifiers":(rules.modifiers as Array).duplicate(),
+		"daily_ruleset_id":String(rules.id),
+		"challenge_day_utc":ChallengeCode.utc_day_key(use_date),
+	}
 
 func _create_friend_code()->void:
 	var challenge:={"boss":_selected_boss_id(),"weapon":String(SaveManager.profile.get("selected_weapon","pulse_needle")),"difficulty":"deep","seed":randi_range(1,2147483000),"modifiers":[]}

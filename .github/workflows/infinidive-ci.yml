@@ -7,11 +7,13 @@ on:
       - "infinidive-game/**"
       - ".github/scripts/**"
       - ".github/workflows/infinidive-ci.yml"
+      - ".github/workflows/infinidive-ios-release.yml"
   pull_request:
     paths:
       - "infinidive-game/**"
       - ".github/scripts/**"
       - ".github/workflows/infinidive-ci.yml"
+      - ".github/workflows/infinidive-ios-release.yml"
   workflow_dispatch:
     inputs:
       run_long_soak:
@@ -58,18 +60,40 @@ jobs:
           node --check .github/scripts/smoke_web.cjs
           node --check .github/scripts/validate_stage_screenshots.cjs
           node .github/scripts/validate_stage_screenshots.cjs --self-test
+          python3 -m py_compile .github/scripts/validate_store_screenshots.py
+          python3 .github/scripts/validate_store_screenshots.py --self-test
+          node --check .github/scripts/capture_bright_trailer.cjs
+          python3 -m py_compile .github/scripts/validate_bright_trailer.py
+          python3 .github/scripts/validate_bright_trailer.py --self-test
+          command -v ffmpeg > /dev/null
+          command -v ffprobe > /dev/null
+          python3 .github/scripts/validate_bright_trailer.py \
+            --audio-reproducibility-test \
+            --contract infinidive-game/assets/store/gameplay/bright-trailer-capture-contract.json \
+            --godot ./godot --ffmpeg ffmpeg --ffprobe ffprobe
       - name: Validate CI evidence guards
         shell: bash
         run: python3 .github/scripts/validate_soak_report.py --self-test
       - name: Validate iOS Info.plist hardening
         shell: bash
         run: |
+          grep -Fxq 'pointing/emulate_mouse_from_touch.mobile=false' infinidive-game/project.godot
+          grep -Fxq 'pointing/emulate_touch_from_mouse.mobile=false' infinidive-game/project.godot
           python3 .github/scripts/sanitize_ios_plist.py --self-test
           python3 .github/scripts/validate_ios_privacy_manifest.py --self-test
           python3 .github/scripts/validate_ios_app_icons.py --self-test
           python3 .github/scripts/validate_ios_simulator_app.py --self-test
           python3 .github/scripts/validate_ios_simulator_screenshot.py --self-test
           python3 .github/scripts/select_ios_scaffold.py --self-test
+          PYTHONDONTWRITEBYTECODE=1 \
+            python3 .github/scripts/validate_ios_release_archive.py --self-test
+          PYTHONDONTWRITEBYTECODE=1 \
+            python3 .github/scripts/validate_ios_release_archive.py \
+              --source-preset infinidive-game/export_presets.cfg \
+              --project infinidive-game/project.godot \
+              --bundle-id com.matan.infinidive \
+              --marketing-version 0.1.0 \
+              --build-number 1
       - name: Validate retained 30-minute evidence
         if: >-
           !(github.ref == 'refs/heads/infinidive-production' &&
@@ -116,6 +140,9 @@ jobs:
       - name: Run organ transformation contract tests
         shell: bash
         run: bash .github/scripts/run_godot_checked.sh --suite organs -- ./godot --headless --path infinidive-game --scene res://tests/organs/OrganTransformationTest.tscn
+      - name: Run Titan attack specification tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite attack_specs -- ./godot --headless --path infinidive-game --scene res://tests/bosses/attack_specs/TitanAttackSpecFactoryTest.tscn
       - name: Run achievement and contract tests
         shell: bash
         run: bash .github/scripts/run_godot_checked.sh --suite meta -- ./godot --headless --path infinidive-game --scene res://tests/meta/MetaGoalServiceTest.tscn
@@ -140,6 +167,9 @@ jobs:
       - name: Run unarmed hero presentation tests
         shell: bash
         run: bash .github/scripts/run_godot_checked.sh --suite player_presentation -- ./godot --headless --path infinidive-game --scene res://tests/player/PlayerPresentationTest.tscn
+      - name: Run bilingual localized layout tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite localized_layout -- ./godot --headless --path infinidive-game --scene res://tests/ui/LocalizedLayoutTest.tscn
       - name: Run bounded structural soak smoke
         shell: bash
         run: |
@@ -220,11 +250,21 @@ jobs:
           npm install --prefix "${playwright_root}" --no-package-lock --no-save --ignore-scripts playwright-core@1.55.0
           INFINIDIVE_CHROME_BIN="${chrome_bin}" \
           INFINIDIVE_PLAYWRIGHT_ROOT="${playwright_root}" \
+          INFINIDIVE_STORE_CAPTURE=1 \
+          INFINIDIVE_SOURCE_COMMIT="${GITHUB_SHA}" \
+          INFINIDIVE_SOURCE_REPOSITORY="${GITHUB_REPOSITORY}" \
+          INFINIDIVE_SOURCE_RUN_ID="${GITHUB_RUN_ID}" \
+          INFINIDIVE_SOURCE_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT}" \
             node .github/scripts/smoke_web.cjs \
               http://127.0.0.1:4173/infinidive/ \
               "${evidence_dir}" \
               2> "${RUNNER_TEMP}/infinidive-chrome.log"
           node .github/scripts/validate_stage_screenshots.cjs "${evidence_dir}"
+          python3 .github/scripts/validate_store_screenshots.py "${evidence_dir}" \
+            --expected-commit "${GITHUB_SHA}" \
+            --expected-repository "${GITHUB_REPOSITORY}" \
+            --expected-run-id "${GITHUB_RUN_ID}" \
+            --expected-run-attempt "${GITHUB_RUN_ATTEMPT}"
       - name: Upload Web smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -239,6 +279,17 @@ jobs:
             ${{ runner.temp }}/infinidive-web-smoke/infinidive-failure-*.png
             ${{ runner.temp }}/infinidive-chrome.log
             ${{ runner.temp }}/infinidive-http.log
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload App Store-sized Web gameplay captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-app-store-sized-web-captures-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-store-capture.json
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-browser.json
+            ${{ runner.temp }}/infinidive-web-smoke/infinidive-store-*.png
           if-no-files-found: warn
           retention-days: 14
       - name: Guard repository-root Pages ownership
@@ -689,6 +740,7 @@ jobs:
           xcrun simctl bootstatus "${simulator_udid}" -b
           xcrun simctl install "${simulator_udid}" "${IOS_SIM_APP}"
 
+          launch_started_at="$(date +%s)"
           set +e
           launch_output="$(xcrun simctl launch "${simulator_udid}" \
             com.matan.infinidive \
@@ -709,10 +761,52 @@ jobs:
               exit 1
               ;;
           esac
+          uname -a > "${IOS_SIM_EVIDENCE_DIR}/host-uname.txt"
+          sw_vers > "${IOS_SIM_EVIDENCE_DIR}/host-sw-vers.txt"
 
-          sleep 10
+          # A successful process launch is insufficient evidence: UIKit can
+          # keep the launch storyboard visible while Godot is still blocked in
+          # startup. Poll for a genuinely rendered game frame and reject every
+          # capture that still matches the checked-in storyboard source.
           screenshot="${IOS_SIM_EVIDENCE_DIR}/iphone-16-pro-max-boot.png"
-          xcrun simctl io "${simulator_udid}" screenshot "${screenshot}"
+          screenshot_attempt_log="${IOS_SIM_EVIDENCE_DIR}/simulator-screenshot-attempts.txt"
+          : > "${screenshot_attempt_log}"
+          capture_attempt=0
+          boot_seconds=0
+          while (( capture_attempt < 15 )); do
+            elapsed_before_capture="$(( $(date +%s) - launch_started_at ))"
+            if (( elapsed_before_capture >= 30 )); then
+              break
+            fi
+            capture_attempt="$(( capture_attempt + 1 ))"
+            sleep 2
+            candidate="${IOS_SIM_EVIDENCE_DIR}/iphone-16-pro-max-attempt-${capture_attempt}.png"
+            xcrun simctl io "${simulator_udid}" screenshot "${candidate}"
+            candidate_seconds="$(( $(date +%s) - launch_started_at ))"
+            if (( candidate_seconds > 30 )); then
+              break
+            fi
+            if python3 .github/scripts/validate_ios_simulator_screenshot.py \
+              "${candidate}" \
+              --forbid-reference infinidive-game/assets/platform/ios/launch_screen.png \
+              >> "${screenshot_attempt_log}" 2>&1; then
+              cp "${candidate}" "${screenshot}"
+              boot_seconds="${candidate_seconds}"
+              break
+            fi
+          done
+          if [[ ! -s "${screenshot}" ]]; then
+            echo "Native Simulator did not replace the launch storyboard within 30 seconds" >&2
+            cat "${screenshot_attempt_log}" >&2
+            xcrun simctl spawn "${simulator_udid}" log show \
+              --style compact --last 5m \
+              --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
+              > "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log" 2>&1 || true
+            sample "${app_pid}" 5 \
+              -file "${IOS_SIM_EVIDENCE_DIR}/host-process-sample.txt" || true
+            exit 1
+          fi
+          test "${boot_seconds}" -gt 0
           test -s "${screenshot}"
           dimensions="$(sips -g pixelWidth -g pixelHeight "${screenshot}")"
           screenshot_width="$(printf '%s\n' "${dimensions}" | awk '/pixelWidth:/ { print $2 }')"
@@ -720,6 +814,7 @@ jobs:
           test "${screenshot_width}" = "1320"
           test "${screenshot_height}" = "2868"
           python3 .github/scripts/validate_ios_simulator_screenshot.py "${screenshot}" \
+            --forbid-reference infinidive-game/assets/platform/ios/launch_screen.png \
             | tee "${IOS_SIM_EVIDENCE_DIR}/simulator-screenshot-validation.txt"
 
           xcrun simctl spawn "${simulator_udid}" log show \
@@ -727,9 +822,9 @@ jobs:
             --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
             > "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log" 2>&1
           if grep -Eiq \
-            'uncaught exception|fatal error|EXC_BAD_ACCESS|EXC_CRASH|crashed|abort trap' \
+            'uncaught exception|fatal error|EXC_BAD_ACCESS|EXC_CRASH|crashed|abort trap|\[com\.matan\.infinidive:ERROR\]|SCRIPT ERROR|Parse Error' \
             "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log"; then
-            echo "High-signal crash/fatal marker found in native Simulator log" >&2
+            echo "Crash, fatal, or app-owned engine error found in native Simulator log" >&2
             exit 1
           fi
 
@@ -739,7 +834,8 @@ jobs:
             "${GITHUB_SHA}" "${GITHUB_RUN_ID}" "${GITHUB_RUN_ATTEMPT}" \
             "${INFINIDIVE_XCODE_VERSION}" "${INFINIDIVE_SIMULATOR_SDK}" \
             "${runtime_id}" "${device_type_id}" "${simulator_udid}" \
-            "${app_pid}" "${screenshot_width}" "${screenshot_height}" <<'PY'
+            "${app_pid}" "${screenshot_width}" "${screenshot_height}" \
+            "${boot_seconds}" "${capture_attempt}" <<'PY'
           import json
           import pathlib
           import sys
@@ -761,7 +857,9 @@ jobs:
               "architecture": "x86_64",
               "code_signing_allowed": False,
               "english_locale": "en_US",
-              "survived_seconds_before_capture": 10,
+              "seconds_until_rendered_game_frame": int(sys.argv[13]),
+              "rendered_frame_capture_attempt": int(sys.argv[14]),
+              "maximum_allowed_boot_seconds": 30,
               "screenshot_pixels": {
                   "width": int(sys.argv[11]),
                   "height": int(sys.argv[12]),
@@ -903,7 +1001,7 @@ jobs:
       github.ref == 'refs/heads/infinidive-production'
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     permissions:
       contents: read
     steps:
@@ -952,11 +1050,45 @@ jobs:
           npm install --prefix "${playwright_root}" --no-package-lock --no-save --ignore-scripts playwright-core@1.55.0
           INFINIDIVE_CHROME_BIN="${chrome_bin}" \
           INFINIDIVE_PLAYWRIGHT_ROOT="${playwright_root}" \
+          INFINIDIVE_STORE_CAPTURE=1 \
+          INFINIDIVE_SOURCE_COMMIT="${GITHUB_SHA}" \
+          INFINIDIVE_SOURCE_REPOSITORY="${GITHUB_REPOSITORY}" \
+          INFINIDIVE_SOURCE_RUN_ID="${GITHUB_RUN_ID}" \
+          INFINIDIVE_SOURCE_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT}" \
             node .github/scripts/smoke_web.cjs \
               "https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/infinidive/" \
               "${evidence_dir}" \
               2> "${RUNNER_TEMP}/infinidive-public-chrome.log"
           node .github/scripts/validate_stage_screenshots.cjs "${evidence_dir}"
+          python3 .github/scripts/validate_store_screenshots.py "${evidence_dir}" \
+            --expected-commit "${GITHUB_SHA}" \
+            --expected-repository "${GITHUB_REPOSITORY}" \
+            --expected-run-id "${GITHUB_RUN_ID}" \
+            --expected-run-attempt "${GITHUB_RUN_ATTEMPT}"
+
+          command -v ffmpeg >/dev/null
+          command -v ffprobe >/dev/null
+          trailer_dir="${RUNNER_TEMP}/infinidive-bright-trailer"
+          public_url="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/infinidive/"
+          INFINIDIVE_CHROME_BIN="${chrome_bin}" \
+          INFINIDIVE_PLAYWRIGHT_ROOT="${playwright_root}" \
+          INFINIDIVE_SOURCE_COMMIT="${GITHUB_SHA}" \
+          INFINIDIVE_SOURCE_REPOSITORY="${GITHUB_REPOSITORY}" \
+          INFINIDIVE_SOURCE_RUN_ID="${GITHUB_RUN_ID}" \
+          INFINIDIVE_SOURCE_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT}" \
+            node .github/scripts/capture_bright_trailer.cjs \
+              "${public_url}" "${trailer_dir}" \
+              2> "${RUNNER_TEMP}/infinidive-bright-trailer.log"
+          python3 .github/scripts/validate_bright_trailer.py \
+            --contract infinidive-game/assets/store/gameplay/bright-trailer-capture-contract.json \
+            --manifest "${trailer_dir}/infinidive-bright-trailer.json" \
+            --evidence-dir "${trailer_dir}" \
+            --commit "${GITHUB_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --target-url "${public_url}" \
+            --report "${trailer_dir}/infinidive-bright-trailer-validation.json"
       - name: Upload public Web smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -970,6 +1102,29 @@ jobs:
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-stage-*.png
             ${{ runner.temp }}/infinidive-public-smoke/infinidive-failure-*.png
             ${{ runner.temp }}/infinidive-public-chrome.log
+            ${{ runner.temp }}/infinidive-deployment.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload public App Store-sized Web gameplay captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-public-app-store-sized-web-captures-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-store-capture.json
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-browser.json
+            ${{ runner.temp }}/infinidive-public-smoke/infinidive-store-*.png
+            ${{ runner.temp }}/infinidive-deployment.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload current bright gameplay trailer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-bright-gameplay-trailer-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/infinidive-bright-trailer/*
+            ${{ runner.temp }}/infinidive-bright-trailer.log
             ${{ runner.temp }}/infinidive-deployment.json
           if-no-files-found: warn
           retention-days: 14

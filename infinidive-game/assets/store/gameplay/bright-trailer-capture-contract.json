@@ -1,0 +1,354 @@
+{
+  "schema_version": 2,
+  "contract_id": "infinidive.bright-greek-mythic-web-trailer.v2",
+  "classification": "current_source_ci_browser_gameplay_trailer_review_candidate_not_apple_submission_evidence",
+  "evidence_manifest": "infinidive-bright-trailer.json",
+  "presentation_identity": "Bright Greek-mythic/AION presentation with CRONUS and the unarmed Keeper",
+  "source_binding": {
+    "required_fields": [
+      "commit",
+      "repository",
+      "run_id",
+      "run_attempt",
+      "target_url",
+      "qa_url"
+    ],
+    "qa_query": "infinidive_qa=1",
+    "detached_artifact_policy": "The trailer must not be described as current-source evidence unless its manifest validates against the producing workflow run."
+  },
+  "capture": {
+    "surface": "Live Godot Web export in headless Chromium through Playwright",
+    "viewport_width": 886,
+    "viewport_height": 1920,
+    "device_scale_factor": 1,
+    "has_touch": true,
+    "is_mobile": true,
+    "raw_file": "infinidive-bright-trailer-full-session.webm",
+    "raw_container": "webm",
+    "actual_gameplay": true,
+    "generated_or_mocked_gameplay": false,
+    "debug_state_injection": false,
+    "save_manipulation": false,
+    "browser_audio_captured": false,
+    "browser_audio_disclosure": "The raw MediaRecorder evidence contains the live Godot canvas only. The project-original music bed is added offline after the gameplay edit and is not event-synchronous capture evidence."
+  },
+  "deliverable": {
+    "preferred_file": "infinidive-bright-trailer-22s.mp4",
+    "preferred_container": "mp4",
+    "preferred_video_codec": "h264",
+    "accepted_profiles": [
+      {
+        "container": "mp4",
+        "video_codec": "h264",
+        "pixel_format": "yuv420p",
+        "audio_codec": "aac"
+      },
+      {
+        "container": "webm",
+        "video_codec": "vp9",
+        "pixel_format": "yuv420p",
+        "audio_codec": "opus"
+      }
+    ],
+    "width": 886,
+    "height": 1920,
+    "minimum_duration_seconds": 15.0,
+    "maximum_duration_seconds": 30.0,
+    "maximum_frame_rate": 30.0,
+    "maximum_bytes": 500000000,
+    "audio_policy": "Exactly one AAC (MP4) or Opus (WebM) track, encoded from the hash-bound project-original deterministic music bed. The music is added offline after browser capture; it is not live-captured or event-synchronous gameplay evidence."
+  },
+  "audio": {
+    "track_count": 1,
+    "source_asset": {
+      "repository_file": "infinidive-game/assets/audio/generated/trailer/bright-browser-gameplay-music.wav",
+      "evidence_file": "infinidive-bright-trailer-original-game-music.wav",
+      "sha256": "ffe2e88daa2a3b9e17322e081357b03399036aeed3199720605eb1be0426c442",
+      "bytes": 5760044,
+      "format": "wav",
+      "codec": "pcm_s16le",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_seconds": 30.0
+    },
+    "provenance": {
+      "kind": "deterministic_offline_mix_of_project_generated_runtime_music",
+      "project_owned": true,
+      "external_samples": false,
+      "browser_captured": false,
+      "event_synchronized": false,
+      "music_only": true,
+      "renderer_scene": "res://tools/bright_trailer_audio_renderer.tscn",
+      "runtime_boss_identity": "gravemaw",
+      "source_files": [
+        {
+          "repository_file": "infinidive-game/tools/render_bright_trailer_audio.gd",
+          "sha256": "a714845ad3259d77d7f55e9c1fb67d20df2818b444aea65ac6dc50e0e59aff0a"
+        },
+        {
+          "repository_file": "infinidive-game/tools/bright_trailer_audio_renderer.tscn",
+          "sha256": "8cfd3befcaebdc2c1b619cdb2937b120d254117cf7ac6f9e75de828c8e9d63df"
+        },
+        {
+          "repository_file": "infinidive-game/assets/audio/generated/manifest.json",
+          "sha256": "850523623104618ab4e0326dc28362876cb104455a4d8a0ae7752553873370a6"
+        },
+        {
+          "repository_file": "infinidive-game/scripts/services/procedural_audio.gd",
+          "sha256": "72ac80b862f97ef7eb67afebd0200f6791dfe6209d83ced87e0da111d54ef789"
+        }
+      ]
+    },
+    "mux": {
+      "timing": "trim_source_music_to_edited_video_duration",
+      "video_mode": "stream_copy_after_hard_cut_video_encode",
+      "require_identical_video_packet_sha256_before_and_after_audio_mux": true,
+      "encoded_sample_rate": 48000,
+      "encoded_channels": 2
+    },
+    "validation": {
+      "minimum_mean_volume_dbfs": -45.0,
+      "minimum_peak_volume_dbfs": -30.0,
+      "maximum_peak_volume_dbfs": -0.1
+    }
+  },
+  "semantic_flow": {
+    "expected_states": [
+      "EXTERIOR",
+      "BREACH_OPEN",
+      "ORGAN_SELECT",
+      "DIVING_IN",
+      "INTERNAL_ROOMS",
+      "ORGAN_CHAMBER",
+      "MUTATION_CHOICE",
+      "DIVING_OUT",
+      "EXTERIOR"
+    ],
+    "selected_organ": "hunter_eye",
+    "changed_ability": {
+      "id": "homing_eye",
+      "status": "degraded"
+    },
+    "changed_visual_state": "blinded_hunter_eye",
+    "milestones": [
+      {
+        "key": "run_start_unarmed",
+        "required_qa": {
+          "view": "run",
+          "state": "EXTERIOR",
+          "phase": 0,
+          "movement_observed": false,
+          "mutation.selected_count": 0
+        }
+      },
+      {
+        "key": "exterior_combat",
+        "required_qa": {
+          "view": "run",
+          "state": "EXTERIOR",
+          "phase": 0,
+          "movement_observed": true
+        }
+      },
+      {
+        "key": "breach_open",
+        "required_qa": {
+          "view": "run",
+          "state": "BREACH_OPEN",
+          "phase": 0
+        }
+      },
+      {
+        "key": "organ_select",
+        "required_qa": {
+          "view": "run",
+          "state": "ORGAN_SELECT"
+        }
+      },
+      {
+        "key": "diving_in",
+        "required_qa": {
+          "view": "run",
+          "state": "DIVING_IN",
+          "organ.id": "hunter_eye",
+          "organ.status": "selected",
+          "ability.id": "homing_eye",
+          "ability.status": "active"
+        }
+      },
+      {
+        "key": "internal_rooms",
+        "required_qa": {
+          "view": "run",
+          "state": "INTERNAL_ROOMS",
+          "organ.id": "hunter_eye",
+          "organ.status": "selected"
+        }
+      },
+      {
+        "key": "organ_chamber",
+        "required_qa": {
+          "view": "run",
+          "state": "ORGAN_CHAMBER",
+          "organ.id": "hunter_eye",
+          "organ.status": "selected"
+        }
+      },
+      {
+        "key": "mutation_choice",
+        "required_qa": {
+          "view": "run",
+          "state": "MUTATION_CHOICE",
+          "organ.id": "hunter_eye",
+          "organ.status": "destroyed",
+          "ability.id": "homing_eye",
+          "ability.status": "degraded"
+        }
+      },
+      {
+        "key": "diving_out",
+        "required_qa": {
+          "view": "run",
+          "state": "DIVING_OUT",
+          "organ.status": "destroyed",
+          "ability.status": "degraded",
+          "mutation.selected_count": 1
+        }
+      },
+      {
+        "key": "changed_exterior",
+        "required_qa": {
+          "view": "run",
+          "state": "EXTERIOR",
+          "phase": 1,
+          "organ.id": "hunter_eye",
+          "organ.status": "destroyed",
+          "ability.id": "homing_eye",
+          "ability.status": "degraded",
+          "boss_visual_state": "blinded_hunter_eye",
+          "mutation.selected_count": 1
+        }
+      }
+    ]
+  },
+  "editing": {
+    "kind": "hard_cuts_from_one_continuous_actual_gameplay_recording",
+    "speed_multiplier": 1.0,
+    "overlays": false,
+    "drawn_text": false,
+    "fabricated_ui": false,
+    "compositing": false,
+    "cropping": false,
+    "scaling": false,
+    "generated_gameplay_frames": false,
+    "ordered_segments": [
+      {
+        "key": "unarmed-awakening",
+        "start_anchor": "run_start_unarmed",
+        "start_offset_seconds": -0.1,
+        "end_anchor": "run_start_unarmed",
+        "end_offset_seconds": 2.9
+      },
+      {
+        "key": "fight-cronus",
+        "start_anchor": "breach_open",
+        "start_offset_seconds": -4.25,
+        "end_anchor": "breach_open",
+        "end_offset_seconds": -0.25
+      },
+      {
+        "key": "open-breach",
+        "start_anchor": "breach_open",
+        "start_offset_seconds": -0.1,
+        "end_anchor": "organ_select",
+        "end_offset_seconds": 0.35
+      },
+      {
+        "key": "dive-inside",
+        "start_anchor": "diving_in",
+        "start_offset_seconds": -0.1,
+        "end_anchor": "internal_rooms",
+        "end_offset_seconds": 2.0
+      },
+      {
+        "key": "destroy-organ",
+        "start_anchor": "mutation_choice",
+        "start_offset_seconds": -3.5,
+        "end_anchor": "mutation_choice",
+        "end_offset_seconds": 0.0
+      },
+      {
+        "key": "choose-mutation",
+        "start_anchor": "mutation_choice",
+        "start_offset_seconds": -0.05,
+        "end_anchor": "diving_out",
+        "end_offset_seconds": 0.35
+      },
+      {
+        "key": "changed-cronus",
+        "start_anchor": "changed_exterior",
+        "start_offset_seconds": -0.1,
+        "end_anchor": "changed_exterior",
+        "end_offset_seconds": 3.0
+      }
+    ]
+  },
+  "visual_validation": {
+    "sample_width": 48,
+    "sample_height": 104,
+    "sample_interval_seconds": 2.0,
+    "minimum_sample_count": 7,
+    "minimum_unique_frame_fraction": 0.7,
+    "minimum_median_luma": 80.0,
+    "bright_frame_luma": 70.0,
+    "minimum_bright_frame_fraction": 0.7,
+    "minimum_frame_luma_deviation": 8.0,
+    "minimum_mean_interframe_distance": 0.012,
+    "minimum_legacy_reference_distance": 0.08,
+    "legacy_dark_still_references": [
+      {
+        "file": "nest-1080x1920.png",
+        "sha256": "33abd2489bdf89dc711fca8f5fbcba6ad14213a0a25ed7693e2f9f5f29f7bae5"
+      },
+      {
+        "file": "exterior-combat-1080x1920.png",
+        "sha256": "85d8af7de4639dd6f9b491ef608575d22af6d8356d049b4d9953300f89fcf506"
+      },
+      {
+        "file": "breach-open-1080x1920.png",
+        "sha256": "b8ff52af2ba2d6de079ac0b883a4dbc697c346032d15cdc4970fbbeefcbd7d2b"
+      },
+      {
+        "file": "organ-choice-1080x1920.png",
+        "sha256": "5e06d55349bcfa2b743eff96d00057c11e9a9baa27386c97e3ca74bb040705d1"
+      },
+      {
+        "file": "internal-zone-1080x1920.png",
+        "sha256": "d586b9dda9662427cdef01cfe7c1b6e2da11c1219e77d5b580a196cd219a7844"
+      }
+    ],
+    "banned_legacy_video_sha256": [
+      "29fa9cafa52f2b2236983985fee70f1f2a183026d423a84c29f60c607506f400",
+      "3950107d8ef89abffd42fec303f96ef5931a1c4139dcc771d91c17c7fa9c7103",
+      "7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8"
+    ]
+  },
+  "fallback": {
+    "status": "fallback_only_not_a_15_to_30_second_deliverable",
+    "behavior": "If FFmpeg, FFprobe, a supported video/audio encoder pair, or the hash-bound original-game music asset is unavailable, retain the continuous Playwright WebM plus a failed/fallback manifest and fail the review-candidate gate.",
+    "accepted_as_deliverable": false
+  },
+  "claims_allowed": [
+    "Source-bound browser capture of the current live Godot Web export",
+    "Actual touch-driven outside-inside-outside gameplay with hard cuts only",
+    "Current bright Greek-mythic/AION audiovisual review candidate",
+    "Hash-bound project-original procedural music bed added offline after browser capture"
+  ],
+  "claims_prohibited": [
+    "Native-iOS or physical-device capture",
+    "App Store Connect processing, acceptance, approval, or submission readiness",
+    "Final marketing approval before human visual and audio review",
+    "Continuous real-time play across the hard-cut edit points",
+    "Live-captured browser gameplay audio or event-synchronous sound-effects evidence"
+  ]
+}

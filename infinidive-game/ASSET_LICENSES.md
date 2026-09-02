@@ -105,35 +105,19 @@ The current game ships the project-generated runtime images catalogued above. It
 |---|---|---|
 | Runtime characters, Titans, and battle backgrounds | `assets/art/`, `scripts/gameplay/player_controller.gd`, `scripts/gameplay/boss_visual.gd`, and `scripts/gameplay/run_scene.gd` | Project-directed generated artwork catalogued above, with original code-native fallbacks and effects |
 | Procedural projectile, room, UI, and Nest visuals | `scripts/gameplay/projectile_pool.gd`, `scripts/gameplay/run_scene.gd`, `scripts/ui/nest_view.gd`, and related project scripts | Original code-native geometry and drawing logic |
-| Procedural sound effects and music | `scripts/services/procedural_audio.gd` | Original runtime synthesis; no recorded or sampled source audio |
+| Pre-rendered sound effects and adaptive music | `scripts/services/procedural_audio.gd`, `tools/audio_asset_synthesizer.gd`, `tools/generate_audio_assets.gd`, and `assets/audio/generated/` | Original deterministic project synthesis rendered offline into shipped PCM resources; no external recording, sample, voice, music, or sound library |
 | Semantic palette | `scripts/ui/visual_theme.gd` | Original project palette |
 | UI text rendering | Godot runtime/default font behavior | No font file is redistributed by this repository |
+
+The shipped audio catalog contains 123 Godot `AudioStreamWAV` resources: 24 one-shot sound effects and 99 adaptive-music layers. The resources are signed 16-bit mono PCM generated deterministically by the project-owned offline synthesizer. `assets/audio/generated/manifest.json` records each resource path, byte size, PCM size, mix rate, loop state, and SHA-256, plus the generator/synthesizer/definition source fingerprints. The `tools/` renderer is excluded from every export preset; the production runtime loads the generated resources on demand and does not synthesize audio samples during application startup or gameplay.
 
 Any future recorded sound, music stem, raster image, typeface, icon library, texture, model, animation, or generated media must be added to this file with its exact source, author, version or retrieval date, license, modifications, and local path before it may ship.
 
 ## Gameplay evidence captures
 
-The following files are locally generated captures of the original INFINIDIVE Godot project. They contain no imported third-party visual or audio content. They are evidence artifacts, not source art and not automatically approved as store screenshots.
+Gameplay evidence is retained only when the referenced file is present in this repository or in a source-bound CI artifact. Earlier local-only filenames such as `artifacts/boot.png`, `artifacts/aion-prologue-preview.png`, and `artifacts/mythic-combat-preview.png` are not present in the current tree and are therefore not release inputs or evidence claims here. Current browser captures are produced by CI, bound to their source commit/run, and remain review evidence rather than automatically approved store screenshots.
 
 Copyright © 2026 Matan. All rights reserved.
-
-| Paths | Kind | Provenance |
-|---|---|---|
-| `artifacts/boot.png` | Game capture | Rendered from this project |
-| `artifacts/breach-open.png` | Game capture | Rendered from this project |
-| `artifacts/breach-state.png` | Game capture | Rendered from this project |
-| `artifacts/exterior-action.png` | Game capture | Rendered from this project |
-| `artifacts/exterior-start.png` | Game capture | Rendered from this project |
-| `artifacts/internal-real.png` | Game capture | Rendered from this project |
-| `artifacts/internal-zone.png` | Game capture | Rendered from this project |
-| `artifacts/organ-choice-real.png` | Game capture | Rendered from this project |
-| `artifacts/organ-choice.png` | Game capture | Rendered from this project |
-| `artifacts/aion-prologue-preview.png` | Current English-first story capture | Captured from the live bright-mythic Godot window at 405×720 under Linux/Xvfb; 35,099 bytes; SHA-256 `2c1516b855150b92a86bf5b2b6e33eedad11352c36f5b560a9fe58db6611dca8` |
-| `artifacts/unarmed-intro-preview.png` | Current unarmed-Keeper capture | Captured from the live bright-mythic Godot window at 405×720 before first movement; 370,304 bytes; SHA-256 `d38654f404e22145cf3897a7eb7e11d593ee737fcae76f4a23b14c5a7cace04c` |
-| `artifacts/mythic-combat-preview.png` | Current Aion Spark combat capture | Captured from the live bright-mythic Godot window at 405×720 after first movement; 372,962 bytes; SHA-256 `8499307355d156125588c622119229d3c3742676c22f1dfaa9115cc757303da1` |
-| `artifacts/mythic-nest-preview.png` | Current Last Nest capture | Captured from the live bright-mythic Godot window at 405×720; 83,630 bytes; SHA-256 `7b73ea56bb3e2bf8620741c11fee8995dbd5359603389a89d9189c977e12a35e` |
-| `artifacts/boot.avi` | Game capture video | Rendered from this project |
-| `artifacts/boot.png.import` and other Godot `.import` metadata | Generated engine metadata | Created by Godot; not an authored media asset |
 
 `artifacts/headless-tests.xml` is machine-generated test evidence rather than a creative media asset.
 
@@ -155,13 +139,14 @@ Copyright © 2026 Matan. All rights reserved.
 | `assets/store/gameplay/trailer-runtime-social-17s.mp4` | Legacy pre-pivot social development trailer | The unchanged 1080×1920, 30 fps H.264 gameplay stream from the development edit plus a 48 kHz stereo AAC arrangement rendered only from the shipped `ProceduralAudio` implementation; 3,183,616 bytes; SHA-256 `3950107d8ef89abffd42fec303f96ef5931a1c4139dcc771d91c17c7fa9c7103`. Truthful historical provenance only; its dark GRAVEMAW identity does not represent the current product. |
 | `assets/store/gameplay/trailer-runtime-apple-candidate-886x1920-17s.mp4` | Legacy pre-pivot Apple-format experiment | Complete runtime frames scaled proportionally to 886×1576 and padded to 886×1920, with the same project-generated 48 kHz stereo AAC; no gameplay crop or fabricated frames; 22,353,991 bytes; SHA-256 `7559e8cd1a89820843cd66aa310e1d006cd390668f249ea08fd8b1587df5a1b8`. Not submission-ready because it predates the identity pivot and the source was Linux/Xvfb rather than a supported Apple capture path. |
 | `assets/store/gameplay/trailer-runtime-apple-poster-5s-886x1920.jpg` | Legacy pre-pivot poster frame | 886×1920, 8-bit RGB JPEG frame extracted at 5.0 seconds from the Apple-format experiment; 78,842 bytes; SHA-256 `f04c066c4cc3e8124984bd78a3c3c8d11fae59d5f6e332d17c288dcb01b466a5` |
+| `assets/audio/generated/trailer/bright-browser-gameplay-music.wav` | Build-time bright-trailer music bed | Deterministic 30.000 s PCM s16le, 48 kHz stereo project-original offline mix; 5,760,044 bytes; SHA-256 `ffe2e88daa2a3b9e17322e081357b03399036aeed3199720605eb1be0426c442`; rendered by `tools/render_bright_trailer_audio.gd` (SHA-256 `a714845ad3259d77d7f55e9c1fb67d20df2818b444aea65ac6dc50e0e59aff0a`) through `tools/bright_trailer_audio_renderer.tscn` from the hash-bound generated runtime music catalog; no external samples or recordings. It is added offline, is not live-captured or event-synchronous, is ignored by Godot through `.gdignore`, and is also excluded from every runtime export preset. |
 | `assets/store/gameplay/capture-manifest.json` | Provenance metadata | Original project documentation containing capture facts, hashes, limitations, and an explicit legacy pre-pivot/non-submission status |
 | `assets/store/gameplay/README.md` | Evidence documentation | Original project documentation |
 | `assets/store/gameplay/*.import` | Godot import metadata, when present | Generated engine metadata; not a separate creative asset |
 
 ## Third-party asset inventory
 
-No separately sourced third-party creative assets are currently committed to this project. The project-generated image outputs are disclosed in their own section above and remain governed by the applicable image-generator provider terms. The delivered trailer audio is an offline render from the game's original procedural-audio source; it contains no external sample, recording, voice, music, or sound library.
+No separately sourced third-party creative assets are currently committed to this project. The project-generated image outputs are disclosed in their own section above and remain governed by the applicable image-generator provider terms. The shipped game audio and any delivered trailer audio are offline renders from the project's original deterministic synthesizer; they contain no external sample, recording, voice, music, or sound library.
 
 Specifically, the current inventory contains:
 

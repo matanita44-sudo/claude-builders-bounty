@@ -6,6 +6,16 @@ const POOL_SIZE := 12
 const MUSIC_LAYER_COUNT := 3
 const MUSIC_CACHE_LIMIT := 8
 const DEFAULT_BOSS_ID := "gravemaw"
+const GENERATED_AUDIO_ROOT := "res://assets/audio/generated"
+const GENERATED_AUDIO_MANIFEST := GENERATED_AUDIO_ROOT + "/manifest.json"
+const AUDIO_ASSET_VERSION := "infinidive-audio-v1"
+const AUDIO_MANIFEST_SCHEMA_VERSION := 1
+const AUDIO_RESOURCE_FORMAT := "AudioStreamWAV .res / PCM signed 16-bit mono"
+const AUDIO_RUNTIME_POLICY := "pre-rendered assets loaded on demand; intensity uses mixer gain only"
+const AUDIO_GENERATOR_PATH := "res://tools/generate_audio_assets.gd"
+const AUDIO_SYNTHESIS_PATH := "res://tools/audio_asset_synthesizer.gd"
+const AUDIO_DEFINITIONS_PATH := "res://scripts/services/procedural_audio.gd"
+const MUSIC_LAYER_IDS := ["bed", "pulse", "signal"]
 
 const REQUIRED_SFX_IDS := [
 	"ui_confirm", "ui_error", "player_fire", "scatter_fire", "rail_fire",
@@ -24,6 +34,10 @@ const MUSIC_STATE_ALIASES := {
 	"inside": "interior",
 	"organ_chamber": "organ",
 	"low-health": "low_health"
+}
+
+const SFX_ALIASES := {
+	"mutation_select": "mutation"
 }
 
 # Distinct register, tempo, intervals and timbre for every launch colossus.
@@ -80,11 +94,11 @@ var _music_players: Array[AudioStreamPlayer] = []
 var _music_tween: Tween
 var _music_state := ""
 var _music_intensity := 0.5
-var _music_intensity_bucket := -1
 var _boss_id := DEFAULT_BOSS_ID
 var _music_cache: Dictionary = {}
 var _cache_order: Array[String] = []
 var _audio_available := true
+var _startup_frame_presented := false
 
 func _ready() -> void:
 	if DisplayServer.get_name() == "headless":
@@ -103,10 +117,22 @@ func _ready() -> void:
 		music_player.bus = "Music"
 		add_child(music_player)
 		_music_players.append(music_player)
-	_build_library()
 	if not SettingsManager.setting_changed.is_connected(_on_setting_changed):
 		SettingsManager.setting_changed.connect(_on_setting_changed)
 	SettingsManager.apply_all()
+	# Never hold UIKit's launch storyboard while audio resources are loaded. Two
+	# process-frame boundaries let Godot present responsive game content first;
+	# playback then starts without changing deterministic challenge timing.
+	call_deferred("_finish_startup_after_initial_frame")
+
+func _finish_startup_after_initial_frame() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not _audio_available:
+		return
+	_startup_frame_presented = true
+	if not _music_state.is_empty() and _music_output_enabled():
+		_start_music_state(_music_state, _music_intensity)
 
 func _ensure_buses() -> void:
 	for bus_name in ["Music", "SFX"]:
@@ -114,43 +140,24 @@ func _ensure_buses() -> void:
 			AudioServer.add_bus()
 			AudioServer.set_bus_name(AudioServer.bus_count - 1, bus_name)
 
-func _build_library() -> void:
-	_sfx = {
-		"ui_confirm": _make_one_shot(520.0, 0.07, "sine", 240.0, 0.03, 11),
-		"ui_error": _make_one_shot(180.0, 0.12, "square", -70.0, 0.04, 12),
-		"player_fire": _make_one_shot(920.0, 0.045, "triangle", -520.0, 0.02, 13),
-		"scatter_fire": _make_one_shot(310.0, 0.09, "noise", -120.0, 0.06, 14),
-		"rail_fire": _make_one_shot(140.0, 0.2, "saw", 780.0, 0.04, 15),
-		"arc_fire": _make_one_shot(680.0, 0.08, "square", 240.0, 0.025, 16),
-		"orbital_hit": _make_one_shot(230.0, 0.065, "triangle", -100.0, 0.03, 17),
-		"enemy_fire": _make_one_shot(150.0, 0.08, "square", 90.0, 0.025, 18),
-		"armor_hit": _make_one_shot(190.0, 0.055, "noise", -90.0, 0.035, 19),
-		"tissue_hit": _make_one_shot(105.0, 0.075, "sine", -45.0, 0.04, 20),
-		"dash": _make_one_shot(220.0, 0.16, "noise", 740.0, 0.045, 21),
-		"dash_ready": _make_motif(1.0),
-		"shield_break": _make_one_shot(790.0, 0.18, "noise", -610.0, 0.06, 22),
-		"breach": _make_motif(0.62),
-		"dive": _make_one_shot(85.0, 0.5, "saw", 640.0, 0.065, 23),
-		"heartbeat": _make_one_shot(54.0, 0.22, "sine", -8.0, 0.075, 24),
-		"organ_damage": _make_one_shot(86.0, 0.12, "triangle", -28.0, 0.055, 29),
-		"organ_destroyed": _make_motif(0.42),
-		"mutation": _make_motif(1.35),
-		"player_damage": _make_one_shot(118.0, 0.16, "square", -65.0, 0.06, 25),
-		"player_death": _make_one_shot(180.0, 0.7, "saw", -145.0, 0.07, 26),
-		"boss_phase": _make_motif(0.78),
-		"boss_death": _make_one_shot(95.0, 1.0, "noise", -50.0, 0.08, 27),
-		"pickup": _make_one_shot(660.0, 0.07, "sine", 300.0, 0.025, 28)
-	}
-
 func play_sfx(id: String, pitch: float = 1.0, volume: float = 1.0) -> void:
-	if not _audio_available or not _sfx.has(id) or _players.is_empty() or not _sfx_output_enabled():
+	if not _startup_frame_presented:
 		return
+	var canonical_id := String(SFX_ALIASES.get(id, id))
+	if not _audio_available or not REQUIRED_SFX_IDS.has(canonical_id) or _players.is_empty() or not _sfx_output_enabled():
+		return
+	if not _sfx.has(canonical_id):
+		var stream := _load_generated_stream(_sfx_asset_path(canonical_id))
+		if stream == null:
+			push_error("Missing generated SFX asset: %s" % canonical_id)
+			return
+		_sfx[canonical_id] = stream
 	var player := _players[_pool_cursor]
 	_pool_cursor = (_pool_cursor + 1) % _players.size()
 	player.stop()
-	player.stream = _sfx[id]
+	player.stream = _sfx[canonical_id]
 	var identity_pitch := 1.0
-	if BOSS_COLORED_SFX.has(id):
+	if BOSS_COLORED_SFX.has(canonical_id):
 		identity_pitch = float(BOSS_PROFILES[_boss_id].get("sfx_pitch", 1.0))
 	player.pitch_scale = clampf(pitch * identity_pitch, 0.65, 1.5)
 	player.volume_db = linear_to_db(maxf(volume, 0.001))
@@ -168,7 +175,6 @@ func set_boss_identity(boss_id: String) -> bool:
 		var active_state := _music_state
 		var active_intensity := _music_intensity
 		_music_state = ""
-		_music_intensity_bucket = -1
 		set_music_state(active_state, active_intensity)
 	return accepted
 
@@ -180,16 +186,19 @@ func set_music_state(state: String, intensity: float = 0.5) -> void:
 	if canonical.is_empty():
 		return
 	var clamped_intensity := clampf(intensity, 0.0, 1.0)
-	var bucket := int(round(clamped_intensity * 10.0))
-	var unchanged := canonical == _music_state and bucket == _music_intensity_bucket
+	var same_state := canonical == _music_state
+	var same_intensity := is_equal_approx(clamped_intensity, _music_intensity)
 	_music_state = canonical
 	_music_intensity = clamped_intensity
-	_music_intensity_bucket = bucket
 	if not _audio_available or _music_players.is_empty() or not _music_output_enabled():
 		return
-	if unchanged and _music_is_playing():
+	if not _startup_frame_presented:
 		return
-	_start_music_state(canonical, clamped_intensity, bucket)
+	if same_state and _music_is_playing():
+		if not same_intensity:
+			_tween_music_gains(canonical, clamped_intensity, 0.12)
+		return
+	_start_music_state(canonical, clamped_intensity)
 
 func get_music_state() -> String:
 	return _music_state
@@ -200,36 +209,69 @@ func _canonical_music_state(state: String) -> String:
 		normalized = String(MUSIC_STATE_ALIASES[normalized])
 	return normalized if STATE_PROFILES.has(normalized) else ""
 
-func _start_music_state(state: String, intensity: float, intensity_bucket: int) -> void:
+func _start_music_state(state: String, intensity: float) -> void:
 	if is_instance_valid(_music_tween):
 		_music_tween.kill()
-	var streams := _get_or_build_music_layers(_boss_id, state, intensity_bucket)
-	var layer_gains: Array = STATE_PROFILES[state].get("layers", [0.5, 0.2, 0.15])
+	var streams := _load_music_layers(_boss_id, state)
+	if streams.size() != MUSIC_LAYER_COUNT:
+		push_error("Missing generated music assets for %s/%s" % [_boss_id, state])
+		return
 	var transition := float(STATE_PROFILES[state].get("transition", 0.35))
-	_music_tween = create_tween().set_parallel(true)
 	for layer_index in MUSIC_LAYER_COUNT:
 		var player := _music_players[layer_index]
 		player.stop()
 		player.stream = streams[layer_index]
 		player.volume_db = -60.0
 		player.play()
-		var gain := float(layer_gains[layer_index]) * lerpf(0.48, 0.82, intensity)
-		_music_tween.tween_property(player, "volume_db", linear_to_db(maxf(gain, 0.001)), transition)
+	_tween_music_gains(state, intensity, transition)
 
-func _get_or_build_music_layers(boss_id: String, state: String, intensity_bucket: int) -> Array:
+func _tween_music_gains(state: String, intensity: float, duration: float) -> void:
+	if is_instance_valid(_music_tween):
+		_music_tween.kill()
+	_music_tween = create_tween().set_parallel(true)
+	for layer_index in MUSIC_LAYER_COUNT:
+		var player := _music_players[layer_index]
+		if not is_instance_valid(player):
+			continue
+		_music_tween.tween_property(player, "volume_db", _music_layer_target_db(state, layer_index, intensity), duration)
+
+func _music_layer_target_db(state: String, layer_index: int, intensity: float) -> float:
+	var layer_gains: Array = STATE_PROFILES[state].get("layers", [0.5, 0.2, 0.15])
+	var gain := float(layer_gains[layer_index]) * lerpf(0.48, 0.82, clampf(intensity, 0.0, 1.0))
+	return linear_to_db(maxf(gain, 0.001))
+
+func _load_music_layers(boss_id: String, state: String) -> Array:
 	var cache_boss := "nest" if state == "nest" else boss_id
-	var cache_key := "%s|%s|%02d" % [cache_boss, state, intensity_bucket]
+	var cache_key := "%s|%s" % [cache_boss, state]
 	if _music_cache.has(cache_key):
 		_cache_order.erase(cache_key)
 		_cache_order.append(cache_key)
 		return _music_cache[cache_key]
-	var rendered := _make_music_layers(boss_id, state, float(intensity_bucket) / 10.0)
-	_music_cache[cache_key] = rendered
+	var loaded: Array[AudioStreamWAV] = []
+	for layer_id in MUSIC_LAYER_IDS:
+		var stream := _load_generated_stream(_music_asset_path(boss_id, state, String(layer_id)))
+		if stream == null:
+			return []
+		loaded.append(stream)
+	_music_cache[cache_key] = loaded
 	_cache_order.append(cache_key)
 	while _cache_order.size() > MUSIC_CACHE_LIMIT:
 		var oldest: String = _cache_order.pop_front()
 		_music_cache.erase(oldest)
-	return rendered
+	return loaded
+
+func _sfx_asset_path(sfx_id: String) -> String:
+	return "%s/sfx/%s.res" % [GENERATED_AUDIO_ROOT, sfx_id]
+
+func _music_asset_path(boss_id: String, state: String, layer_id: String) -> String:
+	if state == "nest":
+		return "%s/music/nest/%s.res" % [GENERATED_AUDIO_ROOT, layer_id]
+	return "%s/music/%s/%s/%s.res" % [GENERATED_AUDIO_ROOT, boss_id, state, layer_id]
+
+func _load_generated_stream(path: String) -> AudioStreamWAV:
+	if not ResourceLoader.exists(path, "AudioStreamWAV"):
+		return null
+	return load(path) as AudioStreamWAV
 
 func stop_all() -> void:
 	if is_instance_valid(_music_tween):
@@ -243,7 +285,6 @@ func stop_all() -> void:
 			player.stop()
 			player.stream = null
 	_music_state = ""
-	_music_intensity_bucket = -1
 
 func shutdown_for_tests() -> void:
 	stop_all()
@@ -261,107 +302,6 @@ func shutdown_for_tests() -> void:
 
 func _exit_tree() -> void:
 	stop_all()
-
-func _make_one_shot(frequency: float, duration: float, shape: String, slide: float, noise_mix: float, seed: int) -> AudioStreamWAV:
-	var count := maxi(1, int(SAMPLE_RATE * duration))
-	var bytes := PackedByteArray()
-	bytes.resize(count * 2)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed
-	var phase := 0.0
-	for index in count:
-		var t := float(index) / float(SAMPLE_RATE)
-		var progress := t / maxf(duration, 0.001)
-		var current_frequency := maxf(25.0, frequency + slide * progress)
-		phase += TAU * current_frequency / float(SAMPLE_RATE)
-		var oscillator := _wave(shape, phase, rng)
-		var envelope := sin(PI * clampf(progress, 0.0, 1.0))
-		envelope *= 1.0 - progress * 0.72
-		var sample := oscillator * (1.0 - noise_mix) + rng.randf_range(-1.0, 1.0) * noise_mix
-		bytes.encode_s16(index * 2, int(clampf(sample * envelope, -1.0, 1.0) * 32760.0))
-	return _stream_from_bytes(bytes, false)
-
-func _make_motif(speed: float) -> AudioStreamWAV:
-	var duration := 0.42 / speed
-	var count := int(SAMPLE_RATE * duration)
-	var bytes := PackedByteArray()
-	bytes.resize(count * 2)
-	var notes := [330.0, 349.23, 233.08]
-	for index in count:
-		var t := float(index) / SAMPLE_RATE
-		var segment := mini(2, int(t / duration * 3.0))
-		var local := fmod(t, duration / 3.0) / (duration / 3.0)
-		var env := sin(PI * local) * (0.8 if segment < 2 else 1.0)
-		var sample := sin(TAU * notes[segment] * t) * env * 0.72
-		bytes.encode_s16(index * 2, int(sample * 32760.0))
-	return _stream_from_bytes(bytes, false)
-
-func _make_music_layers(boss_id: String, state: String, intensity: float) -> Array:
-	var profile: Dictionary = NEST_PROFILE if state == "nest" else BOSS_PROFILES.get(boss_id, BOSS_PROFILES[DEFAULT_BOSS_ID])
-	var state_profile: Dictionary = STATE_PROFILES.get(state, STATE_PROFILES["exterior"])
-	var result: Array[AudioStreamWAV] = []
-	for layer_index in MUSIC_LAYER_COUNT:
-		result.append(_make_music_layer(profile, state_profile, state, layer_index, intensity))
-	return result
-
-func _make_music_layer(profile: Dictionary, state_profile: Dictionary, state: String, layer_index: int, intensity: float) -> AudioStreamWAV:
-	var count := int(MUSIC_SAMPLE_RATE * 4.0)
-	var bytes := PackedByteArray()
-	bytes.resize(count * 2)
-	var rng := RandomNumberGenerator.new()
-	var state_index := maxi(0, MUSIC_STATES.find(state))
-	rng.seed = int(profile.get("seed", 1)) + state_index * 1009 + layer_index * 313
-	var root := float(profile.get("root", 48.0)) * float(state_profile.get("pitch", 1.0))
-	var bpm := float(profile.get("bpm", 80.0)) * float(state_profile.get("tempo", 1.0))
-	var density := float(state_profile.get("density", 0.5))
-	var tension := float(state_profile.get("tension", 0.2))
-	var detune := float(profile.get("detune", 0.0))
-	var noise_amount := float(profile.get("noise", 0.0))
-	var intervals: Array = profile.get("intervals", [1.0, 1.5, 2.0])
-	var phase_a := 0.0
-	var phase_b := 0.0
-	for index in count:
-		var t := float(index) / float(MUSIC_SAMPLE_RATE)
-		var beat_position := fmod(t * bpm / 60.0, 1.0)
-		var edge_fade := minf(1.0, minf(t * 36.0, (4.0 - t) * 36.0))
-		var sample := 0.0
-		match layer_index:
-			0:
-				var wobble := 1.0 + sin(TAU * 0.25 * t) * detune
-				phase_a += TAU * root * wobble / float(MUSIC_SAMPLE_RATE)
-				phase_b += TAU * root * (1.5 + detune) / float(MUSIC_SAMPLE_RATE)
-				var primary := _wave(String(profile.get("wave", "sine")), phase_a, rng)
-				sample = primary * 0.31 + sin(phase_b) * (0.12 + tension * 0.05)
-				sample += rng.randf_range(-1.0, 1.0) * noise_amount * (0.35 + tension)
-			1:
-				var pulse_env := exp(-beat_position * lerpf(11.0, 6.0, density))
-				var sub := sin(TAU * root * 0.5 * t)
-				var tick := rng.randf_range(-1.0, 1.0) * noise_amount * 2.2
-				sample = (sub * 0.38 + tick) * pulse_env * density
-				if state in ["interior", "organ"]:
-					var second_beat := exp(-fmod(beat_position + 0.42, 1.0) * 14.0)
-					sample += sin(TAU * root * 0.75 * t) * second_beat * 0.13
-			2:
-				var step_rate := lerpf(1.0, 3.5, density)
-				var step := int(floor(t * step_rate))
-				var note_index := step % intervals.size()
-				if state == "victory":
-					note_index = mini(intervals.size() - 1, step)
-				var note_frequency := root * float(intervals[note_index])
-				var local_step := fmod(t * step_rate, 1.0)
-				var motif_env := pow(maxf(0.0, sin(PI * local_step)), 2.0)
-				if state == "low_health":
-					motif_env *= 1.0 if int(floor(t * 4.0)) % 4 < 2 else 0.18
-				var identity_note := sin(TAU * note_frequency * (1.0 + detune) * t)
-				var tense_note := sin(TAU * note_frequency * 1.414214 * t) * tension
-				sample = (identity_note * 0.30 + tense_note * 0.11) * motif_env
-		sample *= edge_fade * lerpf(0.62, 0.92, intensity)
-		bytes.encode_s16(index * 2, int(clampf(sample, -0.88, 0.88) * 32760.0))
-	var stream := _stream_from_bytes(bytes, true)
-	stream.mix_rate = MUSIC_SAMPLE_RATE
-	stream.loop_begin = 0
-	stream.loop_end = count
-	return stream
 
 func _music_is_playing() -> bool:
 	for player in _music_players:
@@ -381,11 +321,11 @@ func _on_setting_changed(key: String, _value: Variant) -> void:
 	if not _music_output_enabled():
 		for player in _music_players:
 			player.stop()
-	elif not _music_state.is_empty() and not _music_is_playing():
-		_start_music_state(_music_state, _music_intensity, _music_intensity_bucket)
+	elif _startup_frame_presented and not _music_state.is_empty() and not _music_is_playing():
+		_start_music_state(_music_state, _music_intensity)
 
-## Structural and rendered-sample checks used by the focused headless contract.
-func validate_audio_contract(include_rendered_sfx: bool = false) -> PackedStringArray:
+## Structural and generated-asset checks used by the focused headless contract.
+func validate_audio_contract(include_generated_assets: bool = false) -> PackedStringArray:
 	var errors := PackedStringArray()
 	if POOL_SIZE < 8 or POOL_SIZE > 24:
 		errors.append("SFX pool size must remain bounded between 8 and 24")
@@ -406,49 +346,171 @@ func validate_audio_contract(include_rendered_sfx: bool = false) -> PackedString
 				errors.append("Music state %s is missing %s" % [state, key])
 		if (state_profile.get("layers", []) as Array).size() != MUSIC_LAYER_COUNT:
 			errors.append("Music state %s must define exactly %d layers" % [state, MUSIC_LAYER_COUNT])
-	if include_rendered_sfx:
-		if _sfx.is_empty():
-			_build_library()
-		for sfx_id in REQUIRED_SFX_IDS:
-			if not _sfx.has(sfx_id):
-				errors.append("Missing required SFX %s" % sfx_id)
-				continue
-			var rendered := _sfx[sfx_id] as AudioStreamWAV
-			if rendered == null or rendered.data.is_empty():
-				errors.append("Required SFX %s rendered no samples" % sfx_id)
+	if include_generated_assets:
+		_validate_generated_assets(errors)
 	return errors
 
-func render_music_state_for_tests(boss_id: String, state: String, intensity: float = 0.5) -> Array:
+func _validate_generated_assets(errors: PackedStringArray) -> void:
+	if not FileAccess.file_exists(GENERATED_AUDIO_MANIFEST):
+		errors.append("Generated audio manifest is missing")
+		return
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(GENERATED_AUDIO_MANIFEST))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		errors.append("Generated audio manifest is not valid JSON object data")
+		return
+	var manifest: Dictionary = parsed
+	if int(manifest.get("schema_version", -1)) != AUDIO_MANIFEST_SCHEMA_VERSION:
+		errors.append("Generated audio manifest schema version is invalid")
+	if String(manifest.get("asset_version", "")) != AUDIO_ASSET_VERSION:
+		errors.append("Generated audio manifest version does not match %s" % AUDIO_ASSET_VERSION)
+	if String(manifest.get("format", "")) != AUDIO_RESOURCE_FORMAT:
+		errors.append("Generated audio manifest format is invalid")
+	if String(manifest.get("runtime_policy", "")) != AUDIO_RUNTIME_POLICY:
+		errors.append("Generated audio manifest runtime policy is invalid")
+	var raw_generator: Variant = manifest.get("generator", {})
+	if typeof(raw_generator) != TYPE_DICTIONARY:
+		errors.append("Generated audio manifest generator metadata is invalid")
+	else:
+		var generator: Dictionary = raw_generator
+		_validate_source_hash(generator, "path", "sha256", AUDIO_GENERATOR_PATH, errors)
+		_validate_source_hash(generator, "synthesis_path", "synthesis_sha256", AUDIO_SYNTHESIS_PATH, errors)
+		_validate_source_hash(generator, "definitions_path", "definitions_sha256", AUDIO_DEFINITIONS_PATH, errors)
+	var raw_assets: Variant = manifest.get("assets", [])
+	if typeof(raw_assets) != TYPE_ARRAY:
+		errors.append("Generated audio manifest assets must be an array")
+		return
+	var by_path: Dictionary = {}
+	for raw_entry in raw_assets as Array:
+		if typeof(raw_entry) != TYPE_DICTIONARY:
+			errors.append("Generated audio manifest contains a non-object entry")
+			continue
+		var entry: Dictionary = raw_entry
+		var path := String(entry.get("path", ""))
+		if path.is_empty() or by_path.has(path):
+			errors.append("Generated audio manifest has an empty or duplicate path: %s" % path)
+			continue
+		by_path[path] = entry
+
+	var expected: Dictionary = {}
+	for sfx_id in REQUIRED_SFX_IDS:
+		expected[_sfx_asset_path(String(sfx_id))] = {"kind":"sfx", "id":String(sfx_id), "mix_rate":SAMPLE_RATE, "loop":false}
+	for layer_id in MUSIC_LAYER_IDS:
+		expected[_music_asset_path(DEFAULT_BOSS_ID, "nest", String(layer_id))] = {"kind":"music", "boss_id":"nest", "state":"nest", "layer":String(layer_id), "mix_rate":MUSIC_SAMPLE_RATE, "loop":true}
+	for boss_id in BOSS_PROFILES:
+		for state in MUSIC_STATES:
+			if state == "nest":
+				continue
+			for layer_id in MUSIC_LAYER_IDS:
+				expected[_music_asset_path(String(boss_id), String(state), String(layer_id))] = {"kind":"music", "boss_id":String(boss_id), "state":String(state), "layer":String(layer_id), "mix_rate":MUSIC_SAMPLE_RATE, "loop":true}
+
+	if by_path.size() != expected.size():
+		errors.append("Generated audio manifest must contain exactly %d assets, found %d" % [expected.size(), by_path.size()])
+	var raw_counts: Variant = manifest.get("counts", {})
+	if typeof(raw_counts) != TYPE_DICTIONARY:
+		errors.append("Generated audio manifest counts are invalid")
+		return
+	var counts: Dictionary = raw_counts
+	if int(counts.get("sfx", -1)) != REQUIRED_SFX_IDS.size():
+		errors.append("Generated audio manifest SFX count is invalid")
+	if int(counts.get("music", -1)) != expected.size() - REQUIRED_SFX_IDS.size():
+		errors.append("Generated audio manifest music count is invalid")
+	if int(counts.get("total", -1)) != expected.size():
+		errors.append("Generated audio manifest total count is invalid")
+
+	var total_resource_bytes := 0
+	var prior_path := ""
+	for raw_entry in raw_assets as Array:
+		if typeof(raw_entry) != TYPE_DICTIONARY:
+			continue
+		var ordered_path := String((raw_entry as Dictionary).get("path", ""))
+		if not prior_path.is_empty() and ordered_path <= prior_path:
+			errors.append("Generated audio manifest assets are not strictly path-sorted")
+			break
+		prior_path = ordered_path
+	for path in expected:
+		if not by_path.has(path):
+			errors.append("Generated audio manifest is missing %s" % path)
+			continue
+		if not FileAccess.file_exists(path):
+			errors.append("Generated audio asset is missing %s" % path)
+			continue
+		var metadata: Dictionary = expected[path]
+		var entry: Dictionary = by_path[path]
+		if String(entry.get("kind", "")) != String(metadata.kind):
+			errors.append("Generated audio kind mismatch for %s" % path)
+		if String(metadata.kind) == "sfx":
+			if String(entry.get("id", "")) != String(metadata.id):
+				errors.append("Generated SFX id mismatch for %s" % path)
+		else:
+			for metadata_key in ["boss_id", "state", "layer"]:
+				if String(entry.get(metadata_key, "")) != String(metadata[metadata_key]):
+					errors.append("Generated music %s mismatch for %s" % [metadata_key, path])
+		if int(entry.get("mix_rate", -1)) != int(metadata.mix_rate):
+			errors.append("Generated audio manifest sample rate metadata mismatch for %s" % path)
+		if bool(entry.get("loop", not bool(metadata.loop))) != bool(metadata.loop):
+			errors.append("Generated audio manifest loop metadata mismatch for %s" % path)
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null or file.get_length() <= 0:
+			errors.append("Generated audio asset is empty %s" % path)
+			continue
+		var byte_count := file.get_length()
+		file.close()
+		total_resource_bytes += byte_count
+		if int(entry.get("bytes", -1)) != byte_count:
+			errors.append("Generated audio byte count mismatch for %s" % path)
+		if String(entry.get("sha256", "")) != FileAccess.get_sha256(path):
+			errors.append("Generated audio hash mismatch for %s" % path)
+		var stream := _load_generated_stream(path)
+		if stream == null or stream.data.is_empty():
+			errors.append("Generated audio asset has no PCM samples %s" % path)
+			continue
+		if stream.mix_rate != int(metadata.mix_rate):
+			errors.append("Generated audio sample rate mismatch for %s" % path)
+		if stream.format != AudioStreamWAV.FORMAT_16_BITS or stream.stereo:
+			errors.append("Generated audio PCM format mismatch for %s" % path)
+		if int(entry.get("pcm_bytes", -1)) != stream.data.size():
+			errors.append("Generated audio PCM byte count mismatch for %s" % path)
+		var should_loop := bool(metadata.loop)
+		if (stream.loop_mode == AudioStreamWAV.LOOP_FORWARD) != should_loop:
+			errors.append("Generated audio loop mode mismatch for %s" % path)
+		if should_loop and stream.data.size() != MUSIC_SAMPLE_RATE * 4 * 2:
+			errors.append("Generated music asset has an unexpected footprint %s" % path)
+	if int(manifest.get("total_resource_bytes", -1)) != total_resource_bytes:
+		errors.append("Generated audio manifest total byte count is invalid")
+
+func _validate_source_hash(metadata: Dictionary, path_key: String, hash_key: String, expected_path: String, errors: PackedStringArray) -> void:
+	if String(metadata.get(path_key, "")) != expected_path:
+		errors.append("Generated audio manifest source path mismatch for %s" % path_key)
+		return
+	if not FileAccess.file_exists(expected_path):
+		errors.append("Generated audio source is missing: %s" % expected_path)
+		return
+	var expected_hash := FileAccess.get_sha256(expected_path)
+	if String(metadata.get(hash_key, "")) != expected_hash:
+		errors.append("Generated audio source hash mismatch for %s" % expected_path)
+
+func render_music_state_for_tests(boss_id: String, state: String, _intensity: float = 0.5) -> Array:
 	var canonical := _canonical_music_state(state)
-	if canonical.is_empty() or not BOSS_PROFILES.has(boss_id):
+	if canonical.is_empty() or (canonical != "nest" and not BOSS_PROFILES.has(boss_id)):
 		return []
-	return _make_music_layers(boss_id, canonical, clampf(intensity, 0.0, 1.0))
+	return _load_music_layers(boss_id, canonical)
 
 func get_rendered_sfx_ids_for_tests() -> Array[String]:
-	if _sfx.is_empty():
-		_build_library()
 	var result: Array[String] = []
-	for sfx_id in _sfx:
-		result.append(String(sfx_id))
+	for sfx_id in REQUIRED_SFX_IDS:
+		if _load_generated_stream(_sfx_asset_path(String(sfx_id))) != null:
+			result.append(String(sfx_id))
 	result.sort()
 	return result
 
 func get_runtime_player_counts_for_tests() -> Dictionary:
 	return {"sfx":_players.size(), "music":_music_players.size()}
 
-func _wave(shape: String, phase: float, rng: RandomNumberGenerator) -> float:
-	match shape:
-		"square": return 1.0 if sin(phase) >= 0.0 else -1.0
-		"triangle": return asin(sin(phase)) * 2.0 / PI
-		"saw": return 2.0 * (phase / TAU - floor(phase / TAU + 0.5))
-		"noise": return rng.randf_range(-1.0, 1.0)
-		_: return sin(phase)
+func get_runtime_cache_counts_for_tests() -> Dictionary:
+	return {"sfx":_sfx.size(), "music":_music_cache.size()}
 
-func _stream_from_bytes(bytes: PackedByteArray, should_loop: bool) -> AudioStreamWAV:
-	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = SAMPLE_RATE
-	stream.stereo = false
-	stream.data = bytes
-	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD if should_loop else AudioStreamWAV.LOOP_DISABLED
-	return stream
+func get_music_layer_target_db_for_tests(state: String, layer_index: int, intensity: float) -> float:
+	var canonical := _canonical_music_state(state)
+	if canonical.is_empty() or layer_index < 0 or layer_index >= MUSIC_LAYER_COUNT:
+		return -80.0
+	return _music_layer_target_db(canonical, layer_index, intensity)

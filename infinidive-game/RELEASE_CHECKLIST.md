@@ -2,7 +2,7 @@
 
 This checklist is evidence-based. Check an item only after the artifact or test exists. A configured preset, authored data row, or code path is not equivalent to a validated build or feature.
 
-> Bright Greek-mythic/AION commit `a550ca867506f34856cf337fbe28083a9cdbaec5` is the current deployed evidence candidate. Run `33594396541` passed all seven configured jobs. The reconstructed tree now passes local editor/import and a fresh 19-suite `29,815/0` matrix with 20 driver logs, 19 sentinels, and zero engine/script/parse errors; it is not yet pushed, remotely run, or deployed.
+> Bright Greek-mythic/AION commit `a550ca867506f34856cf337fbe28083a9cdbaec5` is the current deployed evidence candidate. Run `33594396541` passed all seven configured jobs. The reconstructed tree now passes local editor/import and a fresh 21-suite `40,160/0` matrix with exact sentinels and zero unexpected engine/script/parse errors; it is not yet pushed, remotely run, or deployed.
 
 ## 0. Source and version control
 
@@ -153,9 +153,9 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 7. Automated QA and CI
 
-- [x] Latest reconstructed local JUnit-style artifact reports main `2,733/0` with recorded time `9.832` seconds.
-- [x] Deployed `a550ca8` passed remote `28,949/0`. The rebuilt local tree passes `29,815/0` across 19 suites: the prior set `28,973/0` plus visual `315`, story canon `476`, Story Overlay `34`, and Player Presentation `17`. Editor/import, 20 driver logs, 19 sentinels, and strict zero-error scanning pass. Remote proof remains pending.
-- [x] Current local bounded soak passes at 8.01 seconds with 99 iterations, 10 restarts/Dives, 99 projectile cycles, 530 queue events, peak 540, zero failures, and transaction-recovery self-test PASS.
+- [x] Latest reconstructed local JUnit-style artifact reports main `2,860/0` with recorded time `12.994` seconds.
+- [x] Deployed `a550ca8` passed remote `28,949/0`. The rebuilt local tree passes `40,160/0` across 21 suites, including focused Titan attack, organ mapping, audio, visual, localized-layout acceptance, and QA-only native-capture gate assertions. Editor/import, exact sentinels, and strict zero-error scanning pass. Remote proof remains pending.
+- [x] Current local bounded soak passes at 8.003 seconds with 98 iterations, 10 restarts/Dives, 98 projectile cycles, six saves, 530 queue events, peak 540, all seven movement models, zero failures, fingerprint `3f5aed099357c66985222681d6b825819e595dbd5ef960e3566003283c37c59a`, and transaction-recovery self-test PASS.
 - [x] Editor import and every suite pass the isolated strict wrapper with exact sentinel/count validation and zero engine `ERROR`, script-error, or parse-error lines.
 - [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.
@@ -258,7 +258,11 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] A fresh local Linux-generated scaffold passed exact custom 780×1688/1170×2532 RGB launch-pixel comparison, rejected the stock Godot splash path, and emitted tracking false with only `FileTimestamp:C617.1`, `SystemBootTime:35F9.1`, and `DiskSpace:E174.1`; collected-data and tracking-domain arrays are absent/empty. This is structural export evidence, not an Apple-platform build result.
 - [x] The deployed-candidate CI unsigned-scaffold job passes remotely; artifact `9832974829` is a sanitized current-source Xcode handoff for `a550ca8`. It uses a fake Team ID only in a temporary project copy, scrubs it from generated project/export-options files, scans the whole artifact, and labels the result as unsigned Linux export evidence.
 - [x] A rebuilt local iOS scaffold repairs scheme-to-target binding and passes metadata, icon, launch, and privacy validators.
-- [ ] The Xcode 26 Simulator lane passes remotely. It must compile, install, launch, capture an exact 1320×2868 iPhone 16 Pro Max Simulator frame, terminate cleanly, and upload bound evidence.
+- [x] The protected signed archive-only workflow and fail-closed source/profile/certificate/archive/IPA validator pass local self-tests, source checks, YAML/Bash parsing, full-SHA action-pin checks, trust-chain contract tests, and archive/IPA substitution negatives. No signed artifact is claimed.
+- [ ] Register the byte-identical signed workflow on the default branch, protect `infinidive-production` and immutable `ios-v*` tags, configure the `app-store-production` environment/reviewers, and provide protected Apple signing credentials.
+- [ ] Calibrate exact Xcode 26 `altool` success/error JSON schemas in a protected run before automated upload can be enabled; the current workflow rejects `upload_to_app_store_connect=true` before secrets.
+- [x] A separate QA-only native store-capture lane is implemented and locally validates its source binding, Debug-only activation, six canonical state markers, exact 1320×2868 RGB/no-alpha contract, bright-identity thresholds, uniqueness, and changed Hunter Eye state. It cannot be called submission evidence before a real macOS run and human review.
+- [ ] The Xcode 26 Simulator lanes pass remotely. They must compile, install, launch, capture the boot frame plus all six current-bright iPhone 16 Pro Max stages, terminate cleanly, and upload source-bound evidence.
 - [ ] The full rebuilt current source is compiled for iOS. The Xcode scaffold can be regenerated structurally on Linux, but no current macOS/Xcode compile has occurred.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
 - [x] The retained unsigned scaffold contains 47 files and records an approximately 368 MB directory size; this does not claim that the scaffold itself was regenerated for the current tree.
