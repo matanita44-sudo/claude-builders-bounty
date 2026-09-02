@@ -40,7 +40,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Download Godot
         shell: bash
         run: |
@@ -183,7 +183,7 @@ jobs:
         run: bash .github/scripts/test_soak_report_transaction.sh ./godot "${RUNNER_TEMP}"
       - name: Upload test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-test-evidence
           path: |
@@ -200,7 +200,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install verified Godot and export templates
         shell: bash
         run: bash .github/scripts/install_godot.sh
@@ -267,7 +267,7 @@ jobs:
             --expected-run-attempt "${GITHUB_RUN_ATTEMPT}"
       - name: Upload Web smoke evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-web-smoke-${{ github.run_attempt }}
           path: |
@@ -283,7 +283,7 @@ jobs:
           retention-days: 14
       - name: Upload App Store-sized Web gameplay captures
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-app-store-sized-web-captures-${{ github.run_attempt }}
           path: |
@@ -332,7 +332,7 @@ jobs:
           PY
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/infinidive-production'
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: build/pages
 
@@ -344,9 +344,9 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Select Java 17 for Android export
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: "17"
@@ -367,7 +367,7 @@ jobs:
         shell: bash
         run: bash .github/scripts/validate_android_debug.sh build/android/infinidive-ci-debug.apk
       - name: Upload Android debug artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-android-debug-${{ github.run_attempt }}
           path: build/android/infinidive-ci-debug.apk
@@ -382,7 +382,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install verified Godot and export templates
         shell: bash
         env:
@@ -491,7 +491,7 @@ jobs:
           sha256sum "${application_plist}" "${privacy_manifests[0]}"
           echo "Sanitized unsigned Linux Xcode scaffold is ready for bounded artifact retention; it is not compile, signing, archive, install, or TestFlight evidence."
       - name: Upload sanitized unsigned iOS Xcode scaffold
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-ios-unsigned-xcode-${{ github.run_attempt }}
           path: ${{ runner.temp }}/infinidive-ios-unsigned-scaffold
@@ -509,9 +509,9 @@ jobs:
       contents: read
     steps:
       - name: Checkout the exact tested source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Download source-bound unsigned scaffold candidates from this run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: infinidive-ios-unsigned-xcode-*
           path: ${{ runner.temp }}/infinidive-ios-scaffold-candidates
@@ -891,7 +891,7 @@ jobs:
           test -s "${IOS_SIM_EVIDENCE_DIR}/SHA256SUMS"
       - name: Upload native iOS Simulator evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-ios-simulator-${{ github.run_attempt }}
           path: ${{ runner.temp }}/infinidive-ios-simulator-evidence
@@ -910,7 +910,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Download verified Godot
         shell: bash
         run: |
@@ -955,7 +955,7 @@ jobs:
             infinidive-game/artifacts/soak-30m.json --minimum-duration=1800
       - name: Upload 30-minute soak evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-soak-30m-${{ github.run_attempt }}
           path: |
@@ -987,12 +987,12 @@ jobs:
       url: ${{ format('{0}infinidive/', steps.deployment.outputs.page_url) }}
     steps:
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
         with:
           token: ${{ github.token }}
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
   public-smoke:
     if: >-
@@ -1006,7 +1006,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Wait for the deployed commit
         shell: bash
         run: |
@@ -1091,7 +1091,7 @@ jobs:
             --report "${trailer_dir}/infinidive-bright-trailer-validation.json"
       - name: Upload public Web smoke evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-public-web-smoke-${{ github.run_attempt }}
           path: |
@@ -1107,7 +1107,7 @@ jobs:
           retention-days: 14
       - name: Upload public App Store-sized Web gameplay captures
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-public-app-store-sized-web-captures-${{ github.run_attempt }}
           path: |
@@ -1119,7 +1119,7 @@ jobs:
           retention-days: 14
       - name: Upload current bright gameplay trailer evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: infinidive-bright-gameplay-trailer-${{ github.run_attempt }}
           path: |

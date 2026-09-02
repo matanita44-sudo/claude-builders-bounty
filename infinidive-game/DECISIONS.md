@@ -282,7 +282,7 @@ The project version remains 0.1.0 because the current source is a playable devel
 
 **Status:** Implemented in the current workflow
 
-Every Godot test scene is discovered and reconciled with a version-controlled manifest. The repaired inventory contains 21 scenes: 19 standalone suites, the process-relaunch scene as one nested probe, zero imported probes, and one structural soak. Each standalone suite uses an isolated data root and an exact expected sentinel/assertion count.
+Every Godot test scene is discovered and reconciled with a version-controlled manifest. The current inventory contains 23 scenes: 21 standalone suites, the process-relaunch scene as one nested probe, zero imported probes, and one structural soak. Each standalone suite uses an isolated data root and an exact expected sentinel/assertion count.
 
 **Why**
 

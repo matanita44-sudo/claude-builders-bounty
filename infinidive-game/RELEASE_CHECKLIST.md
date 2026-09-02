@@ -183,7 +183,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [ ] Native pause/backgrounding cannot avoid damage or duplicate rewards on installed iOS/Android builds.
 - [ ] Procedural routes pass a large seeded-layout sweep.
 - [x] Recorded-path travel retires at the first arena exit even if a later point re-enters during the same hitch; a true hit before that exit remains valid.
-- [x] CI inventory validates 21 scenes: 19 standalone suites, one nested relaunch probe, zero imported probes, and one soak scene; new or stale scenes fail validation.
+- [x] CI inventory validates 23 scenes: 21 standalone suites, one nested relaunch probe, zero imported probes, and one soak scene; new or stale scenes fail validation.
 - [x] Soak reports use a complete two-phase transaction with bound Markdown hash and cleanup completion marker. The validator recomputes current source, rejects stale/incomplete/cleanup-pending `PASS`, permits partial/early diagnostic `FAIL`, and covers open/write/verify/commit/cleanup plus truncated/mixed pairs.
 
 ## 8. Performance and resilience

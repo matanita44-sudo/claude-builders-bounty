@@ -60,9 +60,10 @@ The current project version is 0.1.0. This is a publicly deployed pre-alpha deve
 
 ### Changed
 
+- Pinned every third-party action in all three GitHub workflows to an exact reviewed commit SHA; no mutable action tag remains in the release, capture, validation, build, or deployment paths.
 - Replaced binary-only organ shutdown with 12 required data-driven loss contracts. Seven organs retain safer authored `aimed_fan`, `ring`, or `lane` variants; five systems shut down completely.
 - Added 12 unique BossVisual loss states, explicit post-loss telegraph/safe-path contracts, attributable transformed projectile waves, and distinct English/Hebrew transformed-versus-disabled feedback.
-- Added a 325-assertion organ-transformation suite covering data guardrails, exact described patterns, readable ring telegraph alignment, live `RunScene` consumption, visuals, isolation, and idempotency.
+- Expanded the organ-transformation suite to 7,008 assertions covering data guardrails, exact described patterns, readable ring telegraph alignment, live `RunScene` consumption, visuals, isolation, and idempotency.
 - Main TestRunner now requires `INFINIDIVE_TEST_ISOLATED=1` plus an isolated temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - Rail Spine now resolves every crossed collinear target nearest-to-farthest until pierce is exhausted, with per-hit falloff and duplicate-target protection.
 - Replaced the former generic internal-room executor with a pure, fail-closed runtime-plan compiler and live plan consumer. All 42 rooms now map through eight runtime categories, six movement models, 42 named spawn profiles, 25 projectile profiles including structural-only hazards, and ten defender archetypes with compiled geometry, collision, visual, travel, lifecycle, ownership, and deterministic signatures.
