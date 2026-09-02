@@ -61,6 +61,7 @@ The current project version is 0.1.0. This is a publicly deployed pre-alpha deve
 ### Changed
 
 - Pinned every third-party action in all three GitHub workflows to an exact reviewed commit SHA; no mutable action tag remains in the release, capture, validation, build, or deployment paths.
+- Install and identify `ffmpeg`/`ffprobe` explicitly in the Linux validation and public-media jobs because the current Ubuntu runner image no longer includes them.
 - Replaced binary-only organ shutdown with 12 required data-driven loss contracts. Seven organs retain safer authored `aimed_fan`, `ring`, or `lane` variants; five systems shut down completely.
 - Added 12 unique BossVisual loss states, explicit post-loss telegraph/safe-path contracts, attributable transformed projectile waves, and distinct English/Hebrew transformed-versus-disabled feedback.
 - Expanded the organ-transformation suite to 7,008 assertions covering data guardrails, exact described patterns, readable ring telegraph alignment, live `RunScene` consumption, visuals, isolation, and idempotency.
