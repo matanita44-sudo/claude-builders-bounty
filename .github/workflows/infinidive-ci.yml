@@ -389,7 +389,7 @@ jobs:
       github.ref == 'refs/heads/infinidive-production'
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:

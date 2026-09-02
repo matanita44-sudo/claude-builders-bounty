@@ -1,6 +1,6 @@
 # id|role|scene|timeout_seconds|expected_passed|sentinel|allowed_error_count|allowed_error_regex
 editor|import|-|180|-|-|0|-
-main|suite|res://tests/TestRunner.tscn|240|2631|INFINIDIVE TESTS|0|-
+main|suite|res://tests/TestRunner.tscn|240|2635|INFINIDIVE TESTS|0|-
 backend|suite|res://tests/backend/BackendOfflineTest.tscn|180|82|INFINIDIVE BACKEND TESTS|0|-
 upgrades|suite|res://tests/upgrades/PermanentUpgradeEngineTest.tscn|180|120|INFINIDIVE PERMANENT UPGRADE TESTS|0|-
 tutorial|suite|res://tests/tutorial/TutorialFlowTest.tscn|180|198|INFINIDIVE TUTORIAL FLOW TESTS|0|-

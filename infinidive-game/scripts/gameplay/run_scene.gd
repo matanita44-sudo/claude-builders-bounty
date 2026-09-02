@@ -54,6 +54,11 @@ const QA_STATE_NAMES := [
 	"DEAD",
 	"VICTORY"
 ]
+const QA_ABILITY_STATUSES := [
+	OrganAbilityMap.STATUS_ACTIVE,
+	OrganAbilityMap.STATUS_DEGRADED,
+	OrganAbilityMap.STATUS_DISABLED
+]
 
 const WEAPON_BEHAVIORS := ["pulse", "scatter", "rail", "arc", "orbitals"]
 const INTERNAL_DEFENDER_TELEGRAPH_SECONDS := 0.55
@@ -400,6 +405,7 @@ func qa_snapshot() -> Dictionary:
 		dash_ratio = _player.dash_ratio()
 	var state_index := int(state)
 	var state_valid := state_index >= 0 and state_index < QA_STATE_NAMES.size()
+	var state_name: String = QA_STATE_NAMES[state_index] if state_valid else "INVALID"
 	var numeric_state_valid := (
 		state_valid
 		and player_state_present
@@ -421,10 +427,14 @@ func qa_snapshot() -> Dictionary:
 		and is_finite(elapsed)
 		and elapsed >= 0.0
 	)
+	var organ := _qa_organ_snapshot(state_name)
+	var player_health_ratio: Variant = null
+	if is_instance_valid(_player):
+		player_health_ratio = qa_ratio(_player.health, _player.max_health)
 	return {
 		"view":"run",
 		"run_identity_present":not run_id.is_empty(),
-		"state":QA_STATE_NAMES[state_index] if state_valid else "INVALID",
+		"state":state_name,
 		"state_valid":state_valid,
 		"numeric_state_valid":numeric_state_valid,
 		"player_position":[_qa_json_number(player_position.x), _qa_json_number(player_position.y)],
@@ -437,11 +447,125 @@ func qa_snapshot() -> Dictionary:
 		"dash_recharge":_qa_json_number(dash_recharge),
 		"dash_cooldown":_qa_json_number(dash_cooldown),
 		"dash_ratio":_qa_json_number(dash_ratio),
-		"elapsed":_qa_json_number(elapsed)
+		"elapsed":_qa_json_number(elapsed),
+		"phase":_qa_bounded_integer(phase, 0, 3),
+		"health":{
+			"player_ratio":player_health_ratio,
+			"target_ratio":_qa_target_health_ratio(state_name)
+		},
+		"organ":organ,
+		"ability":_qa_ability_snapshot(organ),
+		"boss_visual_state":_qa_boss_visual_state(state_name, organ),
+		"mutation":_qa_mutation_snapshot()
 	}
 
 static func _qa_json_number(value: float) -> Variant:
 	return value if is_finite(value) else null
+
+func _qa_organ_snapshot(state_name: String) -> Dictionary:
+	var snapshot := {"id": null, "status": null, "health_ratio": null}
+	if _organ_map == null or current_organ.is_empty():
+		return snapshot
+	var organ_id := String(current_organ.get("id", ""))
+	if organ_id.is_empty() or not _organ_map.organs.has(organ_id):
+		return snapshot
+	snapshot.id = organ_id
+	snapshot.status = "destroyed" if _organ_map.destroyed_organs().has(organ_id) else "selected"
+	if state_name == "ORGAN_CHAMBER" or snapshot.status == "destroyed":
+		snapshot.health_ratio = qa_ratio(organ_health, organ_max)
+	return snapshot
+
+func _qa_ability_snapshot(organ: Dictionary) -> Dictionary:
+	var snapshot := {"id": null, "status": null}
+	var organ_id := String(organ.get("id", ""))
+	if organ_id.is_empty() or _organ_map == null:
+		return snapshot
+	var organ_state_value: Variant = _organ_map.organs.get(organ_id, null)
+	if typeof(organ_state_value) != TYPE_DICTIONARY:
+		return snapshot
+	var ability_id := String((organ_state_value as Dictionary).get("ability", ""))
+	if ability_id.is_empty() or not _organ_map.abilities.has(ability_id):
+		return snapshot
+	var ability_status := _organ_map.ability_status(ability_id)
+	if ability_status not in QA_ABILITY_STATUSES:
+		return snapshot
+	snapshot.id = ability_id
+	snapshot.status = ability_status
+	return snapshot
+
+func _qa_boss_visual_state(state_name: String, organ: Dictionary) -> Variant:
+	if state_name not in ["EXTERIOR", "CORE"] or String(organ.get("status", "")) != "destroyed":
+		return null
+	if not is_instance_valid(_boss_visual) or _boss_visual.mode != "exterior":
+		return null
+	var visual_token := _boss_visual.visual_state_for_organ(String(organ.get("id", "")))
+	return visual_token if BossVisual.supports_visual_token(visual_token) else null
+
+func _qa_mutation_snapshot() -> Dictionary:
+	var offered_count: Variant = _qa_mutation_id_count(_offered_mutation_ids, 3)
+	var applied_ids: Variant = _mutation_engine.selected_ids if _mutation_engine != null else null
+	var selected_count: Variant = _qa_mutation_id_count(applied_ids, GameData.mutations.size())
+	var last_selected_id: Variant = null
+	if selected_count != null and int(selected_count) > 0:
+		var candidate := String((applied_ids as Array)[-1])
+		if not GameData.get_mutation(candidate).is_empty():
+			last_selected_id = candidate
+	return {
+		"offered_count":offered_count,
+		"selected_count":selected_count,
+		"last_selected_id":last_selected_id
+	}
+
+func _qa_target_health_ratio(state_name: String) -> Variant:
+	match state_name:
+		"EXTERIOR":
+			return qa_ratio(armor_health, armor_max)
+		"ORGAN_CHAMBER":
+			return qa_ratio(organ_health, organ_max)
+		"CORE":
+			return qa_ratio(core_health, core_max)
+		_:
+			return null
+
+func _qa_mutation_id_count(raw_ids: Variant, maximum: int) -> Variant:
+	if typeof(raw_ids) != TYPE_ARRAY:
+		return null
+	var ids := raw_ids as Array
+	if ids.size() > maximum:
+		return null
+	var seen: Dictionary = {}
+	for raw_id in ids:
+		if typeof(raw_id) != TYPE_STRING:
+			return null
+		var mutation_id := String(raw_id)
+		if mutation_id.is_empty() or seen.has(mutation_id) or GameData.get_mutation(mutation_id).is_empty():
+			return null
+		seen[mutation_id] = true
+	return ids.size()
+
+static func _qa_bounded_integer(value: Variant, minimum: int, maximum: int) -> Variant:
+	if typeof(value) not in [TYPE_INT, TYPE_FLOAT]:
+		return null
+	var numeric := float(value)
+	if not is_finite(numeric) or numeric != floor(numeric):
+		return null
+	var integer := int(numeric)
+	return integer if integer >= minimum and integer <= maximum else null
+
+static func qa_ratio(current: Variant, maximum: Variant) -> Variant:
+	if typeof(current) not in [TYPE_INT, TYPE_FLOAT] or typeof(maximum) not in [TYPE_INT, TYPE_FLOAT]:
+		return null
+	var current_value := float(current)
+	var maximum_value := float(maximum)
+	if (
+		not is_finite(current_value)
+		or not is_finite(maximum_value)
+		or maximum_value <= 0.0
+		or current_value < 0.0
+		or current_value > maximum_value
+	):
+		return null
+	return current_value / maximum_value
 
 func _ready() -> void:
 	_apply_config_defaults()

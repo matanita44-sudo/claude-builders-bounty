@@ -495,6 +495,50 @@ func _test_project_configuration() -> void:
 	_assert(String(ProjectSettings.get_setting("display/window/stretch/aspect")) == "expand", "Portrait UI must expand for tall and wide phones")
 	_assert(int(ProjectSettings.get_setting("display/window/handheld/orientation")) == 1, "Mobile orientation must be portrait")
 	_assert(String(ProjectSettings.get_setting("rendering/renderer/rendering_method.web")) == "gl_compatibility", "Web must use the Compatibility renderer")
+	var empty_ratio: Variant = RunSceneClass.qa_ratio(0.0,100.0)
+	var quarter_ratio: Variant = RunSceneClass.qa_ratio(25.0,100.0)
+	var full_ratio: Variant = RunSceneClass.qa_ratio(100.0,100.0)
+	_assert(
+		typeof(empty_ratio) == TYPE_FLOAT
+		and typeof(quarter_ratio) == TYPE_FLOAT
+		and typeof(full_ratio) == TYPE_FLOAT
+		and is_equal_approx(float(empty_ratio),0.0)
+		and is_equal_approx(float(quarter_ratio),0.25)
+		and is_equal_approx(float(full_ratio),1.0),
+		"Web QA health ratios must preserve valid zero, fractional, and full boundaries"
+	)
+	_assert(
+		RunSceneClass.qa_ratio("25",100.0) == null
+		and RunSceneClass.qa_ratio(true,100.0) == null
+		and RunSceneClass.qa_ratio(NAN,100.0) == null
+		and RunSceneClass.qa_ratio(25.0,INF) == null
+		and RunSceneClass.qa_ratio(1.0,0.0) == null
+		and RunSceneClass.qa_ratio(-0.01,100.0) == null
+		and RunSceneClass.qa_ratio(100.01,100.0) == null,
+		"Web QA health ratios must fail closed on malformed, non-finite, impossible, or over-maximum values without clamping"
+	)
+	var projected_qa := MainClass.project_qa_run_snapshot({
+		"view":"run",
+		"player_position":[1.0,2.0,3.0],
+		"health":{"player_ratio":0.5,"target_ratio":0.75,"future_private":true},
+		"organ":{"id":"hunter_eye","status":"destroyed","health_ratio":0.0,"future_private":true},
+		"ability":{"id":"homing_eye","status":"degraded","future_private":true},
+		"mutation":{"offered_count":0,"selected_count":1,"last_selected_id":"phase_wake","future_private":true},
+		"future_profile":{"bio_matter":999999}
+	})
+	var projected_health := projected_qa.get("health",{}) as Dictionary
+	var projected_organ := projected_qa.get("organ",{}) as Dictionary
+	var projected_ability := projected_qa.get("ability",{}) as Dictionary
+	var projected_mutation := projected_qa.get("mutation",{}) as Dictionary
+	_assert(
+		not projected_qa.has("future_profile")
+		and projected_qa.get("player_position",[]) == null
+		and projected_health.size() == 2 and not projected_health.has("future_private")
+		and projected_organ.size() == 3 and not projected_organ.has("future_private")
+		and projected_ability.size() == 2 and not projected_ability.has("future_private")
+		and projected_mutation.size() == 3 and not projected_mutation.has("future_private"),
+		"Web QA projection must fail closed on future top-level, nested, and oversized-array fields"
+	)
 
 func _test_safe_area_math() -> void:
 	var visible := Rect2(Vector2.ZERO, Vector2(540.0, 960.0))
@@ -1356,7 +1400,7 @@ func _test_first_core_hook() -> void:
 	_assert(run.state == RunScene.RunState.ORGAN_SELECT, "A second dive request must not start a duplicate transition")
 	run._select_organ("__invalid_organ__")
 	_assert(run.state == RunScene.RunState.ORGAN_SELECT, "An invalid organ selection must leave the run in the safe selection state")
-	var organ_id: String = run._organ_map.alive_organs()[0]
+	var organ_id := "hunter_eye"
 	var ability: String = String(run._organ_map.organs[organ_id].ability)
 	run._select_organ(organ_id)
 	run.transition_timer = 0.0
@@ -1401,6 +1445,27 @@ func _test_first_core_hook() -> void:
 	_assert(run.state == RunScene.RunState.EXTERIOR, "Mutation choice must return to changed exterior battle")
 	_assert(run._player.controls_active, "Returning outside must restore combat controls")
 	_assert(run._organ_map.destroyed_organs().has(organ_id), "Destroyed organ state must survive the return")
+	var baseline_qa := run.qa_snapshot()
+	var baseline_organ := baseline_qa.get("organ",{}) as Dictionary
+	var baseline_ability := baseline_qa.get("ability",{}) as Dictionary
+	var mapped_visual := String(run._organ_map.visual_states().get(organ_id,""))
+	var differential_visual := "collapsed_gravity_lung"
+	run._boss_visual.organ_visual_states[organ_id] = differential_visual
+	var differential_qa := run.qa_snapshot()
+	var differential_ability := differential_qa.get("ability",{}) as Dictionary
+	run._boss_visual.organ_visual_states[organ_id] = mapped_visual
+	_assert(
+		String(baseline_organ.get("id","")) == "hunter_eye"
+		and String(baseline_ability.get("id","")) == "homing_eye"
+		and String(baseline_ability.get("status","")) == "degraded"
+		and String(baseline_qa.get("boss_visual_state","")) == "blinded_hunter_eye"
+		and mapped_visual == "blinded_hunter_eye"
+		and String(differential_qa.get("boss_visual_state","")) == differential_visual
+		and String(differential_ability.get("status","")) == "degraded"
+		and String(run._organ_map.visual_states().get(organ_id,"")) == mapped_visual
+		and run._boss_visual.visual_state_for_organ(organ_id) == mapped_visual,
+		"Web QA must source the post-return organ token from BossVisual while retaining OrganAbilityMap ability status"
+	)
 	run.queue_free()
 	await get_tree().process_frame
 	SaveManager.profile = original_profile

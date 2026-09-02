@@ -299,20 +299,20 @@ Every Godot test scene is discovered and reconciled with a version-controlled ma
 
 ## D-020 — Query-gated read-only Web QA boundary
 
-**Status:** Implemented and deployed for the bounded movement/Dash contract
+**Status:** Movement/Dash v1 deployed; deep-projected core-path v2 implemented locally and awaiting remote evidence
 
 The Web build publishes a fixed semantic snapshot only when the exact query parameter `infinidive_qa=1` is present. Normal Web sessions and every non-Web platform leave the publisher disabled. JavaScript can read the snapshot but receives no callback or mutator into Godot.
 
 **Why**
 
 - Canvas touch delivery and changed pixels do not prove that gameplay accepted movement or Dash.
-- A stable, narrow contract is less brittle than reading rendered text or exposing the save/profile model to browser automation.
+- A stable, narrow contract is less brittle than reading rendered text or exposing arbitrary save/profile fields to browser automation.
 - CI must distinguish real gameplay acceptance from accidental movement, stale state, a restarted run, or sanitized numeric corruption.
 
 **Consequences**
 
-- The whitelist contains schema/revision, Nest or run view, ephemeral `run_generation`, state validity, player position, control/movement state, Dash counters/timing/charge, and elapsed time.
-- Raw run ID, deterministic seed, profile/save state, currencies, challenge codes, account/player identifiers, and analytics payloads are excluded.
-- CI requires the same generation throughout, monotonic revision/elapsed, valid finite numeric state, movement of at least 12 logical pixels while Dash count remains unchanged, then an exact Dash-count increment and charge decrease from the dedicated button.
+- The v2 whitelist retains the movement/Dash fields and adds only bounded health ratios, phase, catalog-valid organ/ability status, a catalog-valid post-loss `BossVisual` token, mutation offer/selection aggregates, and strict tutorial/mutation-discovery aggregate counts plus the fail-closed save load source. Raw nested dictionaries are deep-projected; future top-level or nested fields cannot become observable without an explicit code change and contract update.
+- Raw run ID, deterministic seed, currencies, challenge codes, account/player identifiers, analytics payloads, arbitrary profile fields, and arbitrary save contents remain excluded. Diagnostic URLs strip credentials, fragments, and non-QA query strings; diagnostic lists and text are bounded.
+- CI requires the same generation throughout, monotonic revision/elapsed, valid finite numeric state, movement of at least 12 logical pixels while Dash count remains unchanged, then an exact Dash-count increment and charge decrease from the dedicated button. The v2 candidate additionally drives the rendered controls through breach, Hunter Eye selection, internal rooms, organ destruction, mutation selection, exterior return, `homing_eye` degradation, `blinded_hunter_eye` rendering, stable post-return state, and a same-context reload with exact persisted aggregate counts.
 - Actions run `33572931398` passed the contract against both the CI-served export and the deployed public host; deployment job `100078099551` and public-smoke job `100078147875` bind that evidence to source commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a`.
-- This closes an automated semantic-proof gap only. It is not human control-feel, Safari/Chrome compatibility, simulator, native-install, or physical-device evidence.
+- The v2 candidate has local syntax/import/unit/export/soak evidence only until its CI-served and deployed-public jobs pass. Even after that, this remains automated semantic proof rather than human control-feel, mobile Safari/Chrome compatibility, simulator, native-install, or physical-device evidence.

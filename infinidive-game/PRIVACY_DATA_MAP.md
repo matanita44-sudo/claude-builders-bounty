@@ -2,7 +2,7 @@
 
 **Document status:** implementation-aligned pre-release draft\
 **Code reviewed:** project version `0.1.0`\
-**Review date:** 2026-09-01\
+**Review date:** 2026-09-02\
 **Owner/contact:** Matan — `matanita44@gmail.com`
 
 This document maps what the current INFINIDIVE code and public browser pre-release do. The GitHub Pages preview is live, but this document is not evidence of an App Store build, Google Play build, backend, analytics transport, or signed native release. Re-check the final signed binaries and every bundled SDK before completing store privacy forms.
@@ -16,6 +16,7 @@ This document maps what the current INFINIDIVE code and public browser pre-relea
 - The analytics abstraction has **no network transport**. Consent defaults to off. If the internal setting is enabled, events are written only to a local queue.
 - Friend Rift codes are generated and parsed locally. A code is written to the system clipboard only after the player explicitly selects a copy/share action.
 - Settings includes user-initiated Support and Privacy buttons. On native platforms they open `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` plus the selected page in the system browser; no gameplay data or identifier is appended to the URL. The game, privacy, and support pages at that origin are deployed and return HTTP 200.
+- The Web preview has an exact-query, read-only QA observer used by automated deployment checks. It publishes only a deep-projected, fixed schema to same-origin page JavaScript; it exposes no callback into Godot and no raw run ID, seed, currency, challenge code, account/player identifier, or analytics payload. Normal sessions omit the query and publish nothing.
 - The game code does not request contacts, precise or approximate location, camera, microphone, photo library, advertising identifiers, or payment data. Android presets request only the normal `android.permission.VIBRATE` permission for optional haptics; it has no runtime permission prompt and does not collect or transmit data.
 - Local save checksums detect damage or tampering; they are not encryption.
 
@@ -33,6 +34,7 @@ This document maps what the current INFINIDIVE code and public browser pre-relea
 | Run/session identifiers | System time, engine tick count, random number, run seed, boss ID | Distinguishes local runs and prevents duplicate local reward banking; identifies entries in the optional local analytics queue | Run IDs are stored in the progress save; session IDs are stored only if local analytics is enabled | No | Clear local app/site data |
 | Device interaction | Touch/mouse input, viewport dimensions, safe-area insets, focus/background notifications, optional vibration request | Controls the game, lays out UI around notches, pauses on focus loss, and provides haptic feedback. Android declares the normal `android.permission.VIBRATE` permission; it triggers no runtime consent dialog. | Processed ephemerally in memory | No; vibration does not collect or transmit information | Disable haptics in settings; platform controls govern input and vibration |
 | Support/privacy page opening | Only the fixed page path; no run, profile, session, or challenge data is appended | Player explicitly taps Support or Privacy in Settings; native builds ask the system browser to open `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` plus the page name, while Web uses a relative page | No game-side record | The browser makes the ordinary web request, so the host can receive request metadata | Do not open the page; browser and host controls apply after opening |
+| Query-gated Web QA observer | Fixed schema/revision, ephemeral run generation, current view/state, bounded health ratios, movement/Dash state, current organ/ability status, post-loss visual token, mutation offer/selection counts and catalog ID, plus bounded tutorial/mutation-discovery counts and save load source (`default`, `primary`, or `backup`) | Enabled only on Web when the exact `infinidive_qa=1` query is present; CI uses it to prove the public build accepts the outside→inside→outside touch path and reloads in the same browser context | Current snapshot exists only in page memory and is deleted when the Godot root exits. CI retains bounded, URL-sanitized test artifacts for the configured workflow retention period | Ordinary play does not transmit the snapshot. In CI, the test evidence is uploaded to the repository's private/public Actions artifact storage according to repository access and retention settings | Omit the QA query; normal Web sessions and every native build leave the observer disabled |
 | Support correspondence | Email address, message content, and any attachment a person voluntarily sends | The static support page opens the person's mail client to request help | Stored by the sender's and recipient's email providers according to their settings and policies; retained only as reasonably needed to answer and document the request | Yes, but outside the game binary and only when the person chooses to send email | Do not include unnecessary personal data; request deletion at `matanita44@gmail.com` |
 | Public web hosting logs | The browser pre-release is deployed to GitHub Pages. GitHub may process ordinary request data such as IP address, timestamp, requested URL, and browser user-agent | Serving the game, privacy page, or support page | GitHub-dependent; deployment is verified, but host-log retention was not independently verified in this repository | Potentially, at the hosting layer | Review current GitHub terms before store release; browser controls may clear local site data but not host logs |
 
@@ -132,7 +134,7 @@ The release gate owner must compare this document with the exact signed binary, 
 | `scripts/ui/safe_area_helper.gd` | Native display-safe-area and Web CSS-safe-area reads |
 | `web/custom_shell.html` | Same-origin game bootstrap and safe-area probe; no cookies, analytics, or third-party script |
 | `project.godot` | Disabled motion sensors and configured local autoload services |
-| `export_presets.cfg` | Current export settings; blank camera/microphone/photo usage descriptions; must be checked against generated native artifacts |
+| `export_presets.cfg` | Current export settings; unused camera/microphone/photo usage-description entries are absent; the regenerated native artifacts still require inspection after the Apple Team ID/signing gate is resolved |
 
 ## Official platform references
 
