@@ -5,8 +5,10 @@ const LeaderboardClass := preload("res://scripts/services/leaderboard_service.gd
 const ChallengeCodeClass := preload("res://scripts/core/challenge_code.gd")
 const SaveManagerClass := preload("res://scripts/services/save_manager.gd")
 const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
+const AnalyticsClass := preload("res://scripts/services/analytics_service.gd")
 const TEST_PATH := "user://infinidive_backend_offline_focused_test.json"
 const SATURATION_PATH := "user://infinidive_backend_saturation_focused_test.json"
+const ANALYTICS_PATH := "user://infinidive_backend_analytics_privacy_test.json"
 
 var passed := 0
 var failures: Array[String] = []
@@ -25,6 +27,7 @@ func _run() -> void:
 	_cleanup()
 	_test_remote_config()
 	_test_fail_closed_config()
+	_test_analytics_privacy_contract()
 	_test_submission_validation_queue_and_ranking()
 	_test_canonical_identity_and_story_queue_isolation()
 	_test_atomic_recovery()
@@ -41,6 +44,36 @@ func _test_remote_config() -> void:
 	_check(not config.has_network_transport(), "Local config service must not expose a network transport")
 	_check(String(config.export_snapshot().transport.provider) == "none", "Shipped provider must be none")
 	config.free()
+
+func _test_analytics_privacy_contract() -> void:
+	var original_values := SettingsManager.values.duplicate(true)
+	var service := AnalyticsClass.new()
+	service.queue_path = ANALYTICS_PATH
+	_check(not service.has_network_transport(), "Analytics abstraction must not expose a network transport")
+
+	SettingsManager.values["analytics_opt_in"] = true
+	service.track("first_dive", {"seed": 7719})
+	_check(service.queue.size() == 1 and FileAccess.file_exists(ANALYTICS_PATH), "Literal Boolean true must enable the bounded local diagnostics queue")
+
+	var malformed_truthy_values: Array = [1, 1.0, "true", "1", [true], {"enabled": true}]
+	for malformed: Variant in malformed_truthy_values:
+		SettingsManager.values["analytics_opt_in"] = malformed
+		service.track("first_dash")
+		_check(service.queue.is_empty(), "Malformed truthy analytics consent must fail closed: %s" % JSON.stringify(malformed))
+		_check(not FileAccess.file_exists(ANALYTICS_PATH), "Fail-closed consent must delete the local queue: %s" % JSON.stringify(malformed))
+
+	# Stage legacy data through the low-level persistence hook, then prove an
+	# opted-out boot removes it without ever deserializing it into memory.
+	service.queue = [{"event":"first_dive","properties":{},"session_id":"legacy","timestamp":"2026-09-01T00:00:00Z"}]
+	_check(service._persist_queue(), "Analytics privacy test must stage a legacy local queue")
+	service.queue.clear()
+	SettingsManager.values["analytics_opt_in"] = false
+	service._ready()
+	_check(not service.disk_load_attempted, "Opted-out boot must not load pending diagnostics into memory")
+	_check(service.queue.is_empty() and not FileAccess.file_exists(ANALYTICS_PATH), "Opted-out boot must retry and complete pending local deletion")
+
+	SettingsManager.values = original_values
+	service.free()
 
 func _test_fail_closed_config() -> void:
 	var config := RemoteConfigClass.new()
@@ -238,6 +271,6 @@ func _friend_run(run_id: String, score: int, duration_ms: int, target_score: int
 	return run
 
 func _cleanup() -> void:
-	for path in [TEST_PATH, TEST_PATH + ".backup", TEST_PATH + ".tmp", SATURATION_PATH, SATURATION_PATH + ".backup", SATURATION_PATH + ".tmp"]:
+	for path in [TEST_PATH, TEST_PATH + ".backup", TEST_PATH + ".tmp", SATURATION_PATH, SATURATION_PATH + ".backup", SATURATION_PATH + ".tmp", ANALYTICS_PATH]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

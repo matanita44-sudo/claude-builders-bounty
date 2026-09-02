@@ -882,8 +882,8 @@ func _physics_process(delta: float) -> void:
 	breach_fury_timer = maxf(0.0,breach_fury_timer-delta)
 	if state in [RunState.EXTERIOR, RunState.CORE]:
 		phase_open_timer = maxf(0.0, phase_open_timer - delta)
-	if world_shake > 0.05 and not bool(SettingsManager.get_value("reduced_motion",false)):
-		var strength := world_shake * float(SettingsManager.get_value("screen_shake",0.7))
+	if world_shake > 0.05 and not SettingsManager.reduced_motion_enabled():
+		var strength := world_shake * SettingsManager.screen_shake_intensity()
 		_world.position = Vector2(_rng.randf_range(-strength,strength),_rng.randf_range(-strength,strength))
 		world_shake *= pow(0.025,delta)
 	else:
@@ -3877,6 +3877,7 @@ func _on_dash_started() -> void:
 func _on_player_damaged(amount: float,cause: String) -> void:
 	_damage_taken_total += amount
 	world_shake=9.0
+	_hud.show_damage_feedback()
 	AudioManager.play_sfx("player_damage",1.0,0.9)
 	SettingsManager.pulse_haptic(28,0.65)
 	if not _first_damage_sent:
@@ -4125,7 +4126,7 @@ func _notification(what: int) -> void:
 		_sync_player_controls_for_state()
 
 func _decorative_motion_time() -> float:
-	return 0.0 if bool(SettingsManager.get_value("reduced_motion",false)) else elapsed
+	return 0.0 if SettingsManager.reduced_motion_enabled() else elapsed
 
 func _draw() -> void:
 	var interior:=state in [RunState.DIVING_IN,RunState.INTERNAL_ROOMS,RunState.ORGAN_CHAMBER,RunState.MUTATION_CHOICE,RunState.DIVING_OUT]
@@ -4159,7 +4160,7 @@ func _draw() -> void:
 			draw_circle(target,12.0+warning_progress*7.0,warning_color,false,2.5)
 	for pickup in _bio_pickups:
 		var pickup_position:=Vector2(pickup.position)
-		var pickup_phase:=0.0 if bool(SettingsManager.get_value("reduced_motion",false)) else float(pickup.phase)
+		var pickup_phase:=0.0 if SettingsManager.reduced_motion_enabled() else float(pickup.phase)
 		var pickup_pulse:=2.5+sin(pickup_phase)*0.8
 		draw_circle(pickup_position,6.0+pickup_pulse,Color(VisualTheme.BIO,0.16))
 		draw_circle(pickup_position,3.2,VisualTheme.BIO)
@@ -4170,7 +4171,7 @@ func _draw() -> void:
 	_draw_telegraph()
 	_draw_orbitals()
 	if state in [RunState.DIVING_IN,RunState.DIVING_OUT]:
-		var reduced_motion:=bool(SettingsManager.get_value("reduced_motion",false))
+		var reduced_motion:=SettingsManager.reduced_motion_enabled()
 		var radius:=dive_transition_visual_radius(state,transition_timer,reduced_motion)
 		draw_circle(Vector2(270,430),radius,Color(VisualTheme.DEEP_SPACE,0.68),false,10.0)
 		draw_arc(Vector2(270,430),maxf(10,radius),0,TAU,64,VisualTheme.VULNERABLE,8.0)

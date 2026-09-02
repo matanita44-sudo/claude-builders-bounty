@@ -95,6 +95,55 @@ class MythicTrim:
 				Vector2(edge_x - side * 8.0, 14.0)
 			]), Color(accent, 0.62), 2.0, true)
 
+
+class DamageEdgeFeedback:
+	extends Control
+
+	var remaining_seconds := 0.0
+	var duration_seconds := SettingsManager.DAMAGE_FEEDBACK_DURATION_SECONDS
+	var intensity := 0.0
+	var stable_alpha := false
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visible = false
+
+	func trigger(configured_intensity: float, reduced_motion: bool) -> bool:
+		intensity = clampf(configured_intensity,0.0,1.0)
+		stable_alpha = reduced_motion
+		remaining_seconds = duration_seconds if intensity > 0.0 else 0.0
+		visible = remaining_seconds > 0.0
+		queue_redraw()
+		return visible
+
+	func clear() -> void:
+		remaining_seconds = 0.0
+		intensity = 0.0
+		visible = false
+		queue_redraw()
+
+	func _process(delta: float) -> void:
+		if remaining_seconds <= 0.0:
+			return
+		remaining_seconds = maxf(0.0,remaining_seconds-maxf(0.0,delta))
+		if remaining_seconds <= 0.0:
+			visible = false
+		queue_redraw()
+
+	func _draw() -> void:
+		if intensity <= 0.0 or remaining_seconds <= 0.0:
+			return
+		var life_ratio := clampf(remaining_seconds/maxf(0.001,duration_seconds),0.0,1.0)
+		var alpha := intensity*(0.34 if stable_alpha else 0.34*life_ratio)
+		var edge_depth := 24.0
+		var edge_color := Color(MYTHIC_CORAL,alpha)
+		# Only the four borders are painted. The center of the combat field never
+		# receives a full-screen damage wash, preserving projectile readability.
+		draw_rect(Rect2(0,0,size.x,edge_depth),edge_color)
+		draw_rect(Rect2(0,size.y-edge_depth,size.x,edge_depth),edge_color)
+		draw_rect(Rect2(0,edge_depth,edge_depth,maxf(0.0,size.y-edge_depth*2.0)),edge_color)
+		draw_rect(Rect2(size.x-edge_depth,edge_depth,edge_depth,maxf(0.0,size.y-edge_depth*2.0)),edge_color)
+
 signal dash_pressed
 signal dive_pressed
 signal pause_pressed
@@ -122,6 +171,7 @@ var _toast_is_transient := false
 var _dash_ring: ActionRing
 var _dive_ring: ActionRing
 var _player_in_danger := false
+var damage_edge_feedback: DamageEdgeFeedback
 
 func _ready() -> void:
 	_build()
@@ -135,6 +185,11 @@ func _build() -> void:
 	root.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	damage_edge_feedback = DamageEdgeFeedback.new()
+	damage_edge_feedback.name = "DamageEdgeFeedback"
+	damage_edge_feedback.position = Vector2.ZERO
+	damage_edge_feedback.size = Vector2(540,960)
+	root.add_child(damage_edge_feedback)
 
 	var top_panel := PanelContainer.new()
 	top_panel.name = "CombatStatusFrame"
@@ -264,7 +319,7 @@ func _build() -> void:
 
 	var pause_button := Button.new()
 	pause_button.name = "PauseButton"
-	pause_button.text = "Ⅱ"
+	pause_button.text = "II"
 	pause_button.position = Vector2(478,132)
 	pause_button.size = Vector2(50,46)
 	pause_button.add_theme_font_size_override("font_size", 19)
@@ -445,7 +500,7 @@ func show_toast(message: String, color: Color = VisualTheme.TEXT, duration_secon
 	toast_panel.size = Vector2(412,72 if message.contains("\n") else 54)
 	if _toast_tween and _toast_tween.is_running():
 		_toast_tween.kill()
-	var reduced_motion := bool(SettingsManager.get_value("reduced_motion",false))
+	var reduced_motion := SettingsManager.reduced_motion_enabled()
 	toast_label.modulate.a = 1.0 if reduced_motion else 0.0
 	toast_panel.modulate.a = toast_label.modulate.a
 	_toast_tween = create_tween()
@@ -457,6 +512,12 @@ func show_toast(message: String, color: Color = VisualTheme.TEXT, duration_secon
 		_toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.28)
 		_toast_tween.parallel().tween_property(toast_panel, "modulate:a", 0.0, 0.28)
 	_toast_tween.tween_callback(_restore_tutorial_prompt)
+
+func show_damage_feedback() -> bool:
+	return damage_edge_feedback.trigger(
+		SettingsManager.damage_flash_intensity(),
+		SettingsManager.reduced_motion_enabled()
+	)
 
 func set_tutorial_prompt(message: String, color: Color = VisualTheme.FRIENDLY) -> void:
 	_tutorial_message = message
@@ -478,6 +539,9 @@ func _restore_tutorial_prompt() -> void:
 	toast_panel.modulate.a = 1.0
 
 func show_organ_choices(organs: Array, preview_level: int = 0) -> void:
+	# The breach prompt has already done its job once this selector is open.
+	# Clear it now so it cannot reappear after the overlay closes.
+	set_tutorial_prompt("")
 	_clear_overlay()
 	overlay.add_theme_stylebox_override("panel", _overlay_style(MYTHIC_CORAL))
 	overlay.visible = true
@@ -549,6 +613,7 @@ func show_mutation_choices(mutations: Array, rerolls: int) -> void:
 		var badge := ""
 		if bool(mutation.get("_synergy", false)):
 			badge = LocalizationService.text("synergy_detail", {"tag": String(mutation.get("_synergy_detail", "")).replace("_", " ").to_upper()}) if mutation.has("_synergy_detail") else LocalizationService.text("synergy")
+			badge = badge.replace("◆", "+")
 		if String(mutation.get("rarity", "common")) == "rare":
 			badge = (badge + " · " if not badge.is_empty() else "") + LocalizationService.text("rare")
 		button.text = "%02d / %s\n%s%s" % [mutation_index + 1, mutation_name, mutation_description, "\n— " + badge if not badge.is_empty() else ""]

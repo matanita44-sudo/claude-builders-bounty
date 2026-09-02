@@ -57,7 +57,7 @@ func _process(delta:float)->void:
 	# Sanctuary structures remain visible in Reduced Motion, but decorative
 	# clouds, aether, water, and ornaments freeze at a stable pose. Avoid redrawing
 	# that identical frame every tick so the accessibility mode also saves power.
-	if bool(SettingsManager.get_value("reduced_motion",false)):
+	if SettingsManager.reduced_motion_enabled():
 		return
 	_time+=delta
 	queue_redraw()
@@ -77,10 +77,10 @@ func _build_ui()->void:
 	_currency.size=Vector2(186,52)
 	add_child(_currency)
 	var settings_button:=Button.new()
-	settings_button.text="⚙"
+	settings_button.text="SET"
 	settings_button.position=Vector2(472,82)
 	settings_button.size=Vector2(48,48)
-	settings_button.add_theme_font_size_override("font_size",20)
+	settings_button.add_theme_font_size_override("font_size",12)
 	settings_button.add_theme_stylebox_override("normal",VisualTheme.button_style(Color("#173B55",0.88),20))
 	settings_button.pressed.connect(_show_settings)
 	add_child(settings_button)
@@ -424,7 +424,7 @@ func _show_settings()->void:
 	_add_slider(box,"screen_shake",0.0,1.0,0.1)
 	_add_toggle(box,"reduced_motion")
 	_add_toggle(box,"projectile_contrast")
-	_add_slider(box,"damage_flash",0.0,1.0,0.1)
+	_add_percent_slider(box,"damage_flash")
 	_add_slider(box,"control_sensitivity",0.25,1.0,0.05)
 	var assist_title:=VisualTheme.label(LocalizationService.text("assist_mode"),15,VisualTheme.FRIENDLY);assist_title.horizontal_alignment=LocalizationService.start_alignment();box.add_child(assist_title)
 	_add_slider(box,"assist_projectile_speed",0.6,1.0,0.05)
@@ -440,16 +440,61 @@ func _show_settings()->void:
 	var tutorial_replay:=Button.new();tutorial_replay.alignment=LocalizationService.start_alignment();tutorial_replay.text=LocalizationService.text("tutorial_replay");tutorial_replay.custom_minimum_size.y=54;tutorial_replay.pressed.connect(_request_tutorial_replay);box.add_child(tutorial_replay)
 	var support:=Button.new();support.alignment=LocalizationService.start_alignment();support.text=LocalizationService.text("support_feedback");support.custom_minimum_size.y=54;support.pressed.connect(func():_open_public_page("support.html"));box.add_child(support)
 	var privacy:=Button.new();privacy.alignment=LocalizationService.start_alignment();privacy.text=LocalizationService.text("privacy_policy");privacy.custom_minimum_size.y=54;privacy.pressed.connect(func():_open_public_page("privacy.html"));box.add_child(privacy)
+	var terms:=Button.new();terms.name="TermsLink";terms.alignment=LocalizationService.start_alignment();terms.text="תנאי שימוש" if LocalizationService.is_rtl() else "Terms of Use";terms.custom_minimum_size.y=54;terms.pressed.connect(func():_open_public_page("terms.html"));box.add_child(terms)
+	var notices:=Button.new();notices.name="NoticesLink";notices.alignment=LocalizationService.start_alignment();notices.text="הודעות קוד פתוח" if LocalizationService.is_rtl() else "Open-Source Notices";notices.custom_minimum_size.y=54;notices.pressed.connect(func():_open_public_page("notices.html"));box.add_child(notices)
 	var reset:=Button.new();reset.alignment=LocalizationService.start_alignment();reset.text=LocalizationService.text("reset_progress");reset.custom_minimum_size.y=54;reset.add_theme_stylebox_override("normal",VisualTheme.button_style(Color(VisualTheme.ENEMY,0.16),16));reset.pressed.connect(_show_reset_confirmation);box.add_child(reset)
 
 func _add_slider(parent:VBoxContainer,key:String,min_value:float,max_value:float,step:float)->void:
 	var row:=VBoxContainer.new();row.layout_direction=LocalizationService.layout_direction();parent.add_child(row);var title:=VisualTheme.label(LocalizationService.text(key),12,VisualTheme.TEXT);title.horizontal_alignment=LocalizationService.start_alignment();row.add_child(title);var slider:=HSlider.new();slider.min_value=min_value;slider.max_value=max_value;slider.step=step;slider.value=float(SettingsManager.get_value(key,max_value));slider.value_changed.connect(func(value:float):SettingsManager.set_value(key,value));row.add_child(slider)
 
+func _add_percent_slider(parent:VBoxContainer,key:String)->void:
+	var row:=VBoxContainer.new()
+	row.layout_direction=LocalizationService.layout_direction()
+	parent.add_child(row)
+	var title:=VisualTheme.label("",12,VisualTheme.TEXT)
+	title.horizontal_alignment=LocalizationService.start_alignment()
+	row.add_child(title)
+	var slider:=HSlider.new()
+	slider.name="%sPercent"%key.to_pascal_case()
+	slider.min_value=0.0
+	slider.max_value=100.0
+	slider.step=10.0
+	slider.value=SettingsManager.damage_flash_intensity()*100.0 if key=="damage_flash" else clampf(float(SettingsManager.get_value(key,1.0)),0.0,1.0)*100.0
+	var update_title:=func(percent:float)->void:
+		title.text="%s — %d%%"%[LocalizationService.text(key),roundi(percent)]
+	update_title.call(slider.value)
+	slider.value_changed.connect(func(percent:float):
+		var previous:=float(SettingsManager.get_value(key,0.0))*100.0
+		if not SettingsManager.set_value(key,percent/100.0):
+			slider.set_value_no_signal(previous)
+			update_title.call(previous)
+			AudioManager.play_sfx("ui_error")
+			return
+		update_title.call(percent)
+		AnalyticsService.track("settings_changed",{"setting":key})
+	)
+	row.add_child(slider)
+
 func _add_toggle(parent:VBoxContainer,key:String)->void:
-	var toggle:=CheckButton.new();toggle.layout_direction=LocalizationService.layout_direction();toggle.text=LocalizationService.text(key);toggle.button_pressed=bool(SettingsManager.get_value(key,false));toggle.toggled.connect(func(value:bool):
-		if not _apply_toggle_value(key,value):
-			toggle.set_pressed_no_signal(not value)
+	var toggle:=CheckButton.new();toggle.layout_direction=LocalizationService.layout_direction();toggle.text=LocalizationService.text(key);toggle.button_pressed=_toggle_display_value(key);toggle.toggled.connect(func(value:bool):
+		_apply_toggle_value(key,value)
+		# Reconcile from the actual stored state instead of assuming that every
+		# failure rolled the preference back. Analytics cleanup can fail after the
+		# opt-out itself was durably saved, and must remain visibly OFF in that case.
+		_sync_toggle_display(toggle,key)
 	);parent.add_child(toggle)
+
+func _toggle_display_value(key:String)->bool:
+	var stored_value: Variant = SettingsManager.get_value(key,false)
+	if key=="analytics_opt_in":
+		return typeof(stored_value)==TYPE_BOOL and stored_value==true
+	return bool(stored_value)
+
+func _sync_toggle_display(toggle:CheckButton,key:String)->void:
+	toggle.set_pressed_no_signal(_toggle_display_value(key))
+
+func _clear_analytics_local_data()->bool:
+	return AnalyticsService.clear_local_data()
 
 func _apply_toggle_value(key:String,value:bool)->bool:
 	# Persist opt-out before attempting deletion so no new diagnostics can enter
@@ -459,7 +504,7 @@ func _apply_toggle_value(key:String,value:bool)->bool:
 		AudioManager.play_sfx("ui_error")
 		return false
 	if key=="analytics_opt_in" and not value:
-		if not AnalyticsService.clear_local_data():
+		if not _clear_analytics_local_data():
 			AudioManager.play_sfx("ui_error")
 			return false
 	AnalyticsService.track("settings_changed",{"setting":key})

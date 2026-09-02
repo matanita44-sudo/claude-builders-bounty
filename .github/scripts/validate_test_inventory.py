@@ -49,6 +49,19 @@ def workflow_suite_calls(workflow: str) -> collections.Counter[str]:
     return calls
 
 
+def runnable_test_sources(project: pathlib.Path, scene: str) -> list[str]:
+    scene_path = project / pathlib.PurePosixPath(scene.removeprefix("res://"))
+    scene_text = scene_path.read_text(encoding="utf-8")
+    sources = [scene_text]
+    script_path_pattern = re.compile(r'path="(res://tests/[^" ]+\.gd)"')
+    for script in sorted(set(script_path_pattern.findall(scene_text))):
+        script_path = project / pathlib.PurePosixPath(script.removeprefix("res://"))
+        if not script_path.is_file():
+            fail(f"{scene} references a missing test script: {script}")
+        sources.append(script_path.read_text(encoding="utf-8"))
+    return sources
+
+
 def main() -> None:
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
     manifest = root / ".github/scripts/test_suites.tsv"
@@ -138,8 +151,32 @@ def main() -> None:
             fail(f"{scene} must be marked {expected_role}")
 
     suite_count = sum(role == "suite" for role in manifested.values())
-    if suite_count != 15:
-        fail(f"expected 15 standalone suites, found {suite_count}")
+    if suite_count < 1:
+        fail("at least one standalone suite is required")
+
+    runnable_sources = []
+    for scene, role in manifested.items():
+        if role in {"suite", "soak"}:
+            runnable_sources.extend(runnable_test_sources(project, scene))
+    combined_runnable_sources = "\n".join(runnable_sources)
+    for scene, role in manifested.items():
+        escaped_scene = re.escape(scene)
+        if role == "imported":
+            scene_resource_reference = re.compile(
+                rf'(?:path\s*=\s*|(?:preload|load|ResourceLoader\.load)\(\s*)["\']{escaped_scene}["\']'
+            )
+            if not scene_resource_reference.search(combined_runnable_sources):
+                fail(
+                    f"imported test scene is not structurally imported by a runnable suite: {scene}"
+                )
+        elif role == "nested":
+            nested_scene_invocation = re.compile(
+                rf'["\']--scene["\']\s*,\s*["\']{escaped_scene}["\']', re.DOTALL
+            )
+            if not nested_scene_invocation.search(combined_runnable_sources):
+                fail(
+                    f"nested test scene is not structurally invoked by a runnable suite: {scene}"
+                )
 
     workflow = (root / ".github/workflows/infinidive-ci.yml").read_text(encoding="utf-8")
     workflow_calls = workflow_suite_calls(workflow)
@@ -153,7 +190,14 @@ def main() -> None:
         fail("workflow references unknown suite(s): " + ", ".join(unknown_calls))
     if duplicate_calls:
         fail("workflow must invoke each runnable suite exactly once: " + ", ".join(duplicate_calls))
-    print(f"Test inventory valid: {len(discovered)} scenes, {suite_count} suites, 1 nested probe, 1 soak.")
+    nested_count = sum(role == "nested" for role in manifested.values())
+    imported_count = sum(role == "imported" for role in manifested.values())
+    soak_count = sum(role == "soak" for role in manifested.values())
+    print(
+        f"Test inventory valid: {len(discovered)} scenes, {suite_count} suites, "
+        f"{nested_count} nested probe(s), {imported_count} structurally imported scene(s), "
+        f"{soak_count} soak scene(s)."
+    )
 
 
 if __name__ == "__main__":

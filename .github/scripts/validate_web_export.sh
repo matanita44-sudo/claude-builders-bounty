@@ -10,7 +10,19 @@ test -n "$(find "${web_dir}" -maxdepth 1 -type f -name '*.pck' -print -quit)"
 test -s "${web_dir}/privacy.html"
 test -s "${web_dir}/support.html"
 test -s "${web_dir}/terms.html"
+test -s "${web_dir}/notices.html"
 test -f "${web_dir}/.nojekyll"
+
+if ! grep -Fq 'Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md).' "${web_dir}/notices.html"; then
+  echo "Godot copyright attribution is missing from notices.html" >&2
+  exit 1
+fi
+for legal_page in privacy.html support.html terms.html; do
+  if ! grep -Fq 'href="notices.html"' "${web_dir}/${legal_page}"; then
+    echo "${legal_page} does not link to notices.html" >&2
+    exit 1
+  fi
+done
 
 if grep -q '\$GODOT_' "${web_dir}/index.html"; then
   echo "Unresolved Godot custom-shell placeholder in exported index.html" >&2

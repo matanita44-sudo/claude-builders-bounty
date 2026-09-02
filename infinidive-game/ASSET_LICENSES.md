@@ -177,7 +177,15 @@ Specifically, the current inventory contains:
 
 ## Engine notice
 
-Godot Engine is third-party software distributed under the MIT License. Engine license and copyright notices must be preserved wherever required in distributed binaries and open-source notices. Godot's license does not grant rights to third-party assets, but none are currently included here.
+Godot Engine is third-party software distributed under the MIT License. Engine license and copyright notices must be preserved wherever required in distributed binaries and open-source notices. The public Web build includes the bilingual `web_pages/notices.html` notice page, which is also reachable from Settings, Privacy, Support, and Terms. Godot's license does not grant rights to third-party assets, but none are currently included here.
+
+The required upstream copyright lines are:
+
+> Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md).
+>
+> Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur.
+
+The complete MIT license text is reproduced on the distributed notices page. Before freezing a native release archive, audit the exact archive and every bundled third-party component again; this development inventory is not a substitute for that final archive audit.
 
 ## Intake checklist for future assets
 

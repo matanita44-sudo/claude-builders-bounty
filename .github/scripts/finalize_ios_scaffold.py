@@ -10,6 +10,7 @@ import pathlib
 import plistlib
 import re
 import tempfile
+import xml.etree.ElementTree as ET
 
 
 class ScaffoldFinalizationError(RuntimeError):
@@ -76,6 +77,59 @@ def _sha256(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
+def _native_target_id(project_text: str) -> str:
+    section_match = re.search(
+        r"/\* Begin PBXNativeTarget section \*/(?P<section>.*?)"
+        r"/\* End PBXNativeTarget section \*/",
+        project_text,
+        re.DOTALL,
+    )
+    if section_match is None:
+        raise ScaffoldFinalizationError("pbxproj has no PBXNativeTarget section")
+    targets = re.findall(
+        r'^\s*([A-F0-9]{24}) /\* ([^*\r\n]+) \*/ = \{\s*\n'
+        r"\s*isa = PBXNativeTarget;",
+        section_match.group("section"),
+        re.MULTILINE,
+    )
+    if len(targets) != 1 or targets[0][1] != "INFINIDIVE":
+        raise ScaffoldFinalizationError(
+            f"expected the sole native target to be INFINIDIVE, found {targets!r}"
+        )
+    return targets[0][0]
+
+
+def _repair_shared_scheme(scheme: pathlib.Path, target_id: str) -> None:
+    scheme_text = scheme.read_text(encoding="utf-8")
+    identifier_pattern = re.compile(
+        r'(?P<prefix>BlueprintIdentifier = ")[A-F0-9]{24}(?P<suffix>")'
+    )
+    if len(identifier_pattern.findall(scheme_text)) != 4:
+        raise ScaffoldFinalizationError(
+            "expected exactly four BuildableReference BlueprintIdentifier values"
+        )
+    scheme_text = identifier_pattern.sub(
+        rf"\g<prefix>{target_id}\g<suffix>", scheme_text
+    )
+    try:
+        scheme_root = ET.fromstring(scheme_text)
+    except ET.ParseError as exc:
+        raise ScaffoldFinalizationError(f"cannot parse shared Xcode scheme: {exc}") from exc
+    references = list(scheme_root.iter("BuildableReference"))
+    expected = {
+        "BuildableIdentifier": "primary",
+        "BlueprintIdentifier": target_id,
+        "BuildableName": "INFINIDIVE.app",
+        "BlueprintName": "INFINIDIVE",
+        "ReferencedContainer": "container:INFINIDIVE.xcodeproj",
+    }
+    if len(references) != 4 or any(reference.attrib != expected for reference in references):
+        raise ScaffoldFinalizationError(
+            "shared scheme BuildableReference values do not match the INFINIDIVE target"
+        )
+    _atomic_write(scheme, scheme_text.encode("utf-8"))
+
+
 def finalize(
     root: pathlib.Path,
     placeholder: str,
@@ -110,8 +164,23 @@ def finalize(
         "privacy manifest",
     )
     game_pack = _exactly_one(sorted(root.glob("*.pck")), "Godot game pack")
+    app_icon_catalog = _exactly_one(
+        sorted(root.rglob("AppIcon.appiconset/Contents.json")),
+        "AppIcon catalog",
+    )
+    app_store_icon = _exactly_one(
+        sorted(app_icon_catalog.parent.glob("Icon-1024.png")),
+        "1024x1024 App Store icon",
+    )
+    schemes = sorted(root.glob("*.xcodeproj/xcshareddata/xcschemes/*.xcscheme"))
+    shared_scheme = _exactly_one(schemes, "shared Xcode scheme")
+    if shared_scheme.name != "INFINIDIVE.xcscheme":
+        raise ScaffoldFinalizationError(
+            f"unexpected shared Xcode scheme name: {shared_scheme.name}"
+        )
 
     project_text = project_file.read_text(encoding="utf-8")
+    native_target_id = _native_target_id(project_text)
     placeholder_lines = [line for line in project_text.splitlines() if placeholder in line]
     if len(placeholder_lines) != 3:
         raise ScaffoldFinalizationError(
@@ -124,6 +193,7 @@ def finalize(
         raise ScaffoldFinalizationError("placeholder Team ID appears in an unexpected pbxproj field")
     project_text = project_text.replace(placeholder, '""')
     _atomic_write(project_file, project_text.encode("utf-8"))
+    _repair_shared_scheme(shared_scheme, native_target_id)
 
     try:
         options = plistlib.loads(export_options.read_bytes())
@@ -150,18 +220,26 @@ def finalize(
 - Current-source PCK SHA-256: `{_sha256(game_pack)}`
 - Scrubbed project.pbxproj SHA-256: `{_sha256(project_file)}`
 - Scrubbed export_options.plist SHA-256: `{_sha256(export_options)}`
+- Repaired shared Xcode scheme SHA-256: `{_sha256(shared_scheme)}`
 - Application Info.plist SHA-256: `{_sha256(application_plist)}`
 - PrivacyInfo.xcprivacy SHA-256: `{_sha256(privacy_manifest)}`
+- AppIcon Contents.json SHA-256: `{_sha256(app_icon_catalog)}`
+- App Store 1024x1024 icon SHA-256: `{_sha256(app_store_icon)}`
 
 The Linux exporter required a temporary, explicitly non-secret placeholder Team
 ID. It was used only in the ephemeral project copy, then removed from both the
 generated Xcode project and export-options plist before this artifact was
-retained. The checked-in production preset remains blank.
+retained. The shared Xcode scheme was rebound to the sole generated
+INFINIDIVE PBXNativeTarget before retention. The checked-in production preset
+remains blank.
 
 The application Info.plist was sanitized and validated to remove unused empty
 Camera, Microphone, and Photo Library usage descriptions and the deprecated
 CFBundleSignature key. The custom INFINIDIVE 2x/3x launch pixels and tracking-
-false privacy manifest were validated against the generated scaffold.
+false privacy manifest were validated against the generated scaffold. The
+retained 16-slot AppIcon catalog is checked separately for exact iOS size/scale
+metadata, complete PNG decoding, RGB/no-alpha format, safe filenames, and
+source-to-export SHA-256 parity.
 
 This artifact is **not** an Xcode compile, signed app, archive, IPA, simulator or
 device install, TestFlight upload, App Store Connect result, or submission. A

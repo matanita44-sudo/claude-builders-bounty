@@ -21,6 +21,10 @@ const RESET_ANALYTICS_TEST_PATH := "user://infinidive_reset_analytics_test.json"
 const RESET_LEADERBOARD_TEST_PATH := "user://infinidive_reset_leaderboard_test.json"
 const TEST_ISOLATION_ENV := "INFINIDIVE_TEST_ISOLATED"
 
+class AnalyticsCleanupFailingNest extends NestView:
+	func _clear_analytics_local_data()->bool:
+		return false
+
 var failures: Array[String] = []
 var passed_assertions: Array[String] = []
 var passed := 0
@@ -476,6 +480,14 @@ func _collect_ui_text(node:Node)->String:
 
 func _test_accessibility_behaviors() -> void:
 	var original_values := SettingsManager.values.duplicate(true)
+	var original_profile_settings: Dictionary = SaveManager.profile.get("settings",SaveManager.default_profile().settings).duplicate(true)
+	_assert(SettingsManager.normalize_setting_value("reduced_motion","true") == false, "Reduced Motion must reject non-Boolean save values instead of coercing them")
+	_assert(is_zero_approx(float(SettingsManager.normalize_setting_value("damage_flash",-4.0))) and is_equal_approx(float(SettingsManager.normalize_setting_value("damage_flash",7.0)),1.0), "Damage Flash must clamp numeric values to the normalized 0-100 percent range")
+	_assert(is_equal_approx(float(SettingsManager.normalize_setting_value("damage_flash",INF)),SettingsManager.DEFAULT_DAMAGE_FLASH), "Damage Flash must recover a finite typed default from malformed save data")
+	_assert(SettingsManager.set_value("reduced_motion",true,false) and SettingsManager.reduced_motion_enabled(), "Reduced Motion must expose one typed central runtime contract")
+	_assert(SettingsManager.set_value("damage_flash",100.0,false) and is_equal_approx(SettingsManager.damage_flash_intensity(),1.0), "Damage Flash must normalize out-of-range runtime writes before storing them")
+	SettingsManager.set_value("damage_flash",0.4,false)
+	_assert(SaveManager.inject_isolated_test_save_failures(1) and not SettingsManager.set_value("damage_flash",0.9) and is_equal_approx(SettingsManager.damage_flash_intensity(),0.4) and is_equal_approx(float(SaveManager.profile.settings.damage_flash),0.4), "A failed Damage Flash save must roll memory and profile back atomically")
 	SettingsManager.values.reduced_motion = true
 
 	var boss := BossVisualClass.new()
@@ -513,6 +525,25 @@ func _test_accessibility_behaviors() -> void:
 	_assert(is_zero_approx(hud.toast_label.modulate.a), "Normal motion must retain the short toast fade")
 	if hud._toast_tween and hud._toast_tween.is_running():
 		hud._toast_tween.kill()
+	SettingsManager.set_value("damage_flash",0.0,false)
+	var edge_suppressed := not hud.show_damage_feedback() and not hud.damage_edge_feedback.visible
+	SettingsManager.set_value("damage_flash",1.0,false)
+	var edge_shown := hud.show_damage_feedback()
+	var edge_bounded := hud.damage_edge_feedback.remaining_seconds <= SettingsManager.DAMAGE_FEEDBACK_DURATION_SECONDS
+	hud.damage_edge_feedback._process(SettingsManager.DAMAGE_FEEDBACK_DURATION_SECONDS+0.001)
+	var edge_expired := not hud.damage_edge_feedback.visible
+	SettingsManager.set_value("reduced_motion",true,false)
+	var reduced_player := PlayerControllerClass.new()
+	reduced_player._trail = [Vector2(1,1),Vector2(2,2)]
+	reduced_player._physics_process(1.0/60.0)
+	var trail_cleared := reduced_player._trail.is_empty()
+	reduced_player.free()
+	var zero_flash_boss := BossVisualClass.new()
+	SettingsManager.set_value("damage_flash",0.0,false)
+	zero_flash_boss.flash_hit()
+	var titan_and_organ_suppressed := is_zero_approx(zero_flash_boss.hit_flash)
+	zero_flash_boss.free()
+	_assert(edge_suppressed and edge_shown and edge_bounded and edge_expired and trail_cleared and titan_and_organ_suppressed, "Zero Damage Flash must suppress Diver/edge/Titan/organ flashes while Reduced Motion clears decorative trails and edge feedback stays within 0.18 seconds")
 	hud.queue_free()
 
 	var base_color := VisualTheme.FRIENDLY
@@ -523,6 +554,8 @@ func _test_accessibility_behaviors() -> void:
 	_assert(is_equal_approx(PlayerControllerClass.invulnerability_alpha(0.5,false),0.4), "Normal motion must retain the invulnerability blink cue")
 
 	SettingsManager.values = original_values
+	SaveManager.profile.settings = original_profile_settings
+	SettingsManager.apply_all()
 	await get_tree().process_frame
 
 func _test_analytics_contract() -> void:
@@ -539,6 +572,21 @@ func _test_analytics_contract() -> void:
 		event_contract_complete = event_contract_complete and AnalyticsService.ALLOWED_EVENTS.has(event_name)
 	_assert(event_contract_complete, "Analytics abstraction must define every required product event")
 	var original_values := SettingsManager.values.duplicate(true)
+	var malformed_truthy_values: Array = [1,1.0,"true","1",[true],{"enabled":true}]
+	var malformed_consent_hidden := true
+	var malformed_nest := NestViewClass.new()
+	for malformed: Variant in malformed_truthy_values:
+		SettingsManager.values.analytics_opt_in = malformed
+		var toggle_parent := VBoxContainer.new()
+		malformed_nest._add_toggle(toggle_parent,"analytics_opt_in")
+		var malformed_toggle := toggle_parent.get_child(0) as CheckButton
+		malformed_consent_hidden = malformed_consent_hidden \
+			and SettingsManager.normalize_setting_value("analytics_opt_in",malformed)==false \
+			and not malformed_toggle.button_pressed
+		toggle_parent.free()
+	malformed_nest.free()
+	_assert(malformed_consent_hidden, "Malformed truthy analytics consent must normalize fail-closed and display OFF")
+	SettingsManager.values = original_values.duplicate(true)
 	var queue_size_before := AnalyticsService.queue.size()
 	SettingsManager.values.analytics_opt_in = false
 	AnalyticsService.track("first_dive", {"seed":7719})
@@ -549,10 +597,9 @@ func _test_analytics_contract() -> void:
 	var scoped_service := AnalyticsServiceClass.new()
 	scoped_service.queue_path = ANALYTICS_CLEAR_TEST_PATH
 	scoped_service.queue = [{"event":"first_dive","properties":{},"session_id":"test","timestamp":"2026-09-01T00:00:00Z"}]
-	_assert(scoped_service._persist_queue(), "Analytics clear test must persist a scoped local queue")
-	_assert(FileAccess.file_exists(ANALYTICS_CLEAR_TEST_PATH), "Analytics queue must exist before explicit local-data deletion")
-	_assert(scoped_service.clear_local_data(), "Analytics local-data deletion must report success")
-	_assert(scoped_service.queue.is_empty() and not FileAccess.file_exists(ANALYTICS_CLEAR_TEST_PATH), "Analytics local-data deletion must clear memory and remove its file")
+	_assert(scoped_service._persist_queue() and FileAccess.file_exists(ANALYTICS_CLEAR_TEST_PATH), "Analytics clear test must persist a scoped local queue before deletion")
+	var first_clear_succeeded := scoped_service.clear_local_data()
+	_assert(first_clear_succeeded and scoped_service.queue.is_empty() and not FileAccess.file_exists(ANALYTICS_CLEAR_TEST_PATH), "Analytics local-data deletion must report success, clear memory, and remove its file")
 	_assert(String(scoped_service.last_storage_status) == "cleared" and scoped_service.clear_local_data(), "Analytics local-data deletion must be inspectable and idempotent")
 	scoped_service.queue = [{"event":"first_dive","properties":{},"session_id":"legacy","timestamp":"2026-09-01T00:00:00Z"}]
 	_assert(scoped_service._persist_queue(), "Analytics boot opt-out test must stage a legacy local queue")
@@ -575,6 +622,15 @@ func _test_analytics_contract() -> void:
 	_assert(not nest._apply_toggle_value("analytics_opt_in",false), "Analytics opt-out must report failure when the preference cannot be persisted")
 	_assert(bool(SettingsManager.get_value("analytics_opt_in",false)) and bool(SaveManager.profile.settings.analytics_opt_in), "A failed opt-out persistence attempt must roll memory and profile back to the durable enabled value")
 	_assert(not AnalyticsService.queue.is_empty() and FileAccess.file_exists(ANALYTICS_OPTOUT_TEST_PATH), "A failed opt-out persistence attempt must not delete diagnostics before durable consent state changes")
+	var cleanup_failing_nest := AnalyticsCleanupFailingNest.new()
+	var cleanup_toggle_parent := VBoxContainer.new()
+	cleanup_failing_nest._add_toggle(cleanup_toggle_parent,"analytics_opt_in")
+	var cleanup_toggle := cleanup_toggle_parent.get_child(0) as CheckButton
+	cleanup_toggle.set_pressed_no_signal(false)
+	cleanup_toggle.toggled.emit(false)
+	_assert(not cleanup_toggle.button_pressed and not bool(SettingsManager.get_value("analytics_opt_in",true)) and not bool(SaveManager.profile.settings.analytics_opt_in) and not AnalyticsService.queue.is_empty() and FileAccess.file_exists(ANALYTICS_OPTOUT_TEST_PATH), "A diagnostics deletion failure must keep durable/runtime opt-out visibly OFF without pretending the retained file was deleted")
+	cleanup_toggle_parent.free()
+	cleanup_failing_nest.free()
 	_assert(nest._apply_toggle_value("analytics_opt_in",false), "Turning local diagnostics off in Settings must report a successful cleanup")
 	_assert(not bool(SettingsManager.get_value("analytics_opt_in",true)) and AnalyticsService.queue.is_empty() and not FileAccess.file_exists(ANALYTICS_OPTOUT_TEST_PATH), "Turning local diagnostics off must persist opt-out and erase queued events")
 	nest.free()

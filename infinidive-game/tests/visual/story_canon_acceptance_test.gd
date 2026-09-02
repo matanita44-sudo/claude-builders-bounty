@@ -82,8 +82,9 @@ func _run() -> void:
 	await get_tree().process_frame
 	for item in pending:
 		print("STORY CANON PENDING: " + item)
-	print("INFINIDIVE STORY CANON ACCEPTANCE: %d passed, %d failed, %d pending" % [passed,failures.size(),pending.size()])
-	get_tree().quit(1 if not failures.is_empty() else 0)
+	print("INFINIDIVE STORY CANON ACCEPTANCE PENDING: %d" % pending.size())
+	print("INFINIDIVE STORY CANON ACCEPTANCE: %d passed, %d failed" % [passed,failures.size()])
+	get_tree().quit(1 if not failures.is_empty() or not pending.is_empty() else 0)
 
 
 func _read_json_array(path: String) -> Array:

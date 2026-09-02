@@ -303,7 +303,7 @@ func _render_beat(animate: bool) -> void:
 
 	if _transition_tween and _transition_tween.is_running():
 		_transition_tween.kill()
-	var reduced_motion := bool(SettingsManager.get_value("reduced_motion", false))
+	var reduced_motion := SettingsManager.reduced_motion_enabled()
 	panel.position = Vector2(20, 500)
 	panel.modulate.a = 1.0
 	sigil.modulate.a = 1.0

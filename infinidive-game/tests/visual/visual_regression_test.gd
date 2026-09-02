@@ -166,6 +166,8 @@ func _test_projectile_contrast_contract() -> void:
 
 
 func _test_reduced_motion_contract() -> void:
+	_check(SettingsManager.normalize_setting_value("reduced_motion",1) == false,"Reduced Motion must remain a typed Boolean contract")
+	_check(is_zero_approx(float(SettingsManager.normalize_setting_value("damage_flash",-1.0))) and is_equal_approx(float(SettingsManager.normalize_setting_value("damage_flash",2.0)),1.0),"Damage Flash must clamp to the complete 0-100 percent range")
 	SettingsManager.set_value("reduced_motion",false,false)
 	var boss := BossVisualClass.new()
 	boss.setup(GameData.get_boss("gravemaw"))
@@ -184,8 +186,16 @@ func _test_reduced_motion_contract() -> void:
 	_check(is_equal_approx(boss.pulse_time,frozen_pulse),"Reduced Motion must freeze boss pulse")
 	_check(is_equal_approx(boss.spin,frozen_spin),"Reduced Motion must freeze boss rotation")
 	_check(boss.hit_flash < 0.1,"Reduced Motion must not freeze gameplay-readable hit feedback state")
+	SettingsManager.set_value("damage_flash",0.0,false)
+	boss.flash_hit()
+	_check(is_zero_approx(boss.hit_flash),"Zero Damage Flash must suppress both Titan and organ hit flashes")
 	boss.queue_free()
 	await get_tree().process_frame
+	var reduced_player := PlayerControllerClass.new()
+	reduced_player._trail = [Vector2(4,4),Vector2(8,8)]
+	reduced_player._physics_process(1.0/60.0)
+	_check(reduced_player._trail.is_empty(),"Reduced Motion must discard retained decorative Diver trail samples")
+	reduced_player.free()
 
 	_check(is_equal_approx(PlayerControllerClass.invulnerability_alpha(0.3,true),0.72),"Reduced Motion must use a stable invulnerability alpha")
 	_check(is_equal_approx(PlayerControllerClass.invulnerability_alpha(0.1,true),PlayerControllerClass.invulnerability_alpha(0.3,true)),"Reduced Motion invulnerability must not blink over time")
@@ -203,6 +213,13 @@ func _test_reduced_motion_contract() -> void:
 	SettingsManager.set_value("reduced_motion",true,false)
 	hud.show_toast("REDUCED")
 	_check(is_equal_approx(hud.toast_label.modulate.a,1.0),"Reduced Motion toast must appear without a fade-in")
+	SettingsManager.set_value("damage_flash",0.0,false)
+	_check(not hud.show_damage_feedback() and not hud.damage_edge_feedback.visible,"Zero Damage Flash must suppress the screen-edge cue")
+	SettingsManager.set_value("damage_flash",1.0,false)
+	var edge_started := hud.show_damage_feedback()
+	var edge_duration_bounded := hud.damage_edge_feedback.remaining_seconds <= SettingsManager.DAMAGE_FEEDBACK_DURATION_SECONDS
+	hud.damage_edge_feedback._process(SettingsManager.DAMAGE_FEEDBACK_DURATION_SECONDS+0.001)
+	_check(edge_started and edge_duration_bounded and not hud.damage_edge_feedback.visible,"Damage feedback must remain edge-only and expire within 0.18 seconds")
 	SettingsManager.set_value("reduced_motion",false,false)
 	hud.show_toast("STANDARD")
 	_check(is_zero_approx(hud.toast_label.modulate.a),"Standard toast may retain its short fade-in")

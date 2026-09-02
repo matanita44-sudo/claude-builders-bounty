@@ -16,15 +16,19 @@ var queue_path := QUEUE_PATH
 var session_id := ""
 var session_started_ms := 0
 var last_storage_status := "not_loaded"
+var disk_load_attempted := false
 
 func _ready() -> void:
 	session_id = "%s-%s" % [Time.get_unix_time_from_system(), randi_range(100000, 999999)]
 	session_started_ms = Time.get_ticks_msec()
-	_load_queue()
-	# Older builds retained already-recorded local diagnostics after opt-out.
-	# Retry that deletion at boot so a disabled preference remains effective even
-	# when the prior in-session file removal was interrupted.
-	if not bool(SettingsManager.get_value("analytics_opt_in", false)):
+	disk_load_attempted = false
+	# Never deserialize a diagnostics file unless consent is the literal Boolean
+	# true. A durable opt-out doubles as a deletion tombstone: if an earlier file
+	# removal was interrupted, boot retries it without bringing its contents back
+	# into process memory.
+	if _consent_enabled():
+		_load_queue()
+	else:
 		clear_local_data()
 	track("app_open", {"version": ProjectSettings.get_setting("application/config/version", "0")})
 	track("session_start")
@@ -33,7 +37,11 @@ func track(event_name: String, properties: Dictionary = {}) -> void:
 	if not ALLOWED_EVENTS.has(event_name):
 		push_warning("AnalyticsService rejected undefined event: " + event_name)
 		return
-	if not bool(SettingsManager.get_value("analytics_opt_in", false)):
+	if not _consent_enabled():
+		# Fail closed even if a caller changes SettingsManager directly instead of
+		# using the Settings screen's explicit cleanup path.
+		if not queue.is_empty() or FileAccess.file_exists(queue_path):
+			clear_local_data()
 		return
 	queue.append({
 		"event": event_name,
@@ -45,6 +53,15 @@ func track(event_name: String, properties: Dictionary = {}) -> void:
 		queue = queue.slice(queue.size() - MAX_QUEUE)
 	_persist_queue()
 
+func _consent_enabled() -> bool:
+	var consent: Variant = SettingsManager.get_value("analytics_opt_in", false)
+	return typeof(consent) == TYPE_BOOL and consent == true
+
+func has_network_transport() -> bool:
+	# The launch analytics abstraction is a bounded on-device queue only. No
+	# config value can enable a transport because no uploader exists here.
+	return false
+
 func _sanitize(properties: Dictionary) -> Dictionary:
 	var safe: Dictionary = {}
 	for key in properties:
@@ -54,6 +71,10 @@ func _sanitize(properties: Dictionary) -> Dictionary:
 	return safe
 
 func _load_queue() -> void:
+	if not _consent_enabled():
+		clear_local_data()
+		return
+	disk_load_attempted = true
 	if not FileAccess.file_exists(queue_path):
 		last_storage_status = "empty"
 		return
@@ -79,17 +100,17 @@ func _persist_queue() -> bool:
 	last_storage_status = "saved"
 	return true
 
-## Permanently clears the on-device diagnostics queue. The in-memory queue is
-## changed only after the file removal succeeds, so callers never receive a
-## false success while events remain recoverable on disk.
+## Permanently clears the on-device diagnostics queue. Memory is suppressed
+## immediately; a failed disk removal returns false and is retried at the next
+## boot while consent remains disabled.
 func clear_local_data() -> bool:
+	queue.clear()
 	if FileAccess.file_exists(queue_path):
 		var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(queue_path))
 		if remove_error != OK or FileAccess.file_exists(queue_path):
 			last_storage_status = "clear_failed"
 			push_error("AnalyticsService: failed to clear local queue")
 			return false
-	queue.clear()
 	last_storage_status = "cleared"
 	return true
 

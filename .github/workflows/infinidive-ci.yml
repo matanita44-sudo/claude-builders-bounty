@@ -66,6 +66,10 @@ jobs:
         run: |
           python3 .github/scripts/sanitize_ios_plist.py --self-test
           python3 .github/scripts/validate_ios_privacy_manifest.py --self-test
+          python3 .github/scripts/validate_ios_app_icons.py --self-test
+          python3 .github/scripts/validate_ios_simulator_app.py --self-test
+          python3 .github/scripts/validate_ios_simulator_screenshot.py --self-test
+          python3 .github/scripts/select_ios_scaffold.py --self-test
       - name: Validate retained 30-minute evidence
         if: >-
           !(github.ref == 'refs/heads/infinidive-production' &&
@@ -124,6 +128,18 @@ jobs:
       - name: Run story presentation and first-clear decision tests
         shell: bash
         run: bash .github/scripts/run_godot_checked.sh --suite story_presentation -- ./godot --headless --path infinidive-game --scene res://tests/story/StoryPresentationTest.tscn
+      - name: Run visual regression and accessibility presentation tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite visual -- ./godot --headless --path infinidive-game --scene res://tests/visual/VisualRegressionTest.tscn
+      - name: Run bilingual story canon acceptance tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite story_canon -- ./godot --headless --path infinidive-game --scene res://tests/visual/StoryCanonAcceptanceTest.tscn
+      - name: Run story overlay presentation tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite story_overlay -- ./godot --headless --path infinidive-game --scene res://tests/tutorial/StoryOverlayTest.tscn
+      - name: Run unarmed hero presentation tests
+        shell: bash
+        run: bash .github/scripts/run_godot_checked.sh --suite player_presentation -- ./godot --headless --path infinidive-game --scene res://tests/player/PlayerPresentationTest.tscn
       - name: Run bounded structural soak smoke
         shell: bash
         run: |
@@ -169,6 +185,7 @@ jobs:
           cp infinidive-game/web_pages/privacy.html build/web/privacy.html
           cp infinidive-game/web_pages/support.html build/web/support.html
           cp infinidive-game/web_pages/terms.html build/web/terms.html
+          cp infinidive-game/web_pages/notices.html build/web/notices.html
           touch build/web/.nojekyll
           mkdir -p build/pages/infinidive
           cp -a build/web/. build/pages/infinidive/
@@ -412,6 +429,10 @@ jobs:
           python3 .github/scripts/validate_ios_project_metadata.py \
             --root "${ios_output}" \
             --preset infinidive-game/export_presets.cfg
+          python3 .github/scripts/validate_ios_app_icons.py \
+            --preset infinidive-game/export_presets.cfg \
+            --project-root infinidive-game \
+            --export-root "${ios_output}"
           python3 .github/scripts/sanitize_ios_plist.py --check "${application_plist}"
           python3 .github/scripts/validate_ios_privacy_manifest.py \
             "${privacy_manifests[0]}"
@@ -424,6 +445,359 @@ jobs:
           name: infinidive-ios-unsigned-xcode-${{ github.run_attempt }}
           path: ${{ runner.temp }}/infinidive-ios-unsigned-scaffold
           if-no-files-found: error
+          retention-days: 14
+
+  ios-xcode-simulator:
+    if: >-
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/infinidive-production'
+    needs: ios-unsigned-scaffold
+    runs-on: macos-26-intel
+    timeout-minutes: 50
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout the exact tested source
+        uses: actions/checkout@v4
+      - name: Download source-bound unsigned scaffold candidates from this run
+        uses: actions/download-artifact@v4
+        with:
+          pattern: infinidive-ios-unsigned-xcode-*
+          path: ${{ runner.temp }}/infinidive-ios-scaffold-candidates
+      - name: Verify Xcode 26, iOS 26 SDK, and downloaded scaffold
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_dir="${RUNNER_TEMP}/infinidive-ios-simulator-evidence"
+          scaffold_candidates="${RUNNER_TEMP}/infinidive-ios-scaffold-candidates"
+          mkdir -p "${evidence_dir}"
+          test -d "${scaffold_candidates}"
+
+          scaffold_root="$(python3 .github/scripts/select_ios_scaffold.py \
+            --candidates-root "${scaffold_candidates}" \
+            --source-sha "${GITHUB_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --current-attempt "${GITHUB_RUN_ATTEMPT}")"
+          test -d "${scaffold_root}"
+
+          xcode_version="$(xcodebuild -version | awk 'NR == 1 { print $2 }')"
+          case "${xcode_version}" in
+            26|26.*) ;;
+            *)
+              echo "Expected Xcode 26.x, found ${xcode_version}" >&2
+              exit 1
+              ;;
+          esac
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          case "${simulator_sdk}" in
+            26|26.*) ;;
+            *)
+              echo "Expected the iOS Simulator 26.x SDK, found ${simulator_sdk}" >&2
+              exit 1
+              ;;
+          esac
+          xcodebuild -version > "${evidence_dir}/xcode-version.txt"
+          xcrun --sdk iphonesimulator --show-sdk-path \
+            > "${evidence_dir}/iphonesimulator-sdk-path.txt"
+
+          projects_file="${RUNNER_TEMP}/infinidive-xcode-projects.txt"
+          find "${scaffold_root}" -type d -name 'INFINIDIVE.xcodeproj' -print \
+            | sort > "${projects_file}"
+          test "$(wc -l < "${projects_file}" | tr -d '[:space:]')" = "1"
+          xcode_project="$(sed -n '1p' "${projects_file}")"
+          test -d "${xcode_project}"
+          test -s "${xcode_project}/project.pbxproj"
+          test -s "${scaffold_root}/UNSIGNED_LINUX_EXPORT_EVIDENCE.md"
+          echo "Downloaded scaffold source/run/attempt binding: PASS"
+
+          simulator_library="${scaffold_root}/INFINIDIVE.xcframework/ios-arm64_x86_64-simulator/libgodot.a"
+          test -s "${simulator_library}"
+          simulator_library_archs="$(xcrun lipo -archs "${simulator_library}")"
+          test "${simulator_library_archs}" = "x86_64"
+          printf '%s\n' "${simulator_library_archs}" \
+            > "${evidence_dir}/godot-simulator-library-architectures.txt"
+          device_library="${scaffold_root}/INFINIDIVE.xcframework/ios-arm64/libgodot.a"
+          test -s "${device_library}"
+          device_library_archs="$(xcrun lipo -archs "${device_library}")"
+          test "${device_library_archs}" = "arm64"
+          printf '%s\n' "${device_library_archs}" \
+            > "${evidence_dir}/godot-device-library-architectures.txt"
+
+          xcodebuild -project "${xcode_project}" -list -json \
+            > "${evidence_dir}/xcode-project-list.json"
+          python3 - "${evidence_dir}/xcode-project-list.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          listing = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          project = listing.get("project", {})
+          if "INFINIDIVE" not in project.get("targets", []):
+              raise SystemExit("downloaded Xcode project has no INFINIDIVE target")
+          if "INFINIDIVE" not in project.get("schemes", []):
+              raise SystemExit("downloaded Xcode project has no INFINIDIVE scheme")
+          print("Downloaded Xcode target/scheme validation: PASS")
+          PY
+
+          {
+            echo "SCAFFOLD_ROOT=${scaffold_root}"
+            echo "XCODE_PROJECT=${xcode_project}"
+            echo "IOS_SIM_EVIDENCE_DIR=${evidence_dir}"
+            echo "INFINIDIVE_XCODE_VERSION=${xcode_version}"
+            echo "INFINIDIVE_SIMULATOR_SDK=${simulator_sdk}"
+          } >> "${GITHUB_ENV}"
+      - name: Compile the unsigned Release x86_64 Simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          derived_data="${RUNNER_TEMP}/infinidive-derived-data"
+          test ! -e "${derived_data}"
+          xcodebuild \
+            -project "${XCODE_PROJECT}" \
+            -scheme INFINIDIVE \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "${derived_data}" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            DEVELOPMENT_TEAM= \
+            ARCHS=x86_64 \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build 2>&1 | tee "${IOS_SIM_EVIDENCE_DIR}/xcodebuild.log"
+
+          shopt -s nullglob
+          applications=("${derived_data}"/Build/Products/Release-iphonesimulator/*.app)
+          shopt -u nullglob
+          test "${#applications[@]}" -eq 1
+          simulator_app="${applications[0]}"
+          test -d "${simulator_app}"
+          python3 .github/scripts/validate_ios_simulator_app.py \
+            --app "${simulator_app}" \
+            --scaffold "${SCAFFOLD_ROOT}" \
+            --platform simulator \
+            | tee "${IOS_SIM_EVIDENCE_DIR}/simulator-app-validation.txt"
+          echo "IOS_SIM_APP=${simulator_app}" >> "${GITHUB_ENV}"
+      - name: Compile the unsigned Release arm64 iPhoneOS app
+        shell: bash
+        run: |
+          set -euo pipefail
+          derived_data="${RUNNER_TEMP}/infinidive-device-derived-data"
+          test ! -e "${derived_data}"
+          xcodebuild \
+            -project "${XCODE_PROJECT}" \
+            -scheme INFINIDIVE \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "${derived_data}" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            DEVELOPMENT_TEAM= \
+            ARCHS=arm64 \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build 2>&1 | tee "${IOS_SIM_EVIDENCE_DIR}/xcodebuild-device.log"
+
+          shopt -s nullglob
+          applications=("${derived_data}"/Build/Products/Release-iphoneos/*.app)
+          shopt -u nullglob
+          test "${#applications[@]}" -eq 1
+          device_app="${applications[0]}"
+          test -d "${device_app}"
+          python3 .github/scripts/validate_ios_simulator_app.py \
+            --app "${device_app}" \
+            --scaffold "${SCAFFOLD_ROOT}" \
+            --platform device \
+            | tee "${IOS_SIM_EVIDENCE_DIR}/device-app-validation.txt"
+          echo "IOS_DEVICE_APP=${device_app}" >> "${GITHUB_ENV}"
+      - name: Install, launch, and capture on iPhone 16 Pro Max Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtimes_json="${RUNNER_TEMP}/infinidive-simulator-runtimes.json"
+          device_types_json="${RUNNER_TEMP}/infinidive-simulator-device-types.json"
+          xcrun simctl list runtimes --json > "${runtimes_json}"
+          xcrun simctl list devicetypes --json > "${device_types_json}"
+          cp "${runtimes_json}" "${IOS_SIM_EVIDENCE_DIR}/simulator-runtimes.json"
+          cp "${device_types_json}" "${IOS_SIM_EVIDENCE_DIR}/simulator-device-types.json"
+
+          runtime_id="$(python3 - "${runtimes_json}" <<'PY'
+          import json
+          import pathlib
+          import re
+          import sys
+
+          data = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          candidates = []
+          for runtime in data.get("runtimes", []):
+              version = str(runtime.get("version", ""))
+              identifier = str(runtime.get("identifier", ""))
+              if runtime.get("isAvailable") is not True:
+                  continue
+              if not identifier.startswith("com.apple.CoreSimulator.SimRuntime.iOS-26-"):
+                  continue
+              if re.fullmatch(r"26(?:\.\d+)+", version) is None:
+                  continue
+              key = tuple(int(part) for part in version.split("."))
+              candidates.append((key, identifier))
+          if not candidates:
+              raise SystemExit("no available iOS 26.x Simulator runtime")
+          print(max(candidates)[1])
+          PY
+          )"
+          device_type_id="com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro-Max"
+          python3 - "${device_types_json}" "${device_type_id}" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          data = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          expected = sys.argv[2]
+          identifiers = {str(item.get("identifier", "")) for item in data.get("devicetypes", [])}
+          if expected not in identifiers:
+              raise SystemExit(f"required Simulator device type is unavailable: {expected}")
+          print("iPhone 16 Pro Max Simulator device type validation: PASS")
+          PY
+
+          simulator_udid=""
+          cleanup_simulator() {
+            if [[ -n "${simulator_udid}" ]]; then
+              xcrun simctl spawn "${simulator_udid}" log show \
+                --style compact --last 5m \
+                --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
+                > "${IOS_SIM_EVIDENCE_DIR}/simulator-cleanup.log" 2>&1 || true
+              xcrun simctl shutdown "${simulator_udid}" >/dev/null 2>&1 || true
+              xcrun simctl delete "${simulator_udid}" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup_simulator EXIT
+
+          simulator_name="INFINIDIVE-CI-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          simulator_udid="$(xcrun simctl create \
+            "${simulator_name}" "${device_type_id}" "${runtime_id}")"
+          test -n "${simulator_udid}"
+          xcrun simctl boot "${simulator_udid}"
+          xcrun simctl bootstatus "${simulator_udid}" -b
+          xcrun simctl spawn "${simulator_udid}" defaults write NSGlobalDomain \
+            AppleLanguages -array en
+          xcrun simctl spawn "${simulator_udid}" defaults write NSGlobalDomain \
+            AppleLocale -string en_US
+          xcrun simctl shutdown "${simulator_udid}"
+          xcrun simctl boot "${simulator_udid}"
+          xcrun simctl bootstatus "${simulator_udid}" -b
+          xcrun simctl install "${simulator_udid}" "${IOS_SIM_APP}"
+
+          set +e
+          launch_output="$(xcrun simctl launch "${simulator_udid}" \
+            com.matan.infinidive \
+            -AppleLanguages '(en)' \
+            -AppleLocale en_US 2>&1)"
+          launch_status=$?
+          set -e
+          printf '%s\n' "${launch_output}" \
+            > "${IOS_SIM_EVIDENCE_DIR}/simulator-launch.txt"
+          if [[ "${launch_status}" -ne 0 ]]; then
+            printf '%s\n' "${launch_output}" >&2
+            exit "${launch_status}"
+          fi
+          app_pid="$(printf '%s\n' "${launch_output}" | awk -F ': ' 'END { print $NF }')"
+          case "${app_pid}" in
+            ''|*[!0-9]*)
+              echo "Could not parse a numeric app PID from simctl launch: ${launch_output}" >&2
+              exit 1
+              ;;
+          esac
+
+          sleep 10
+          screenshot="${IOS_SIM_EVIDENCE_DIR}/iphone-16-pro-max-boot.png"
+          xcrun simctl io "${simulator_udid}" screenshot "${screenshot}"
+          test -s "${screenshot}"
+          dimensions="$(sips -g pixelWidth -g pixelHeight "${screenshot}")"
+          screenshot_width="$(printf '%s\n' "${dimensions}" | awk '/pixelWidth:/ { print $2 }')"
+          screenshot_height="$(printf '%s\n' "${dimensions}" | awk '/pixelHeight:/ { print $2 }')"
+          test "${screenshot_width}" = "1320"
+          test "${screenshot_height}" = "2868"
+          python3 .github/scripts/validate_ios_simulator_screenshot.py "${screenshot}" \
+            | tee "${IOS_SIM_EVIDENCE_DIR}/simulator-screenshot-validation.txt"
+
+          xcrun simctl spawn "${simulator_udid}" log show \
+            --style compact --last 5m \
+            --predicate 'process == "INFINIDIVE" OR senderImagePath CONTAINS "INFINIDIVE"' \
+            > "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log" 2>&1
+          if grep -Eiq \
+            'uncaught exception|fatal error|EXC_BAD_ACCESS|EXC_CRASH|crashed|abort trap' \
+            "${IOS_SIM_EVIDENCE_DIR}/simulator-app.log"; then
+            echo "High-signal crash/fatal marker found in native Simulator log" >&2
+            exit 1
+          fi
+
+          xcrun simctl terminate "${simulator_udid}" com.matan.infinidive
+          python3 - \
+            "${IOS_SIM_EVIDENCE_DIR}/native-simulator-evidence.json" \
+            "${GITHUB_SHA}" "${GITHUB_RUN_ID}" "${GITHUB_RUN_ATTEMPT}" \
+            "${INFINIDIVE_XCODE_VERSION}" "${INFINIDIVE_SIMULATOR_SDK}" \
+            "${runtime_id}" "${device_type_id}" "${simulator_udid}" \
+            "${app_pid}" "${screenshot_width}" "${screenshot_height}" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          output = pathlib.Path(sys.argv[1])
+          evidence = {
+              "status": "passed",
+              "source_commit": sys.argv[2],
+              "run_id": int(sys.argv[3]),
+              "run_attempt": int(sys.argv[4]),
+              "xcode_version": sys.argv[5],
+              "simulator_sdk_version": sys.argv[6],
+              "runtime_identifier": sys.argv[7],
+              "device_type_identifier": sys.argv[8],
+              "simulator_udid": sys.argv[9],
+              "application_pid": int(sys.argv[10]),
+              "bundle_identifier": "com.matan.infinidive",
+              "configuration": "Release",
+              "architecture": "x86_64",
+              "code_signing_allowed": False,
+              "english_locale": "en_US",
+              "survived_seconds_before_capture": 10,
+              "screenshot_pixels": {
+                  "width": int(sys.argv[11]),
+                  "height": int(sys.argv[12]),
+              },
+              "termination_after_capture": "passed",
+          }
+          output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print("Native iOS Simulator boot/install/launch/capture validation: PASS")
+          PY
+      - name: Package native Simulator evidence
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_archive="${IOS_SIM_EVIDENCE_DIR}/INFINIDIVE-unsigned-simulator.app.zip"
+          ditto -c -k --sequesterRsrc --keepParent "${IOS_SIM_APP}" "${app_archive}"
+          test -s "${app_archive}"
+          device_archive="${IOS_SIM_EVIDENCE_DIR}/INFINIDIVE-unsigned-device.app.zip"
+          ditto -c -k --sequesterRsrc --keepParent "${IOS_DEVICE_APP}" "${device_archive}"
+          test -s "${device_archive}"
+          (
+            cd "${IOS_SIM_EVIDENCE_DIR}"
+            for evidence_file in *; do
+              if [[ -f "${evidence_file}" && "${evidence_file}" != "SHA256SUMS" ]]; then
+                shasum -a 256 "${evidence_file}"
+              fi
+            done
+          ) | LC_ALL=C sort -k 2 > "${IOS_SIM_EVIDENCE_DIR}/SHA256SUMS"
+          test -s "${IOS_SIM_EVIDENCE_DIR}/SHA256SUMS"
+      - name: Upload native iOS Simulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinidive-ios-simulator-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/infinidive-ios-simulator-evidence
+          if-no-files-found: warn
           retention-days: 14
 
   long-soak:
@@ -558,7 +932,7 @@ jobs:
           done
           test "${deployment_ready}" = true
 
-          for path in index.html privacy.html support.html terms.html index.pck index.wasm; do
+          for path in index.html privacy.html support.html terms.html notices.html index.pck index.wasm; do
             curl --location --silent --show-error --fail \
               --max-time 120 \
               --output /dev/null \

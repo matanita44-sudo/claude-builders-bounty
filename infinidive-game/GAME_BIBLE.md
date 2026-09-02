@@ -1,6 +1,6 @@
 # INFINIDIVE — Game Bible
 
-> Truth status: pre-alpha development snapshot 0.1.0, recorded 2026-09-02. A bright Greek-mythic/AION Web pre-alpha is publicly deployed from commit `e9e7a50f`; this document is not a claim that INFINIDIVE 1.0, a production-signed store build, device-validated release, or submitted App Store product exists. Current first-breach/schema-7/Terms/stage-capture changes remain local until their next source-bound deployment.
+> Truth status: pre-alpha development snapshot 0.1.0, recorded 2026-09-02. The bright Greek-mythic/AION Web pre-alpha is publicly deployed from exact commit `a550ca867506f34856cf337fbe28083a9cdbaec5` through passing Actions run `33594396541`. This document is not a claim that INFINIDIVE 1.0, a production-signed store build, device-validated release, TestFlight build, or submitted App Store product exists. Rebuilt post-`a550ca8` accessibility/privacy/notices/iOS-validation work remains local until a new source-bound remote run proves it.
 
 ## Product identity
 
@@ -323,7 +323,7 @@ Not established by this snapshot:
 - Backend leaderboards, cloud saves or score validation
 - Monetization, purchases, ads or restore flow
 - Android or iOS signed builds
-- Release-candidate device/performance QA or physical-device control-feel testing. Commit `e9e7a50f` passed both CI-served and public-host full outside-inside-outside semantic paths plus same-context reload in Actions run `33590118787`, alongside its source-bound 30-minute structural soak. That proves automated desktop-Chromium state transitions and persistence for `e9e7a50`; it does not prove the current uncommitted first-breach/schema-7 follow-up, mobile Safari/Chrome behavior, device ergonomics, or human comprehension.
+- Release-candidate device/performance QA or physical-device control-feel testing. Commit `a550ca867506f34856cf337fbe28083a9cdbaec5` passed both CI-served and public-host full outside-inside-outside semantic paths plus same-context reload in Actions run `33594396541`, alongside its source-bound 1,800.026-second structural soak. That proves automated desktop-Chromium state transitions and persistence for `a550ca8`; it does not prove the rebuilt local follow-up, Mobile Safari/Chrome behavior, native Simulator/device ergonomics, or human comprehension.
 - Final Apple 6.9-inch screenshots, a supported-Apple-path App Preview capture, store approval, or submission. Five 1080×1920 stills, an audio-complete 1080×1920 social edit, and an 886×1920 Apple-format experiment exist, but all are virtual-display evidence from the superseded pre-pivot identity and must not represent the current product.
 
 ## Source precedence

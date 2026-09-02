@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#8bd3f2">
+  <meta name="description" content="Open-source notices for the pre-release INFINIDIVE game.">
+  <title>INFINIDIVE — Open-Source Notices</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --space: #eaf8ff;
+      --panel: #ffffff;
+      --text: #17324b;
+      --muted: #51697d;
+      --cyan: #087783;
+      --amber: #9a5b00;
+      --line: rgba(21, 112, 132, .22);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--space); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% -12%, rgba(255, 211, 104, .45), transparent 27rem),
+        radial-gradient(circle at 10% 10%, rgba(59, 183, 216, .24), transparent 32rem),
+        linear-gradient(180deg, #bfeaff 0%, var(--space) 42%);
+      line-height: 1.65;
+    }
+    a { color: var(--cyan); }
+    a:focus-visible {
+      outline: 3px solid var(--amber);
+      outline-offset: 4px;
+      border-radius: 4px;
+    }
+    .skip { position: absolute; left: -9999px; top: 0; }
+    .skip:focus {
+      left: 1rem;
+      top: 1rem;
+      z-index: 10;
+      padding: .7rem 1rem;
+      color: #17324b;
+      background: #ffd477;
+    }
+    header, main, footer {
+      width: min(100% - 2rem, 56rem);
+      margin-inline: auto;
+    }
+    header { padding: max(2rem, env(safe-area-inset-top)) 0 1.25rem; }
+    .eyebrow {
+      margin: 0 0 .35rem;
+      color: var(--cyan);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { line-height: 1.2; }
+    h1 { margin: 0; font-size: clamp(2.1rem, 8vw, 4.5rem); letter-spacing: -.04em; }
+    h2 { margin-top: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
+    h3 { margin-bottom: .25rem; font-size: 1.05rem; color: var(--cyan); }
+    p { margin-top: .45rem; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .65rem;
+      margin-top: 1.25rem;
+    }
+    nav a {
+      display: inline-block;
+      padding: .58rem .82rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      text-decoration: none;
+      background: rgba(255, 255, 255, .78);
+    }
+    .notice {
+      margin: .5rem 0 1.25rem;
+      padding: .9rem 1rem;
+      border-left: 4px solid var(--amber);
+      border-radius: .4rem;
+      color: #6f4300;
+      background: rgba(255, 205, 91, .2);
+    }
+    .card {
+      margin: 1rem 0;
+      padding: clamp(1.1rem, 4vw, 2rem);
+      border: 1px solid var(--line);
+      border-radius: 1.2rem;
+      background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(240, 250, 255, .98));
+      box-shadow: 0 1.2rem 3.5rem rgba(39, 104, 129, .14);
+    }
+    .license {
+      overflow-x: auto;
+      margin: 1rem 0;
+      padding: 1rem;
+      border: 1px solid rgba(21, 112, 132, .18);
+      border-radius: .8rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #203a4f;
+      background: rgba(234, 248, 255, .74);
+      font: .84rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .muted, footer { color: var(--muted); }
+    .rtl { direction: rtl; text-align: right; }
+    .rtl .notice { border-left: 0; border-right: 4px solid var(--amber); }
+    .rtl .license { direction: ltr; text-align: left; }
+    footer {
+      padding: 1.5rem 0 max(2rem, env(safe-area-inset-bottom));
+      text-align: center;
+      font-size: .9rem;
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#english">Skip to notices</a>
+  <header>
+    <p class="eyebrow">INFINIDIVE · PRE-RELEASE</p>
+    <h1>Open-Source Notices</h1>
+    <p class="muted">Version 0.1.0 · Last updated September 2, 2026</p>
+    <nav aria-label="Page navigation">
+      <a href="#english">English</a>
+      <a href="#hebrew" lang="he" dir="rtl">עברית</a>
+      <a href="privacy.html">Privacy / פרטיות</a>
+      <a href="support.html">Support / תמיכה</a>
+      <a href="terms.html">Terms / תנאים</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="notice" role="note">
+      This notice covers the reviewed public pre-release. The exact frozen App Store archive must receive a fresh dependency and license audit before submission.
+    </div>
+
+    <section class="card" id="english" aria-labelledby="english-title">
+      <p class="eyebrow">English</p>
+      <h2 id="english-title">Godot Engine</h2>
+      <p>INFINIDIVE is built with Godot Engine. Godot Engine is free and open-source software distributed under the MIT License. The upstream copyright and license text follows.</p>
+      <pre class="license">Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md).
+Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre>
+
+      <h3>Current creative-asset boundary</h3>
+      <p>The reviewed project inventory contains no separately sourced third-party character art, environment art, stock image, icon set, font, sampled sound effect, recorded music, or watermarked material. INFINIDIVE's current code-native art, procedural audio, original source assets, and project-generated image outputs are documented in <code>ASSET_LICENSES.md</code>. Image-generator outputs remain subject to the provider terms applicable to the owner's service account.</p>
+      <p>This page is not a claim that a future build will contain no additional dependency. Any library, SDK, asset, font, sample, or service added later must be recorded with its applicable license and notice before release.</p>
+    </section>
+
+    <section class="card rtl" id="hebrew" lang="he" dir="rtl" aria-labelledby="hebrew-title">
+      <p class="eyebrow">עברית</p>
+      <h2 id="hebrew-title">מנוע Godot</h2>
+      <p>INFINIDIVE נבנה באמצעות Godot Engine. מנוע Godot הוא תוכנה חופשית בקוד פתוח שמופצת ברישיון MIT. נוסח זכויות היוצרים והרישיון המקורי באנגלית מופיע לעיל במלואו והוא הנוסח הקובע.</p>
+
+      <h3>גבול נכסי היצירה הנוכחי</h3>
+      <p>במלאי הפרויקט שנבדק אין גרפיקת דמויות או סביבות ממקור חיצוני, תמונות סטוק, ערכת אייקונים, גופן, אפקט שמע מדוגם, מוזיקה מוקלטת או חומר עם סימן מים שנרכשו או הועתקו מצד שלישי. הגרפיקה שנוצרת בקוד, השמע הפרוצדורלי, נכסי המקור המקוריים ותוצרי התמונות שנוצרו עבור הפרויקט מתועדים בקובץ <code>ASSET_LICENSES.md</code>. תוצרי מחולל התמונות עדיין כפופים לתנאי הספק שחלים על חשבון השירות של בעל הפרויקט.</p>
+      <p>עמוד זה אינו טוען שגרסה עתידית לא תכלול תלות נוספת. כל ספרייה, SDK, נכס, גופן, דגימת שמע או שירות שיתווספו בעתיד חייבים להירשם יחד עם הרישיון וההודעה המתאימים לפני ההפצה.</p>
+
+      <div class="notice" role="note">
+        הודעה זו מכסה את גרסת טרום־ההשקה הציבורית שנבדקה. לפני ההגשה יש לבצע בדיקת תלויות ורישיונות חדשה לארכיון App Store הסופי והקפוא.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>INFINIDIVE · Version 0.1.0 pre-release · <a href="privacy.html">Privacy / פרטיות</a> · <a href="support.html">Support / תמיכה</a> · <a href="terms.html">Terms / תנאים</a></p>
+  </footer>
+</body>
+</html>

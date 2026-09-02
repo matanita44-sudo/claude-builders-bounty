@@ -5,14 +5,14 @@
 **Requirements reviewed:** 2026-09-02\
 **Support contact:** `matanita44@gmail.com`
 
-This file contains candidate English and Hebrew listing copy plus current official asset requirements. It does not mean that INFINIDIVE is store-ready, approved, uploaded, or signed. Automated exported-Web whole-path gameplay has evidence; human touch feel, mobile Safari/Chrome, native install, and device QA remain unverified.
+This file contains candidate English and Hebrew listing copy plus current official asset requirements. It does not mean that INFINIDIVE is store-ready, approved, uploaded, or signed. Public Web evidence remains bound to `a550ca8`; the rebuilt local tree passes `29,815/0` across 19 suites but has no remote/native evidence yet. Human touch feel, Mobile Safari/Chrome, signed native install, TestFlight, and device QA remain unverified.
 
 ## Submission blockers and truth constraints
 
-- Privacy and support pages are available as public pre-release pages at the HTTPS URLs listed below. Final legal review is still required before store submission.
+- Privacy and support pages are available as public pre-release pages at the HTTPS URLs listed below. The rebuilt notices page is local and must be deployed, link-checked, and audited against the frozen archive. Final legal review is still required before store submission.
 - Original brand sources and raster exports exist for the icon, wordmark, Google feature graphic, and social card; their current-pivot derivatives must be revalidated before release. Five 1080×1920 real-runtime stills and two 17.2-second development trailers also exist, but they show the pre-pivot dark GRAVEMAW identity. They are historical development evidence only, not current store or marketing assets. The stills also miss Apple's 6.9-inch submission sizes. If App Preview is used, recapture it from the frozen bright Greek-mythic release candidate through a supported Apple workflow.
 - Android presets target `com.matan.infinidive`, include a separate Gradle/AAB preset, and request only normal `android.permission.VIBRATE` for optional haptics. The verified template-install path creates `android/build`, but no compiled/signed AAB or internal-test upload is evidenced.
-- The iOS preset uses `com.matan.infinidive`, targets iPhone, and wires exact-size RGB/no-alpha icons plus custom portrait launch assets. A fresh local unsigned scaffold passes strict plist/privacy/launch/Bundle ID/version/empty-entitlement checks and scrubs its fake export-only Team ID. Remote committed evidence is pending; no macOS/Xcode 26 compile/archive, signed install, or TestFlight upload is evidenced.
+- The rebuilt local iOS scaffold repairs scheme-to-target binding and passes metadata, icon, launch, and privacy validators. This is structural Linux evidence only; Mac/Xcode compile, Simulator/device install, archive, signing, physical-device test, and TestFlight remain pending remote work.
 - There is no backend, cloud save, remote leaderboard, account, advertising, or purchase flow. Listing copy must not imply otherwise.
 - Daily Rift and Friend Rift are local deterministic modes. Friend challenges are exchanged as codes through a player-directed clipboard action.
 - English is the game default. Hebrew remains an optional language selected manually in Settings and is never selected automatically for a fresh profile. English and Hebrew metadata drafts are retained here, but do not publish a Hebrew store localization until text fit, visual order, screenshots, and live language switching pass final device QA.

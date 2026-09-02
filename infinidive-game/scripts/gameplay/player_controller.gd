@@ -157,9 +157,15 @@ func _physics_process(delta: float) -> void:
 	position.y = clampf(position.y, combat_bounds.position.y, combat_bounds.end.y)
 	_target.x = clampf(_target.x, combat_bounds.position.x, combat_bounds.end.x)
 	_target.y = clampf(_target.y, combat_bounds.position.y, combat_bounds.end.y)
-	_trail.push_front(position)
-	if _trail.size() > 13:
-		_trail.pop_back()
+	# The trail is decorative, so Reduced Motion removes its retained samples as
+	# well as the draw call. This prevents a stale ribbon appearing after the
+	# preference is changed during a run.
+	if SettingsManager.reduced_motion_enabled():
+		_trail.clear()
+	else:
+		_trail.push_front(position)
+		if _trail.size() > 13:
+			_trail.pop_back()
 	queue_redraw()
 
 func request_dash(direction: Vector2 = Vector2.ZERO) -> bool:
@@ -191,7 +197,7 @@ func take_damage(amount: float, cause: String) -> bool:
 		return false
 	health = maxf(0.0, health - amount)
 	invulnerability = 0.52
-	_damage_flash = 0.24
+	_damage_flash = SettingsManager.DAMAGE_FEEDBACK_DURATION_SECONDS if SettingsManager.damage_flash_intensity() > 0.0 else 0.0
 	damaged.emit(amount, cause)
 	if health <= 0.0:
 		died.emit(cause)
@@ -242,13 +248,13 @@ static func invulnerability_alpha(time_remaining: float, reduced_motion: bool) -
 	return 0.4 if int(time_remaining * 24.0) % 2 == 0 else 1.0
 
 func _draw() -> void:
-	var reduced_motion:=bool(SettingsManager.get_value("reduced_motion",false))
+	var reduced_motion:=SettingsManager.reduced_motion_enabled()
 	if not reduced_motion:
 		for index in range(_trail.size() - 1, -1, -1):
 			var point := to_local(_trail[index])
 			var alpha := (1.0 - float(index) / maxf(1.0, _trail.size())) * 0.17
 			draw_circle(point, 3.0 + (12 - index) * 0.28, Color(VisualTheme.FRIENDLY, alpha))
-	var flash_strength := clampf(float(SettingsManager.get_value("damage_flash",0.7)),0.0,1.0)
+	var flash_strength := SettingsManager.damage_flash_intensity()
 	var hero_alpha:=invulnerability_alpha(invulnerability,reduced_motion)
 	var lean:=clampf(velocity.x/maxf(1.0,max_speed),-1.0,1.0)*0.12
 	if _hero_texture!=null:

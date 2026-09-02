@@ -90,16 +90,19 @@ func set_health(current: float, maximum: float) -> void:
 	queue_redraw()
 
 func flash_hit() -> void:
-	hit_flash = 0.1
+	# Damage Flash is one contract for the Diver, Titan portrait, procedural
+	# silhouette, and organ crystal. Zero therefore suppresses every white flash
+	# instead of only changing the player sprite.
+	hit_flash = 0.1 if SettingsManager.damage_flash_intensity() > 0.0 else 0.0
 	queue_redraw()
 
 func _process(delta: float) -> void:
 	# Boss silhouettes, scars, breach state, and health remain fully readable in
 	# Reduced Motion; only decorative breathing and rotation are frozen.
-	if not bool(SettingsManager.get_value("reduced_motion", false)):
+	if not SettingsManager.reduced_motion_enabled():
 		pulse_time += delta
 		spin += delta * (0.16 + phase * 0.025)
-	hit_flash = maxf(0.0, hit_flash - delta)
+	hit_flash = maxf(0.0, hit_flash - delta) if SettingsManager.damage_flash_intensity() > 0.0 else 0.0
 	queue_redraw()
 
 func target_position() -> Vector2:
@@ -148,9 +151,10 @@ func _organic_ellipse(center: Vector2, radius_x: float, radius_y: float, count: 
 	return result
 
 func _flash_color(color: Color, amount: float = 0.72) -> Color:
-	if hit_flash <= 0.0:
+	var configured_intensity := SettingsManager.damage_flash_intensity()
+	if hit_flash <= 0.0 or configured_intensity <= 0.0:
 		return color
-	return color.lerp(Color.WHITE, amount)
+	return color.lerp(Color.WHITE, clampf(amount,0.0,1.0) * configured_intensity)
 
 func _draw_soft_glow(center: Vector2, radius: float, color: Color, strength: float = 1.0) -> void:
 	for layer in range(5, 0, -1):
@@ -202,8 +206,9 @@ func _draw_titan_texture(boss_id: String) -> bool:
 	# while retaining the cheerful palette and colossal raid-boss scale.
 	draw_texture_rect(texture,Rect2(portrait_rect.position+Vector2(6,8),portrait_rect.size),false,Color(0.08,0.12,0.20,0.25))
 	draw_texture_rect(texture,portrait_rect,false,Color.WHITE)
-	if hit_flash > 0.0:
-		draw_texture_rect(texture,portrait_rect,false,Color(1.0,1.0,1.0,clampf(hit_flash*4.5,0.0,0.42)))
+	var flash_intensity := SettingsManager.damage_flash_intensity()
+	if hit_flash > 0.0 and flash_intensity > 0.0:
+		draw_texture_rect(texture,portrait_rect,false,Color(1.0,1.0,1.0,clampf(hit_flash*4.5,0.0,0.42)*flash_intensity))
 	_draw_titan_texture_nodes(boss_id)
 	_draw_phase_cracks(Color("#FFF0A8"))
 	return true
@@ -678,5 +683,6 @@ func _draw_divine_interior() -> void:
 		var anchor_angle := anchor*TAU/8.0
 		var anchor_point := Vector2.from_angle(anchor_angle)*86.0
 		draw_colored_polygon(PackedVector2Array([anchor_point+Vector2.from_angle(anchor_angle-0.7)*5.0,anchor_point+Vector2.from_angle(anchor_angle)*10.0,anchor_point+Vector2.from_angle(anchor_angle+0.7)*5.0]),Color("#FFF0A8"))
-	if hit_flash>0.0:
-		draw_colored_polygon(outer_crystal,Color(1,1,1,0.18))
+	var flash_intensity := SettingsManager.damage_flash_intensity()
+	if hit_flash>0.0 and flash_intensity>0.0:
+		draw_colored_polygon(outer_crystal,Color(1,1,1,0.18*flash_intensity))
