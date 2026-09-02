@@ -1,0 +1,1090 @@
+name: INFINIDIVE signed iOS release
+
+run-name: >-
+  iOS ${{ inputs.release_tag }} — ${{ inputs.marketing_version }} (${{ inputs.build_number }})
+  ${{ inputs.upload_to_app_store_connect && 'archive + upload' || 'archive only' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Protected immutable source tag, for example ios-v0.1.0-build.1
+        required: true
+        default: ios-v0.1.0-build.1
+        type: string
+      bundle_identifier:
+        description: Must exactly match the frozen source preset and App Store profile
+        required: true
+        default: com.matan.infinidive
+        type: string
+      marketing_version:
+        description: Frozen CFBundleShortVersionString, for example 0.1.0
+        required: true
+        default: 0.1.0
+        type: string
+      build_number:
+        description: Frozen, unused CFBundleVersion; must be monotonic in App Store Connect
+        required: true
+        default: "1"
+        type: string
+      apple_app_id:
+        description: Numeric App Store Connect Apple ID; required only when upload is true
+        required: false
+        default: ""
+        type: string
+      upload_to_app_store_connect:
+        description: BLOCKED pending protected Xcode 26 altool-schema calibration; keep false
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: infinidive-ios-app-store-release
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_STATUS: stable
+  GODOT_LINUX_SHA256: cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4
+  GODOT_TEMPLATES_SHA256: f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011
+
+jobs:
+  source-bound-scaffold:
+    name: Regenerate source-bound unsigned scaffold
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      release_sha: ${{ steps.bind-release.outputs.release_sha }}
+    steps:
+      - name: Checkout trusted release controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+          path: control
+
+      - name: Checkout requested release tag as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.release_tag }}
+          path: release
+
+      - name: Checkout default-branch workflow registration as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.repository.default_branch }}
+          path: registration
+          sparse-checkout: .github/workflows/infinidive-ios-release.yml
+          sparse-checkout-cone-mode: false
+
+      - name: Bind trusted controls to the immutable release tag
+        id: bind-release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          BUNDLE_ID: ${{ inputs.bundle_identifier }}
+          MARKETING_VERSION: ${{ inputs.marketing_version }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+          APPLE_APP_ID: ${{ inputs.apple_app_id }}
+          UPLOAD_REQUESTED: ${{ inputs.upload_to_app_store_connect }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_TYPE}" = "branch"
+          test "${GITHUB_REF_NAME}" = "infinidive-production"
+          test "${DEFAULT_BRANCH}" = "main"
+          test "$(git -C control rev-parse HEAD)" = "${GITHUB_SHA}"
+          git -C control diff --quiet
+          git -C control diff --cached --quiet
+          test -f registration/.github/workflows/infinidive-ios-release.yml
+          cmp -s control/.github/workflows/infinidive-ios-release.yml \
+            registration/.github/workflows/infinidive-ios-release.yml
+
+          expected_tag="ios-v${MARKETING_VERSION}-build.${BUILD_NUMBER}"
+          test "${RELEASE_TAG}" = "${expected_tag}"
+          if [[ "${UPLOAD_REQUESTED}" == "true" ]]; then
+            echo "Automated upload is fail-closed pending protected Xcode 26 altool JSON-schema calibration" >&2
+            exit 1
+          fi
+          test -z "${APPLE_APP_ID}"
+          git -C release show-ref --verify --quiet "refs/tags/${RELEASE_TAG}"
+          release_sha="$(git -C release rev-parse HEAD)"
+          tag_sha="$(git -C release rev-list -n 1 "refs/tags/${RELEASE_TAG}")"
+          test "${release_sha}" = "${tag_sha}"
+          [[ "${release_sha}" =~ ^[0-9a-f]{40}$ ]]
+          git -C control merge-base --is-ancestor "${release_sha}" "${GITHUB_SHA}"
+          git -C release diff --quiet
+          git -C release diff --cached --quiet
+
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --source-preset release/infinidive-game/export_presets.cfg \
+            --project release/infinidive-game/project.godot \
+            --bundle-id "${BUNDLE_ID}" \
+            --marketing-version "${MARKETING_VERSION}" \
+            --build-number "${BUILD_NUMBER}"
+          echo "release_sha=${release_sha}" >> "${GITHUB_OUTPUT}"
+          echo "IOS_RELEASE_SHA=${release_sha}" >> "${GITHUB_ENV}"
+
+      - name: Require successful production CI for the exact release SHA
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -n "${GITHUB_TOKEN}"
+          ci_runs_json="$(mktemp "${RUNNER_TEMP}/infinidive-ci-runs.XXXXXX.json")"
+          trap 'rm -f -- "${ci_runs_json}"' EXIT
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --retry 3 \
+            --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --output "${ci_runs_json}" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/workflows/infinidive-ci.yml/runs?head_sha=${IOS_RELEASE_SHA}&status=success&per_page=100"
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --ci-runs-json "${ci_runs_json}" \
+            --source-sha "${IOS_RELEASE_SHA}" \
+            --repository "${GITHUB_REPOSITORY}"
+
+      - name: Run release validator self-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONDONTWRITEBYTECODE=1 \
+            python3 control/.github/scripts/validate_ios_release_archive.py --self-test
+          PYTHONDONTWRITEBYTECODE=1 \
+            python3 control/.github/scripts/sanitize_ios_plist.py --self-test
+          PYTHONDONTWRITEBYTECODE=1 \
+            python3 control/.github/scripts/validate_ios_privacy_manifest.py --self-test
+          PYTHONDONTWRITEBYTECODE=1 \
+            python3 control/.github/scripts/validate_ios_app_icons.py --self-test
+          PYTHONDONTWRITEBYTECODE=1 \
+            python3 control/.github/scripts/select_ios_scaffold.py --self-test
+
+      - name: Install verified Godot editor and iOS export template
+        shell: bash
+        working-directory: control
+        env:
+          GODOT_INSTALL_IOS_TEMPLATE: "1"
+        run: bash .github/scripts/install_godot.sh
+
+      - name: Export, sanitize, finalize, and validate the Xcode scaffold
+        shell: bash
+        env:
+          INFINIDIVE_RELEASE_FAKE_TEAM_ID: CIEXPORT00
+        run: |
+          set -euo pipefail
+          project_copy="$(mktemp -d "${RUNNER_TEMP}/infinidive-ios-release-project.XXXXXX")"
+          output_root="${RUNNER_TEMP}/infinidive-ios-release-scaffold"
+          test ! -e "${output_root}"
+          mkdir -p "${output_root}"
+          cleanup_project_copy() {
+            rm -rf -- "${project_copy}"
+          }
+          trap cleanup_project_copy EXIT
+
+          cp -a release/infinidive-game/. "${project_copy}/"
+          python3 - "release/infinidive-game/export_presets.cfg" \
+            "${project_copy}/export_presets.cfg" <<'PY'
+          import os
+          import pathlib
+          import re
+          import sys
+
+          source = pathlib.Path(sys.argv[1])
+          temporary = pathlib.Path(sys.argv[2])
+          fake_team_id = os.environ["INFINIDIVE_RELEASE_FAKE_TEAM_ID"]
+          if re.fullmatch(r"CI[A-Z0-9]{8}", fake_team_id) is None:
+              raise SystemExit("release placeholder Team ID is malformed")
+          source_text = source.read_text(encoding="utf-8")
+          temporary_text = temporary.read_text(encoding="utf-8")
+          marker = 'application/app_store_team_id=""'
+          if source_text.count(marker) != 1 or temporary_text.count(marker) != 1:
+              raise SystemExit("checked-in and temporary presets must each have one blank Team ID")
+          temporary.write_text(
+              temporary_text.replace(
+                  marker,
+                  f'application/app_store_team_id="{fake_team_id}"',
+                  1,
+              ),
+              encoding="utf-8",
+          )
+          PY
+
+          control/godot --headless --path "${project_copy}" --export-release iOS \
+            "${output_root}/INFINIDIVE.xcodeproj"
+          test -d "${output_root}/INFINIDIVE.xcodeproj"
+
+          application_plists=()
+          while IFS= read -r path; do
+            application_plists+=("${path}")
+          done < <(find "${output_root}" -type f -name '*-Info.plist' -print | sort)
+          test "${#application_plists[@]}" -eq 1
+          application_plist="${application_plists[0]}"
+          python3 control/.github/scripts/sanitize_ios_plist.py "${application_plist}"
+          python3 control/.github/scripts/sanitize_ios_plist.py --check "${application_plist}"
+
+          python3 control/.github/scripts/validate_ios_launch_screen.py \
+            --preset release/infinidive-game/export_presets.cfg \
+            --project-root release/infinidive-game \
+            --export-root "${output_root}"
+          privacy_manifests=()
+          while IFS= read -r path; do
+            privacy_manifests+=("${path}")
+          done < <(find "${output_root}" -type f -name PrivacyInfo.xcprivacy -print | sort)
+          test "${#privacy_manifests[@]}" -eq 1
+          python3 control/.github/scripts/validate_ios_privacy_manifest.py \
+            "${privacy_manifests[0]}"
+
+          python3 control/.github/scripts/finalize_ios_scaffold.py \
+            --root "${output_root}" \
+            --placeholder-team-id "${INFINIDIVE_RELEASE_FAKE_TEAM_ID}" \
+            --source-sha "${IOS_RELEASE_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          python3 control/.github/scripts/validate_ios_project_metadata.py \
+            --root "${output_root}" \
+            --preset release/infinidive-game/export_presets.cfg
+          python3 control/.github/scripts/validate_ios_app_icons.py \
+            --preset release/infinidive-game/export_presets.cfg \
+            --project-root release/infinidive-game \
+            --export-root "${output_root}"
+          python3 control/.github/scripts/sanitize_ios_plist.py --check "${application_plist}"
+          python3 control/.github/scripts/validate_ios_privacy_manifest.py \
+            "${privacy_manifests[0]}"
+          ! grep -R -F -l "${INFINIDIVE_RELEASE_FAKE_TEAM_ID}" "${output_root}"
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --scaffold "${output_root}"
+
+      - name: Upload source-bound unsigned scaffold
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: infinidive-ios-unsigned-xcode-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/infinidive-ios-release-scaffold
+          if-no-files-found: error
+          retention-days: 1
+
+  signed-archive:
+    name: Sign, archive, validate, and optionally upload
+    needs: source-bound-scaffold
+    runs-on: macos-26-intel
+    timeout-minutes: 90
+    environment: app-store-production
+    steps:
+      - name: Checkout trusted release controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+          path: control
+
+      - name: Checkout requested release tag as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.source-bound-scaffold.outputs.release_sha }}
+          path: release
+
+      - name: Download this run's source-bound scaffold
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: infinidive-ios-unsigned-xcode-*
+          path: ${{ runner.temp }}/infinidive-ios-release-scaffold-candidates
+
+      - name: Verify Xcode 26 and select the exact scaffold
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          EXPECTED_RELEASE_SHA: ${{ needs.source-bound-scaffold.outputs.release_sha }}
+          BUNDLE_ID: ${{ inputs.bundle_identifier }}
+          MARKETING_VERSION: ${{ inputs.marketing_version }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_TYPE}" = "branch"
+          test "${GITHUB_REF_NAME}" = "infinidive-production"
+          test "$(git -C control rev-parse HEAD)" = "${GITHUB_SHA}"
+          git -C control diff --quiet
+          git -C control diff --cached --quiet
+          git -C release show-ref --verify --quiet "refs/tags/${RELEASE_TAG}"
+          release_sha="$(git -C release rev-parse HEAD)"
+          tag_sha="$(git -C release rev-list -n 1 "refs/tags/${RELEASE_TAG}")"
+          test "${release_sha}" = "${EXPECTED_RELEASE_SHA}"
+          test "${release_sha}" = "${tag_sha}"
+          [[ "${release_sha}" =~ ^[0-9a-f]{40}$ ]]
+          git -C control merge-base --is-ancestor "${release_sha}" "${GITHUB_SHA}"
+          git -C release diff --quiet
+          git -C release diff --cached --quiet
+
+          xcode_version="$(xcodebuild -version | awk 'NR == 1 { print $2 }')"
+          case "${xcode_version}" in
+            26|26.*) ;;
+            *)
+              echo "Xcode 26.x is required; found ${xcode_version}" >&2
+              exit 1
+              ;;
+          esac
+          sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          case "${sdk_version}" in
+            26|26.*) ;;
+            *)
+              echo "iOS 26.x SDK is required; found ${sdk_version}" >&2
+              exit 1
+              ;;
+          esac
+
+          candidates="${RUNNER_TEMP}/infinidive-ios-release-scaffold-candidates"
+          scaffold_root="$(python3 control/.github/scripts/select_ios_scaffold.py \
+            --candidates-root "${candidates}" \
+            --source-sha "${release_sha}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --current-attempt "${GITHUB_RUN_ATTEMPT}")"
+          test -d "${scaffold_root}"
+          xcode_project="${scaffold_root}/INFINIDIVE.xcodeproj"
+          test -d "${xcode_project}"
+
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --source-preset release/infinidive-game/export_presets.cfg \
+            --project release/infinidive-game/project.godot \
+            --bundle-id "${BUNDLE_ID}" \
+            --marketing-version "${MARKETING_VERSION}" \
+            --build-number "${BUILD_NUMBER}"
+          python3 control/.github/scripts/validate_ios_project_metadata.py \
+            --root "${scaffold_root}" \
+            --preset release/infinidive-game/export_presets.cfg
+          python3 control/.github/scripts/validate_ios_app_icons.py \
+            --preset release/infinidive-game/export_presets.cfg \
+            --project-root release/infinidive-game \
+            --export-root "${scaffold_root}"
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --scaffold "${scaffold_root}"
+
+          source_pck_sha256="$(python3 - "${scaffold_root}" <<'PY'
+          import hashlib
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          expected = root / "INFINIDIVE.pck"
+          candidates = sorted(root.rglob("*.pck"))
+          if (
+              candidates != [expected]
+              or expected.is_symlink()
+              or not expected.is_file()
+              or expected.stat().st_size < 1
+          ):
+              raise SystemExit("scaffold must contain exactly one regular root INFINIDIVE.pck")
+          digest = hashlib.sha256()
+          with expected.open("rb") as handle:
+              for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                  digest.update(chunk)
+          print(digest.hexdigest())
+          PY
+          )"
+          [[ "${source_pck_sha256}" =~ ^[0-9a-f]{64}$ ]]
+
+          {
+            echo "IOS_SCAFFOLD_ROOT=${scaffold_root}"
+            echo "IOS_XCODE_PROJECT=${xcode_project}"
+            echo "IOS_XCODE_VERSION=${xcode_version}"
+            echo "IOS_SDK_VERSION=${sdk_version}"
+            echo "IOS_RELEASE_SHA=${release_sha}"
+            echo "IOS_SOURCE_PCK_SHA256=${source_pck_sha256}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Import protected distribution identity and App Store profile
+        shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.APPLE_APP_STORE_PROVISIONING_PROFILE_BASE64 }}
+          BUNDLE_ID: ${{ inputs.bundle_identifier }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          for variable_name in \
+            APPLE_TEAM_ID CERTIFICATE_BASE64 CERTIFICATE_PASSWORD PROFILE_BASE64; do
+            if [[ -z "${!variable_name:-}" ]]; then
+              echo "Required protected secret is missing: ${variable_name}" >&2
+              exit 1
+            fi
+          done
+          if [[ ! "${APPLE_TEAM_ID}" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "APPLE_TEAM_ID must be ten uppercase letters/digits" >&2
+            exit 1
+          fi
+
+          signing_root="${RUNNER_TEMP}/infinidive-ios-signing"
+          evidence_dir="${RUNNER_TEMP}/infinidive-ios-release-evidence"
+          keychain_path="${RUNNER_TEMP}/infinidive-ios-release.keychain-db"
+          certificate_path="${signing_root}/distribution.p12"
+          certificate_pem="${signing_root}/distribution.pem"
+          profile_path="${signing_root}/app-store.mobileprovision"
+          profile_plist="${signing_root}/app-store-profile.plist"
+          original_keychains="${RUNNER_TEMP}/infinidive-original-keychains.txt"
+          profile_install_dir="${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          mkdir -p "${signing_root}" "${profile_install_dir}" "${evidence_dir}"
+          test ! -e "${keychain_path}"
+
+          printf '%s' "${CERTIFICATE_BASE64}" | /usr/bin/base64 -D > "${certificate_path}"
+          printf '%s' "${PROFILE_BASE64}" | /usr/bin/base64 -D > "${profile_path}"
+          test -s "${certificate_path}"
+          test -s "${profile_path}"
+          chmod 600 "${certificate_path}" "${profile_path}"
+
+          keychain_password="$(openssl rand -hex 32)"
+          echo "::add-mask::${keychain_password}"
+          security list-keychains -d user > "${original_keychains}"
+          security create-keychain -p "${keychain_password}" "${keychain_path}"
+          security set-keychain-settings -lut 7200 "${keychain_path}"
+          security unlock-keychain -p "${keychain_password}" "${keychain_path}"
+          security import "${certificate_path}" \
+            -k "${keychain_path}" \
+            -P "${CERTIFICATE_PASSWORD}" \
+            -x \
+            -T /usr/bin/codesign > /dev/null
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "${keychain_password}" "${keychain_path}" > /dev/null
+
+          imported_keychains=()
+          while IFS= read -r line; do
+            candidate="${line#*\"}"
+            candidate="${candidate%\"*}"
+            if [[ -n "${candidate}" ]]; then
+              imported_keychains+=("${candidate}")
+            fi
+          done < "${original_keychains}"
+          security list-keychains -d user -s \
+            "${keychain_path}" "${imported_keychains[@]}"
+
+          identity_output="$(security find-identity -v -p codesigning "${keychain_path}")"
+          identity_hashes="$(printf '%s\n' "${identity_output}" \
+            | sed -nE 's/^[[:space:]]*[0-9]+\) ([0-9A-F]{40}) .*/\1/p')"
+          identity_count="$(printf '%s\n' "${identity_hashes}" | sed '/^$/d' | wc -l | tr -d '[:space:]')"
+          test "${identity_count}" = "1"
+          identity_sha1="$(printf '%s\n' "${identity_hashes}" | sed -n '1p')"
+          [[ "${identity_sha1}" =~ ^[0-9A-F]{40}$ ]]
+          identity_name="$(printf '%s\n' "${identity_output}" \
+            | sed -nE 's/^[[:space:]]*[0-9]+\) [0-9A-F]{40} "(.*)"$/\1/p')"
+          test -n "${identity_name}"
+          mask_workflow_value() {
+            local value="${1//'%'/'%25'}"
+            value="${value//$'\r'/'%0D'}"
+            value="${value//$'\n'/'%0A'}"
+            printf '::add-mask::%s\n' "${value}"
+          }
+          mask_workflow_value "${identity_name}"
+
+          security find-certificate -a -c "Apple Distribution" -p \
+            "${keychain_path}" > "${certificate_pem}"
+          test "$(grep -c 'BEGIN CERTIFICATE' "${certificate_pem}")" = "1"
+          certificate_sha1="$(openssl x509 -in "${certificate_pem}" \
+            -noout -fingerprint -sha1 | sed 's/.*=//' | tr -d ':[:space:]')"
+          test "${certificate_sha1}" = "${identity_sha1}"
+          certificate_sha256="$(openssl x509 -in "${certificate_pem}" -outform DER \
+            | shasum -a 256 | awk '{ print $1 }')"
+          profile_sha256="$(shasum -a 256 "${profile_path}" | awk '{ print $1 }')"
+          [[ "${certificate_sha256}" =~ ^[0-9a-f]{64}$ ]]
+          [[ "${profile_sha256}" =~ ^[0-9a-f]{64}$ ]]
+          security cms -D -i "${profile_path}" > "${profile_plist}"
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --profile-plist "${profile_plist}" \
+            --certificate-pem "${certificate_pem}" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --bundle-id "${BUNDLE_ID}" \
+            --output "${evidence_dir}/signing-preflight.json"
+
+          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "${profile_plist}")"
+          profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "${profile_plist}")"
+          [[ "${profile_uuid}" =~ ^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$ ]]
+          test -n "${profile_name}"
+          mask_workflow_value "${profile_uuid}"
+          mask_workflow_value "${profile_name}"
+          installed_profile="${profile_install_dir}/${profile_uuid}.mobileprovision"
+          test ! -e "${installed_profile}"
+          cp "${profile_path}" "${installed_profile}"
+          chmod 600 "${installed_profile}"
+          printf '%s\n' "${installed_profile}" \
+            > "${RUNNER_TEMP}/infinidive-installed-profile-path.txt"
+
+          {
+            echo "IOS_KEYCHAIN_PATH=${keychain_path}"
+            echo "IOS_SIGNING_IDENTITY_SHA1=${identity_sha1}"
+            echo "IOS_PROFILE_UUID=${profile_uuid}"
+            echo "IOS_PROFILE_SHA256=${profile_sha256}"
+            echo "IOS_CERTIFICATE_SHA256=${certificate_sha256}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Create signed Xcode archive
+        shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ inputs.bundle_identifier }}
+          MARKETING_VERSION: ${{ inputs.marketing_version }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          archive_root="${RUNNER_TEMP}/infinidive-ios-archive"
+          archive_path="${archive_root}/INFINIDIVE.xcarchive"
+          derived_data="${RUNNER_TEMP}/infinidive-ios-release-derived-data"
+          result_bundle="${archive_root}/archive-result.xcresult"
+          evidence_dir="${RUNNER_TEMP}/infinidive-ios-release-evidence"
+          mkdir -p "${archive_root}" "${evidence_dir}"
+          test ! -e "${archive_path}"
+          test ! -e "${derived_data}"
+          test ! -e "${result_bundle}"
+
+          xcodebuild \
+            -project "${IOS_XCODE_PROJECT}" \
+            -scheme INFINIDIVE \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "${derived_data}" \
+            -archivePath "${archive_path}" \
+            -resultBundlePath "${result_bundle}" \
+            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}" \
+            MARKETING_VERSION="${MARKETING_VERSION}" \
+            CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
+            CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="${IOS_SIGNING_IDENTITY_SHA1}" \
+            PROVISIONING_PROFILE_SPECIFIER="${IOS_PROFILE_UUID}" \
+            "OTHER_CODE_SIGN_FLAGS=--keychain ${IOS_KEYCHAIN_PATH}" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            clean archive 2>&1 | tee "${archive_root}/archive.log"
+          test -d "${archive_path}"
+          {
+            echo "IOS_ARCHIVE_PATH=${archive_path}"
+            echo "IOS_EVIDENCE_DIR=${evidence_dir}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Validate signed archive before export
+        shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ inputs.bundle_identifier }}
+          MARKETING_VERSION: ${{ inputs.marketing_version }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --archive "${IOS_ARCHIVE_PATH}" \
+            --output "${IOS_EVIDENCE_DIR}/archive-validation.json" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --bundle-id "${BUNDLE_ID}" \
+            --marketing-version "${MARKETING_VERSION}" \
+            --build-number "${BUILD_NUMBER}" \
+            --source-pck-sha256 "${IOS_SOURCE_PCK_SHA256}" \
+            --profile-uuid "${IOS_PROFILE_UUID}" \
+            --profile-sha256 "${IOS_PROFILE_SHA256}" \
+            --certificate-sha256 "${IOS_CERTIFICATE_SHA256}" \
+            --source-sha "${IOS_RELEASE_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}"
+
+      - name: Export and validate exact signed IPA
+        shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ inputs.bundle_identifier }}
+          MARKETING_VERSION: ${{ inputs.marketing_version }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          export_root="${RUNNER_TEMP}/infinidive-ios-export"
+          export_options="${RUNNER_TEMP}/infinidive-ios-export-options.plist"
+          test ! -e "${export_root}"
+          mkdir -p "${export_root}"
+          python3 - "${export_options}" <<'PY'
+          import os
+          import pathlib
+          import plistlib
+          import sys
+
+          output = pathlib.Path(sys.argv[1])
+          value = {
+              "destination": "export",
+              "manageAppVersionAndBuildNumber": False,
+              "method": "app-store-connect",
+              "provisioningProfiles": {
+                  os.environ["BUNDLE_ID"]: os.environ["IOS_PROFILE_UUID"],
+              },
+              "signingCertificate": os.environ["IOS_SIGNING_IDENTITY_SHA1"],
+              "signingStyle": "manual",
+              "stripSwiftSymbols": True,
+              "teamID": os.environ["APPLE_TEAM_ID"],
+              "uploadSymbols": True,
+          }
+          output.write_bytes(plistlib.dumps(value, fmt=plistlib.FMT_XML, sort_keys=True))
+          PY
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "${IOS_ARCHIVE_PATH}" \
+            -exportPath "${export_root}" \
+            -exportOptionsPlist "${export_options}" \
+            2>&1 | tee "${RUNNER_TEMP}/infinidive-ios-export.log"
+
+          shopt -s nullglob
+          ipa_candidates=("${export_root}"/*.ipa)
+          shopt -u nullglob
+          test "${#ipa_candidates[@]}" -eq 1
+          ipa_path="${ipa_candidates[0]}"
+          test -s "${ipa_path}"
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --archive "${IOS_ARCHIVE_PATH}" \
+            --ipa "${ipa_path}" \
+            --output "${IOS_EVIDENCE_DIR}/ios-release-evidence.json" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --bundle-id "${BUNDLE_ID}" \
+            --marketing-version "${MARKETING_VERSION}" \
+            --build-number "${BUILD_NUMBER}" \
+            --source-pck-sha256 "${IOS_SOURCE_PCK_SHA256}" \
+            --profile-uuid "${IOS_PROFILE_UUID}" \
+            --profile-sha256 "${IOS_PROFILE_SHA256}" \
+            --certificate-sha256 "${IOS_CERTIFICATE_SHA256}" \
+            --source-sha "${IOS_RELEASE_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          echo "IOS_VALIDATED_IPA=${ipa_path}" >> "${GITHUB_ENV}"
+
+      - name: Validate and upload IPA to App Store Connect
+        if: ${{ inputs.upload_to_app_store_connect }}
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64 }}
+          APPLE_APP_ID: ${{ inputs.apple_app_id }}
+          BUNDLE_ID: ${{ inputs.bundle_identifier }}
+          MARKETING_VERSION: ${{ inputs.marketing_version }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          for variable_name in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY_BASE64; do
+            if [[ -z "${!variable_name:-}" ]]; then
+              echo "Upload requested but protected secret is missing: ${variable_name}" >&2
+              exit 1
+            fi
+          done
+          [[ "${ASC_KEY_ID}" =~ ^[A-Z0-9]{10}$ ]]
+          [[ "${ASC_ISSUER_ID}" =~ ^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$ ]]
+          [[ "${APPLE_APP_ID}" =~ ^[1-9][0-9]{5,14}$ ]]
+
+          upload_root="${RUNNER_TEMP}/infinidive-asc-upload"
+          private_keys="${upload_root}/private_keys"
+          test ! -e "${upload_root}"
+          test ! -L "${upload_root}"
+          mkdir -m 700 -p "${private_keys}"
+          test -d "${upload_root}" && test ! -L "${upload_root}"
+          test -d "${private_keys}" && test ! -L "${private_keys}"
+          key_path="${private_keys}/AuthKey_${ASC_KEY_ID}.p8"
+          test ! -e "${key_path}" && test ! -L "${key_path}"
+          python3 - "${key_path}" <<'PY'
+          import base64
+          import binascii
+          import os
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1])
+          try:
+              payload = base64.b64decode(
+                  os.environ["ASC_PRIVATE_KEY_BASE64"], validate=True
+              )
+          except (KeyError, binascii.Error, ValueError) as exc:
+              raise SystemExit("App Store Connect private-key base64 is invalid") from exc
+          flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+          if hasattr(os, "O_NOFOLLOW"):
+              flags |= os.O_NOFOLLOW
+          descriptor = os.open(path, flags, 0o600)
+          try:
+              with os.fdopen(descriptor, "wb", closefd=False) as handle:
+                  handle.write(payload)
+                  handle.flush()
+                  os.fsync(handle.fileno())
+          finally:
+              os.close(descriptor)
+          PY
+          test -f "${key_path}" && test ! -L "${key_path}"
+          grep -Fq 'BEGIN PRIVATE KEY' "${key_path}"
+          trap 'rm -f -- "${key_path}"' EXIT
+
+          validation_json="${upload_root}/validation.json"
+          validation_stderr="${upload_root}/validation.stderr"
+          if ! (
+            cd "${upload_root}"
+            API_PRIVATE_KEYS_DIR="${private_keys}" xcrun altool \
+              --validate-app "${IOS_VALIDATED_IPA}" \
+              --platform ios \
+              --apple-id "${APPLE_APP_ID}" \
+              --bundle-id "${BUNDLE_ID}" \
+              --bundle-version "${BUILD_NUMBER}" \
+              --bundle-short-version-string "${MARKETING_VERSION}" \
+              --api-key "${ASC_KEY_ID}" \
+              --api-issuer "${ASC_ISSUER_ID}" \
+              --output-format json \
+              > "${validation_json}" 2> "${validation_stderr}"
+          ); then
+            echo "App Store Connect validation command failed" >&2
+            exit 1
+          fi
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --altool-json "${validation_json}" \
+            --altool-kind validate \
+            --output "${IOS_EVIDENCE_DIR}/asc-validation.json" \
+            --apple-app-id "${APPLE_APP_ID}" \
+            --bundle-id "${BUNDLE_ID}" \
+            --marketing-version "${MARKETING_VERSION}" \
+            --build-number "${BUILD_NUMBER}"
+
+          upload_json="${upload_root}/upload.json"
+          upload_stderr="${upload_root}/upload.stderr"
+          if ! (
+            cd "${upload_root}"
+            API_PRIVATE_KEYS_DIR="${private_keys}" xcrun altool \
+              --upload-package "${IOS_VALIDATED_IPA}" \
+              --platform ios \
+              --apple-id "${APPLE_APP_ID}" \
+              --bundle-id "${BUNDLE_ID}" \
+              --bundle-version "${BUILD_NUMBER}" \
+              --bundle-short-version-string "${MARKETING_VERSION}" \
+              --api-key "${ASC_KEY_ID}" \
+              --api-issuer "${ASC_ISSUER_ID}" \
+              --output-format json \
+              > "${upload_json}" 2> "${upload_stderr}"
+          ); then
+            echo "App Store Connect upload command failed" >&2
+            exit 1
+          fi
+          rm -f -- "${key_path}"
+          trap - EXIT
+          python3 control/.github/scripts/validate_ios_release_archive.py \
+            --altool-json "${upload_json}" \
+            --altool-kind upload \
+            --output "${IOS_EVIDENCE_DIR}/upload-status.json" \
+            --apple-app-id "${APPLE_APP_ID}" \
+            --bundle-id "${BUNDLE_ID}" \
+            --marketing-version "${MARKETING_VERSION}" \
+            --build-number "${BUILD_NUMBER}"
+
+      - name: Record archive-only status
+        if: ${{ inputs.upload_to_app_store_connect == false }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "${IOS_EVIDENCE_DIR}/upload-status.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          pathlib.Path(sys.argv[1]).write_text(
+              json.dumps(
+                  {
+                      "schema": "infinidive.ios.app-store-connect-result.v1",
+                      "status": "not-requested",
+                      "automatic_submit_for_review": False,
+                      "automatic_public_release": False,
+                  },
+                  indent=2,
+                  sort_keys=True,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Finalize non-secret evidence and checksums
+        id: finalize-evidence
+        if: always()
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_SHA: ${{ needs.source-bound-scaffold.outputs.release_sha }}
+          BUNDLE_ID: ${{ inputs.bundle_identifier }}
+          MARKETING_VERSION: ${{ inputs.marketing_version }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+          UPLOAD_REQUESTED: ${{ inputs.upload_to_app_store_connect }}
+          PRIOR_JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          evidence_dir="${RUNNER_TEMP}/infinidive-ios-release-evidence"
+          mkdir -p "${evidence_dir}"
+          {
+            echo "release_tag=${RELEASE_TAG}"
+            echo "release_source_commit=${RELEASE_SHA}"
+            echo "workflow_control_commit=${GITHUB_SHA}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "run_attempt=${GITHUB_RUN_ATTEMPT}"
+            echo "workflow_dispatch_ref=${GITHUB_REF}"
+          } > "${evidence_dir}/source-binding.txt"
+          {
+            xcodebuild -version
+            echo "iphoneos_sdk=$(xcrun --sdk iphoneos --show-sdk-version)"
+            echo "iphoneos_sdk_build=$(xcrun --sdk iphoneos --show-sdk-build-version)"
+          } > "${evidence_dir}/toolchain.txt"
+
+          : > "${evidence_dir}/SHA256SUMS"
+          if [[ -n "${IOS_VALIDATED_IPA:-}" && -f "${IOS_VALIDATED_IPA}" ]]; then
+            ipa_hash="$(shasum -a 256 "${IOS_VALIDATED_IPA}" | awk '{ print $1 }')"
+            printf '%s  %s\n' "${ipa_hash}" "INFINIDIVE.ipa" \
+              >> "${evidence_dir}/SHA256SUMS"
+          fi
+          for evidence_file in \
+            signing-preflight.json archive-validation.json \
+            ios-release-evidence.json asc-validation.json upload-status.json \
+            source-binding.txt toolchain.txt; do
+            if [[ -f "${evidence_dir}/${evidence_file}" ]]; then
+              file_hash="$(shasum -a 256 "${evidence_dir}/${evidence_file}" | awk '{ print $1 }')"
+              printf '%s  %s\n' "${file_hash}" "${evidence_file}" \
+                >> "${evidence_dir}/SHA256SUMS"
+            fi
+          done
+
+          {
+            echo "# INFINIDIVE signed iOS release evidence"
+            echo
+            echo "- Release tag: ${RELEASE_TAG}"
+            echo "- Release source: ${RELEASE_SHA}"
+            echo "- Trusted workflow controls: ${GITHUB_SHA}"
+            echo "- Release: ${BUNDLE_ID} ${MARKETING_VERSION} (${BUILD_NUMBER})"
+            echo "- Upload requested: ${UPLOAD_REQUESTED}"
+            echo "- A successful upload means delivery only; it is not processing, review, or release approval."
+          } > "${evidence_dir}/README.md"
+
+          public_evidence="${RUNNER_TEMP}/infinidive-ios-public-evidence"
+          test ! -e "${public_evidence}"
+          python3 - "${evidence_dir}" "${public_evidence}" \
+            "${PRIOR_JOB_STATUS}" "${UPLOAD_REQUESTED}" <<'PY'
+          import json
+          import pathlib
+          import shutil
+          import sys
+
+          source = pathlib.Path(sys.argv[1])
+          destination = pathlib.Path(sys.argv[2])
+          prior_status = sys.argv[3]
+          upload_requested = sys.argv[4] == "true"
+          allowed = {
+              "README.md",
+              "SHA256SUMS",
+              "archive-validation.json",
+              "asc-validation.json",
+              "ios-release-evidence.json",
+              "signing-preflight.json",
+              "source-binding.txt",
+              "toolchain.txt",
+              "upload-status.json",
+          }
+          expected_json = {
+              "archive-validation.json": ("infinidive.ios.signed-release.v1", {"archive-passed"}),
+              "asc-validation.json": ("infinidive.ios.app-store-connect-result.v1", {"apple-validation-passed"}),
+              "ios-release-evidence.json": ("infinidive.ios.signed-release.v1", {"passed"}),
+              "signing-preflight.json": ("infinidive.ios.signing-preflight.v1", {"passed"}),
+              "upload-status.json": (
+                  "infinidive.ios.app-store-connect-result.v1",
+                  {"not-requested", "uploaded-awaiting-app-store-connect-processing"},
+              ),
+          }
+          entries = list(source.iterdir())
+          if any(entry.name not in allowed for entry in entries):
+              raise SystemExit("private evidence contains an unexpected entry")
+          if prior_status == "success":
+              required = {
+                  "README.md", "SHA256SUMS", "archive-validation.json",
+                  "ios-release-evidence.json", "signing-preflight.json",
+                  "source-binding.txt", "toolchain.txt", "upload-status.json",
+              }
+              if upload_requested:
+                  required.add("asc-validation.json")
+              if {entry.name for entry in entries} != required:
+                  raise SystemExit("successful release evidence set is incomplete")
+          destination.mkdir(mode=0o700)
+          for entry in sorted(entries):
+              if entry.is_symlink() or not entry.is_file():
+                  raise SystemExit("evidence entry must be a regular non-symlink file")
+              size = entry.stat().st_size
+              if size < 1 or size > 1024 * 1024:
+                  raise SystemExit("evidence entry size is outside the public bound")
+              if entry.name in expected_json:
+                  value = json.loads(entry.read_text(encoding="utf-8"))
+                  schema, statuses = expected_json[entry.name]
+                  if (
+                      not isinstance(value, dict)
+                      or value.get("schema") != schema
+                      or value.get("status") not in statuses
+                  ):
+                      raise SystemExit("evidence JSON schema/status is unexpected")
+                  if entry.name == "signing-preflight.json":
+                      if set(value) != {"schema", "status", "release", "profile", "certificate"}:
+                          raise SystemExit("signing evidence keys are unexpected")
+                      if (
+                          set(value["release"]) != {"bundle_id", "team_id_validated"}
+                          or set(value["profile"]) != {"distribution", "expires_utc"}
+                          or set(value["certificate"]) != {"expires_utc", "sha256"}
+                      ):
+                          raise SystemExit("signing evidence nested keys are unexpected")
+                  elif entry.name in {"asc-validation.json", "upload-status.json"}:
+                      common = {
+                          "schema", "status", "automatic_public_release",
+                          "automatic_submit_for_review",
+                      }
+                      coordinate_keys = {
+                          "apple_app_id", "build_number", "bundle_identifier",
+                          "marketing_version",
+                      }
+                      expected_keys = common if value["status"] == "not-requested" else common | coordinate_keys
+                      if value["status"] == "uploaded-awaiting-app-store-connect-processing":
+                          expected_keys.add("delivery_or_request_id")
+                      if set(value) != expected_keys:
+                          raise SystemExit("App Store Connect evidence keys are unexpected")
+                  elif entry.name == "archive-validation.json":
+                      if set(value) != {"schema", "status", "source", "release", "archive", "limitations"}:
+                          raise SystemExit("archive evidence keys are unexpected")
+                  elif entry.name == "ios-release-evidence.json":
+                      if set(value) != {"schema", "status", "source", "release", "archive", "ipa", "limitations"}:
+                          raise SystemExit("IPA evidence keys are unexpected")
+              shutil.copyfile(entry, destination / entry.name)
+              (destination / entry.name).chmod(0o644)
+          PY
+          {
+            echo "### iOS release workflow"
+            echo
+            echo "- Release tag: \`${RELEASE_TAG}\`"
+            echo "- Release source: \`${RELEASE_SHA}\`"
+            echo "- Trusted workflow controls: \`${GITHUB_SHA}\`"
+            echo "- Release: \`${BUNDLE_ID} ${MARKETING_VERSION} (${BUILD_NUMBER})\`"
+            echo "- Upload requested: \`${UPLOAD_REQUESTED}\`"
+            echo "- No submit-for-review or public-release action is performed."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Remove profile, private keys, certificate, keychain, archive, and IPA
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set +x
+          cleanup_failures=0
+          record_cleanup_failure() {
+            echo "Release cleanup failed: $1" >&2
+            cleanup_failures=$((cleanup_failures + 1))
+          }
+
+          marker="${RUNNER_TEMP}/infinidive-installed-profile-path.txt"
+          installed_profile=""
+          if [[ -f "${marker}" ]]; then
+            if [[ "$(wc -l < "${marker}" | tr -d '[:space:]')" != "1" ]]; then
+              record_cleanup_failure "provisioning-profile marker is malformed"
+            fi
+            installed_profile="$(sed -n '1p' "${marker}")"
+            case "${installed_profile}" in
+              "${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision)
+                if ! rm -f -- "${installed_profile}"; then
+                  record_cleanup_failure "cannot remove installed provisioning profile"
+                fi
+                if [[ -e "${installed_profile}" ]]; then
+                  record_cleanup_failure "installed provisioning profile remains"
+                fi
+                ;;
+              *)
+                record_cleanup_failure "refusing unexpected provisioning-profile path"
+                ;;
+            esac
+          fi
+
+          original="${RUNNER_TEMP}/infinidive-original-keychains.txt"
+          if [[ -f "${original}" ]]; then
+            restored_keychains=()
+            while IFS= read -r line; do
+              candidate="${line#*\"}"
+              candidate="${candidate%\"*}"
+              if [[ -n "${candidate}" ]]; then
+                restored_keychains+=("${candidate}")
+              fi
+            done < "${original}"
+            if [[ "${#restored_keychains[@]}" -gt 0 ]]; then
+              if ! security list-keychains -d user -s "${restored_keychains[@]}"; then
+                record_cleanup_failure "cannot restore original keychain search list"
+              fi
+            elif ! security list-keychains -d user -s; then
+              record_cleanup_failure "cannot restore empty keychain search list"
+            fi
+          fi
+          keychain="${RUNNER_TEMP}/infinidive-ios-release.keychain-db"
+          if [[ -e "${keychain}" ]]; then
+            security lock-keychain "${keychain}" > /dev/null 2>&1 || true
+            security delete-keychain "${keychain}" > /dev/null 2>&1 || true
+          fi
+          if [[ -e "${keychain}" ]] && ! rm -f -- "${keychain}"; then
+            record_cleanup_failure "cannot remove temporary keychain file"
+          fi
+          if [[ -e "${keychain}" ]]; then
+            record_cleanup_failure "temporary keychain remains"
+          fi
+
+          protected_directories=(
+            "${RUNNER_TEMP}/infinidive-ios-signing"
+            "${RUNNER_TEMP}/infinidive-asc-upload"
+            "${RUNNER_TEMP}/infinidive-ios-archive"
+            "${RUNNER_TEMP}/infinidive-ios-release-derived-data"
+            "${RUNNER_TEMP}/infinidive-ios-export"
+            "${RUNNER_TEMP}/infinidive-ios-release-evidence"
+          )
+          for directory in "${protected_directories[@]}"; do
+            if [[ -e "${directory}" ]]; then
+              chmod -R u+rwX "${directory}" > /dev/null 2>&1 || true
+              if ! rm -rf -- "${directory}"; then
+                record_cleanup_failure "cannot remove protected temporary directory"
+              fi
+            fi
+            if [[ -e "${directory}" ]]; then
+              record_cleanup_failure "protected temporary directory remains"
+            fi
+          done
+
+          protected_files=(
+            "${RUNNER_TEMP}/infinidive-ios-export-options.plist"
+            "${RUNNER_TEMP}/infinidive-ios-export.log"
+            "${marker}"
+            "${original}"
+          )
+          for file in "${protected_files[@]}"; do
+            if ! rm -f -- "${file}"; then
+              record_cleanup_failure "cannot remove protected temporary file"
+            fi
+            if [[ -e "${file}" ]]; then
+              record_cleanup_failure "protected temporary file remains"
+            fi
+          done
+
+          if [[ "${cleanup_failures}" -ne 0 ]]; then
+            echo "Release cleanup completed with ${cleanup_failures} failure(s)" >&2
+            exit 1
+          fi
+          echo "Release cleanup verification: PASS"
+
+      - name: Upload bounded non-secret release evidence
+        if: ${{ always() && steps.finalize-evidence.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: infinidive-ios-release-evidence-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/infinidive-ios-public-evidence
+          if-no-files-found: warn
+          retention-days: 30
