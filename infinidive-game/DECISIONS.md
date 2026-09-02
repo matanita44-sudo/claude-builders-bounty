@@ -299,7 +299,7 @@ Every Godot test scene is discovered and reconciled with a version-controlled ma
 
 ## D-020 — Query-gated read-only Web QA boundary
 
-**Status:** Implemented; deployed evidence pending
+**Status:** Implemented and deployed for the bounded movement/Dash contract
 
 The Web build publishes a fixed semantic snapshot only when the exact query parameter `infinidive_qa=1` is present. Normal Web sessions and every non-Web platform leave the publisher disabled. JavaScript can read the snapshot but receives no callback or mutator into Godot.
 
@@ -314,4 +314,5 @@ The Web build publishes a fixed semantic snapshot only when the exact query para
 - The whitelist contains schema/revision, Nest or run view, ephemeral `run_generation`, state validity, player position, control/movement state, Dash counters/timing/charge, and elapsed time.
 - Raw run ID, deterministic seed, profile/save state, currencies, challenge codes, account/player identifiers, and analytics payloads are excluded.
 - CI requires the same generation throughout, monotonic revision/elapsed, valid finite numeric state, movement of at least 12 logical pixels while Dash count remains unchanged, then an exact Dash-count increment and charge decrease from the dedicated button.
+- Actions run `33572931398` passed the contract against both the CI-served export and the deployed public host; deployment job `100078099551` and public-smoke job `100078147875` bind that evidence to source commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a`.
 - This closes an automated semantic-proof gap only. It is not human control-feel, Safari/Chrome compatibility, simulator, native-install, or physical-device evidence.

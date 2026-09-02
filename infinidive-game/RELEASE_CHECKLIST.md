@@ -2,7 +2,7 @@
 
 This checklist is evidence-based. Check an item only after the artifact or test exists. A configured preset, authored data row, or code path is not equivalent to a validated build or feature.
 
-> Candidate source `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e` and tests/CI `ff2530d3aad779a21a3b775e8d973ba1b3e3c37a86b5b97cea133801c954dc59` pass local strict editor, `28,410/0`, and 8.049/90.041-second source-bound soaks. Existing checked package/public/30-minute items below are prior-source evidence until current CI, deploy, and packaging refresh complete.
+> Candidate commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a` is pushed with production fingerprint `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e` and tests/CI fingerprint `ff2530d3aad779a21a3b775e8d973ba1b3e3c37a86b5b97cea133801c954dc59`. Local strict editor, `28,410/0`, 8.049/90.041/1,800.035-second source-bound soaks, refreshed canonical packages, and all jobs in Actions run `33572931398` pass, including Web/Android export, CI-served and public-host semantic movement/Dash smoke, and deployment. Checked `e942db6f` public/30-minute items below are retained as explicitly historical evidence.
 
 ## 0. Source and version control
 
@@ -10,7 +10,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Project version is declared as `0.1.0`.
 - [x] Source-of-truth README, architecture, status, issues, and release checklist exist.
 - [x] Prior frozen production tree `67e2c54` is committed and pushed on `infinidive-production`; it is historical evidence, not the active candidate.
-- [ ] The active `1db2d97a` / `ff2530d3` candidate tree is committed and pushed; this becomes checkable only after the pending source-control operation succeeds.
+- [x] The active `1db2d97a` / `ff2530d3` candidate tree is committed and pushed as `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a` on `infinidive-production`.
 - [x] The active candidate inventories are production `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e` and tracked tests/CI `ff2530d3aad779a21a3b775e8d973ba1b3e3c37a86b5b97cea133801c954dc59`. The production calculation deliberately excludes only `assets/store/gameplay/raw/`: its continuous provenance capture is local-only, untracked, and non-exported, so it cannot affect the shipped game.
 - [ ] Default/production branch is remotely playable and protected appropriately.
 - [ ] Risky migration work has a recoverable branch/tag/checkpoint.
@@ -159,14 +159,19 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Actions run `33557365042`, attempt 2, passes overall for exact-tree commit `67e2c54`; deploy job `100024023277` also passes.
 - [x] Actions run `33559947112` completes fully `PASS`; its source-bound 30-minute job is `100030992601`, and artifact `9822001845` retains the validated JSON/Markdown pair.
 - [x] Prior runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` passes Actions run `33565500042`, including deploy job `100049011404` and public-smoke job `100049076641`. Its optional long-soak job skipped because validation accepted the then-current `e942db6f` 30-minute pair.
-- [ ] The current candidate remote validate job passes the frozen 13-suite matrix at `28,410/0`; local strict evidence passes and remote execution is pending.
-- [x] The Web export boots successfully in CI-served headless Chrome, and the current public export separately passes synthetic canvas delivery plus rendered-change checks; neither result asserts semantic gameplay state, Safari/mobile-browser behavior, or physical-device feel.
-- [x] The current Android debug export and structural validation pass in Actions run `33557365042`, attempt 2; this is not an install, lifecycle, release-signing, or Play internal-test result.
+- [x] The current candidate remote validate job `100070643207` passes the frozen 13-suite matrix at `28,410/0` in Actions run `33572931398` for pushed commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a`.
+- [x] The candidate Web export and CI-served semantic headless-Chromium smoke pass in Actions run `33572931398`: exact Nest-to-run generation `0 -> 1`, stable exterior run state, movement `false -> true` with `267.402052688428` px displacement, Dash count `0 -> 1`, Dash charge `1 -> 0`, `3/3/3` touch events, and zero page errors, crashes, network failures, or critical failures. Artifact `9825704303` is 93,967 bytes; downloaded ZIP SHA-256 is `1ecdfcf7c35dbf14fa61434e4e00cb79b529ea7a93cbc44f1e3cf97799b2def6`. This does not prove the breach/Dive/organ-return/reload path, Safari/mobile-browser behavior, or physical-device feel.
+- [x] The candidate Web-export job `100071482044` passes in Actions run `33572931398`; by itself this is CI-served export and semantic-Chromium evidence, while current public-host confirmation is recorded separately below.
+- [x] The candidate Android debug export and structural-validation job `100071482096` passes in Actions run `33572931398`; this is not an install, lifecycle, release-signing, AAB, or Play internal-test result.
+- [x] The current-candidate 30-minute structural soak passes in job `100071482078`. Artifact `9826413723` is 9,008 bytes with downloaded ZIP SHA-256 `1290cf7b8cf81b64dd6f0b43e55739f4f3bbaa24d4b40a083d6dbf1296b03a63`; its current-fingerprint report records 1,800.035 seconds, 27,043 iterations/cycles, 2,705 restarts/Dives, 1,353 save writes / 22 reloads, 3,224 queue events / 24 queue reloads / final 500, peak 540, exact 7/7 model coverage, complete transaction `9f396a0becf39225c7580401`, and zero failures. The retained JSON SHA-256 is `be3c3d795d31e9581e6fa108f462f58cd3264d9f24aff4d338a79123e485ed09`; Markdown/bound SHA-256 is `d24fe59b37296f6006bb27dc18b61f3ff4996bbfdfc354d852af1377c3ab64b3`.
+- [x] Candidate deployment job `100078099551` and public-smoke job `100078147875` pass in Actions run `33572931398`. Deployment marker `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a` matches the candidate; public artifact `9826433759` is 92,257 bytes with downloaded ZIP SHA-256 `014fe807c93ed3d03d7c6cfebac201faec2986324f8a576be2fbb6967ae9c020`.
+- [x] The candidate public host returns HTTP 200 with a live 540×960 canvas and passes the narrow semantic movement/Dash contract: movement `false -> true` with `269.18024587052236` px displacement, Dash count `0 -> 1`, charge `1 -> 0`, `3/3/3` synthetic canvas touch events, and zero page, crash, network, or critical failures. Before/after frame SHA-256 values `0da738405c7983f4d795655ada7d31acbbc4d973724b404b5651034300ba3eb9` / `7ca6ba2e9fc87aa5ac7ea3629138d23d3cd9a7bb24b3abf39c7c839971a09633` differ. This does not prove breach/Dive/organ-return/reload, mobile Safari/Chrome, native installation, or physical-device feel.
+- [x] Historical Android debug export and structural validation also pass in Actions run `33557365042`, attempt 2; this is retained as prior-source evidence only.
 - [x] The commit-bound public-host synthetic canvas automation passes in Actions run `33565500042`: HTTP 200, 540×960 canvas, zero page errors, and `3/3/3` canvas `touchstart` / `touchmove` / `touchend` events. Before SHA-256 `31212c7891fccbb64e3993062614178a854ac29b185878ee1a5db2963ccf2e23` differs from after SHA-256 `94e6d2654a466e0ecb37670e6621d2b873eb5c9c56c39a5565ea2f38afa0b6d8`, proving rendered change. Artifact `9823113363` is 90,667 bytes / `5038d055d8cf723b479424b4d099d0e3c036bb4e9eb325cb9c1ee6e00b750985`. This proves synthetic delivery and rendering only, not semantic gameplay state, mobile Safari/Chrome, or physical touch feel.
 - [x] Local complete-boss victory smoke tests pass for four bosses × six organ orders.
 - [x] Combined failure, 55-Bio banking, Forge upgrade, 110-HP new run, second failure, instant retry, and separate-process relaunch smoke passes.
 - [ ] A previously shipped-build update fixture, background/force-close reward timing, and repeated Abyss-depth smoke pass.
-- [ ] The full gameplay path produces no repeated console errors in an actual Web run; the public synthetic-input smoke emitted zero page errors but does not traverse or semantically assert the full gameplay path.
+- [ ] The full gameplay path produces no repeated console errors in an actual Web run; the current public movement/Dash semantic smoke emitted zero page, crash, network, or critical failures but does not traverse or assert the full gameplay path.
 - [x] Malformed and deterministic-fuzz Friend Rift corpora fail closed in the main headless suite.
 - [ ] Pause/backgrounding cannot avoid or duplicate damage/rewards incorrectly.
 - [ ] Procedural routes pass a large seeded-layout sweep.
@@ -178,22 +183,26 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 - [x] Projectile pools have explicit caps and segment collision.
 - [ ] Cold start is measured against the target on representative devices.
-- [ ] Current-candidate 30-minute Linux headless structural soak passes; the retained `1800.043s` run `33559947112` / artifact `9822001845` belongs to prior fingerprint `e942db6f`.
+- [x] Current-candidate 30-minute Linux headless structural soak passes for production fingerprint `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e`: run `33572931398`, job `100071482078`, artifact `9826413723`, 1,800.035 seconds, transaction `9f396a0becf39225c7580401`, JSON `be3c3d795d31e9581e6fa108f462f58cd3264d9f24aff4d338a79123e485ed09`, Markdown/bound hash `d24fe59b37296f6006bb27dc18b61f3ff4996bbfdfc354d852af1377c3ab64b3`, and zero failures. The `1800.043s` run `33559947112` / artifact `9822001845` remains historical evidence for prior fingerprint `e942db6f`.
 - [x] Current 8.049-second pair passes: 88 cycles, 9 restarts / 9 Dives, 6 saves, 529 queued events / 2 reloads / final 500, peak 540, 7/7, transaction `994142d36b9310b4523a7b2f`, JSON `4ed5331ef40095b482a3c15804a34f42e0c7be9fdd615ed125c4a020d652242c`, Markdown/bound hash `3ac976b10c77799e9c7ec8930e62d0f329cc36910cc18f6d3bc933f72cca7b85`.
 - [x] Current 90.041-second pair passes: 1,166 cycles, 117 restarts / 117 Dives, 60 saves / 1 reload, 637 queued events / 3 queue reloads / final 500, peak 540, 7/7, stable delta 90,604 bytes, slope 218,771.80935953 B/min, transaction `98e69a9b42dd1314f6a16cb9`, JSON `0033e18b7730513b977dadb9f275ad919ed24dc6c4e6545d31b1199c3d48e65b`, Markdown/bound hash `c6a109f86f8ba63474b4456c3d265111f85759c82e5c6ad86f85efd8833d571c`.
 - [x] Both current short pairs use unchanged production fingerprint `1db2d97aa0852a415ee4a76e3d4be6ea20949140dfcdee46e49d295e55525e8e`, complete their two-phase transactions, execute 7/7 travel models, and report zero failures.
-- [x] The prior-source 30-minute soak completed 2,668 repeated restarts without retained run/projectile nodes; baseline/final nodes were 11/10 and orphan peak was 0. Candidate confirmation is pending.
-- [x] The prior-source 30-minute soak completed 2,668 outside-inside-outside transitions without recorded duplicate/retained state. Candidate confirmation is pending.
+- [x] The current-candidate 30-minute soak completed 2,705 repeated restarts and 2,705 outside-inside-outside transitions with zero recorded failures; this is Linux headless structural evidence, not physical-device performance or human-play evidence.
 - [ ] Maximum-projectile stress test passes at target frame rate.
-- [x] The prior-source 30-minute soak completed 1,335 atomic saves and 22 reload/backup checks, plus 3,188 offline events / 24 queue reloads / final queue 500. Candidate confirmation is pending.
+- [x] The current-candidate 30-minute soak completed 1,353 atomic saves and 22 reload/backup checks, plus 3,224 offline events / 24 queue reloads / final queue 500.
 - [ ] Offline/online transition test passes if networking is enabled.
 - [ ] Background return is fast and stable.
 - [ ] No blocking network or save operation occurs during combat.
-- [x] Canonical package names, sizes, hashes, `BUILD_EVIDENCE.md`, and `SHA256SUMS` are recorded under `../build/final-0.1.0-e942db6f/`. Package bytes alone are not runtime evidence; the separately retained public-smoke artifact is synthetic headless-Chrome canvas evidence. No native-install, production-signing, physical-device, or store evidence is claimed.
+- [x] Current-candidate canonical package names, sizes, hashes, `BUILD_EVIDENCE.md`, and a passing `SHA256SUMS` are recorded under `../../build/semantic-qa-1db2d97a/`. Package bytes alone are not install, signing, physical-device, or store evidence; Web movement/Dash semantics are supported separately by CI-served artifact `9825704303` and public-host artifact `9826433759`.
+- [x] Historical `e942db6f` canonical-package evidence remains recorded under `../build/final-0.1.0-e942db6f/`; it is prior-source evidence and is not substituted for the current candidate.
 
 ## 9. Web release
 
-- [x] Fresh canonical Web evidence under `../build/final-0.1.0-e942db6f/web/` is complete, hashed, and passes static/local-HTTP validation; no local real-browser canvas was available.
+- [x] Current-candidate Web package `../../build/semantic-qa-1db2d97a/INFINIDIVE-0.1.0-prealpha-web-1db2d97a.zip` is 11,022,194 bytes with SHA-256 `a8504d0c0630dced1c3892c971a0d3f9be67844250927b8bf9a80340ebc98e4f`; archive integrity, static validation, and local HTTP 200 checks for root/privacy/support/PCK/WASM pass.
+- [x] The extracted current-candidate Web files are recorded as: `index.html` 2,618 bytes / `752664b9f32004bb50b2b8d629481128d2e26fabb771644da679509a2849f05d`; `index.js` 279,815 / `33c94cb3175f3333b82e2a3be5e8e86f77986f0aa2042b1631f6367a4e5bb6ba`; `index.pck` 629,236 / `b573dee37ef910fdbf59110e1dd6667fd70f265b183d57a70eb8ecd487544116`; `index.wasm` 39,514,754 / `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`.
+- [x] The current-candidate CI-served semantic Chromium smoke passes from Actions run `33572931398` with a live 540×960 canvas, exact run-generation transition, observed movement and Dash, differing before/after screenshots, and zero recorded browser failures. The same narrow contract also passes on the public host; neither result covers the full outside-inside-outside path or reload persistence.
+- [x] Commit `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a` is deployed by job `100078099551` and passes post-deploy public-host semantic-smoke job `100078147875`: HTTP 200, 540×960 canvas, movement `269.18024587052236` px, Dash `0 -> 1`, charge `1 -> 0`, `3/3/3` touch events, and zero recorded failures. Artifact `9826433759` is 92,257 bytes / `014fe807c93ed3d03d7c6cfebac201faec2986324f8a576be2fbb6967ae9c020`; frame hashes are `0da738405c7983f4d795655ada7d31acbbc4d973724b404b5651034300ba3eb9` / `7ca6ba2e9fc87aa5ac7ea3629138d23d3cd9a7bb24b3abf39c7c839971a09633`.
+- [x] Historical Web evidence under `../build/final-0.1.0-e942db6f/web/` is complete, hashed, and passes static/local-HTTP validation; no local real-browser canvas was available for that package.
 - [x] Web ZIP `INFINIDIVE-0.1.0-prealpha-web-e942db6f.zip` contains the deployment-corrected bilingual privacy/support pages and is recorded in the passing `SHA256SUMS` with SHA-256 `8df771d497ce98c5807e40bf2e2f0bff9aa5bbdb74f614551668b8fd559b0001`.
 - [x] Static Web validation passes and confirms tooling/adaptive-icon sources are excluded from the package.
 - [x] Local HTTP smoke returns 200 for the frozen game root, privacy page, and support page; this is not a real-browser canvas/WebGL/touch run.
@@ -202,14 +211,20 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [ ] Export is touch-tested in mobile Safari and mobile Chrome.
 - [ ] Hosting sends any headers required by the exported Godot configuration.
 - [x] GitHub Pages deployment completes successfully for runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` in job `100049011404` (Actions run `33565500042`).
-- [x] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opens the commit-bound current game directly, returns HTTP 200, and passes the public-host boot plus synthetic canvas-delivery smoke in job `100049076641`.
+- [x] GitHub Pages deployment completes successfully for current candidate `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a` in job `100078099551` (Actions run `33572931398`).
+- [x] `https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/` opened prior runtime commit `380b6d4b632e9d507ea42075714d0f18d6cdb74f` directly, returned HTTP 200, and passed the historical public-host boot plus synthetic canvas-delivery smoke in job `100049076641`; this is not current-candidate public confirmation.
+- [x] The same public URL now carries deployment marker `73a3f4aad29a2d3900fe55e94ba4cfde6885d42a`, returns HTTP 200, and passes current-candidate public semantic movement/Dash smoke in job `100078147875`.
 - [x] Public-smoke artifact `9823113363` retains the before/after screenshots and JSON evidence; it is 90,667 bytes with SHA-256 `5038d055d8cf723b479424b4d099d0e3c036bb4e9eb325cb9c1ee6e00b750985`.
+- [x] Current public-smoke artifact `9826433759` retains the before/after screenshots and semantic JSON evidence; it is 92,257 bytes with downloaded ZIP SHA-256 `014fe807c93ed3d03d7c6cfebac201faec2986324f8a576be2fbb6967ae9c020`.
 - [x] The live game, support, and privacy URLs each return HTTP 200.
 - [ ] Public build displays current version and a working feedback link.
 
 ## 10. Android internal test
 
-- [x] Fresh arm64 portrait debug APK `INFINIDIVE-0.1.0-prealpha-debug-e942db6f.apk` is hashed (`d089cebf2207391634fa6b2719d9b8c0a56e654619c33b05292e47aacc78bfa6`) and passes package/min24/target36/arm64/exact-VIBRATE/alignment/Debug-v2-v3 validation.
+- [x] Current-candidate arm64 portrait debug APK `../../build/semantic-qa-1db2d97a/INFINIDIVE-0.1.0-prealpha-debug-1db2d97a.apk` is 29,063,530 bytes with SHA-256 `e3418d97a535cf4e36bb7c1cf05e4f7db4e722a774409e29df6f80b33786cf03`; structural validation passes for package/version, SDKs, arm64, alignment, adaptive icon, exact `VIBRATE`, and debug v2/v3 signature.
+- [x] Its `.idsig` is 234,930 bytes with SHA-256 `d4a223d9647ea9321ea5ddc609eb073f5fd02ed08cd406d22b2e6872518b8381`.
+- [x] Candidate Android export/validation job `100071482096` passes in Actions run `33572931398`; no emulator/device install, lifecycle, private signing, AAB, or Play upload is claimed.
+- [x] Historical arm64 portrait debug APK `INFINIDIVE-0.1.0-prealpha-debug-e942db6f.apk` is hashed (`d089cebf2207391634fa6b2719d9b8c0a56e654619c33b05292e47aacc78bfa6`) and passes package/min24/target36/arm64/exact-VIBRATE/alignment/debug-v2-v3 validation.
 - [x] Actions run `33557365042`, attempt 2, exports and structurally validates the Android debug build for exact-tree commit `67e2c54`; no emulator/device install or production-signing claim is made.
 - [x] Its manifest verifies `com.matan.infinidive`, version `0.1.0 (1)`, min SDK 24, target SDK 36, and exactly normal `android.permission.VIBRATE`.
 - [x] The APK passes zip alignment and v2/v3 signature verification with `CN=Android Debug`; it is not production-distributable evidence.
@@ -229,9 +244,11 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 ## 11. iOS TestFlight
 
 - [x] Full iOS export was attempted and failed exactly because the Development Team is blank.
-- [x] Fresh current-source iOS PCK is 625,908 bytes / `8cf2bd0732b1df958f65958cd45fee65d2387527f6a7cf08b6287dff1f3ccf83` and passes the headless main-pack probe; the owner Team ID remains required for full native export.
-- [x] Unsigned iOS ZIP `INFINIDIVE-0.1.0-prealpha-ios-unsigned-e942db6f.zip` is recorded in passing `SHA256SUMS` with SHA-256 `5e3276c7d3c92a21ef154e776c290e4308424975c0af4f9eb604194537e51ede`; no compiled, signed, installable iOS build is claimed.
-- [x] The assembled unsigned scaffold records unchanged pbxproj SHA-256 `dbbc0f658d31f09a8ad0b020a4ef1d1f6072e422088d13c996dd0d09ee7748bb` and 413-byte export-options plist SHA-256 `7c41fe82380ed9bede2ad63898916de5b45e85839ef5800fafb9fa595fb7d661`.
+- [x] Fresh current-candidate iOS PCK `../../build/semantic-qa-1db2d97a/INFINIDIVE.pck` is 629,332 bytes / `8133fcd7ebbb071b20f30ca65a43cb35488b6fff2335915ef47d710693c33a88` and passes a Linux headless `--main-pack` boot with zero errors; this is not an iOS app or simulator result.
+- [x] Current-candidate unsigned iOS scaffold ZIP `../../build/semantic-qa-1db2d97a/INFINIDIVE-0.1.0-prealpha-ios-unsigned-1db2d97a.zip` is 98,500,694 bytes / `54bb7d9f866608773470c90f8b8d953b4668f2bc3914086e2e96e131b0f85b9d`; archive integrity and embedded-PCK parity pass. It uses the retained scaffold with the current PCK and does not claim Xcode compilation, archive, signing, simulator/device install, or TestFlight readiness.
+- [x] Historical unsigned iOS ZIP `INFINIDIVE-0.1.0-prealpha-ios-unsigned-e942db6f.zip` remains recorded in the prior passing `SHA256SUMS` with SHA-256 `5e3276c7d3c92a21ef154e776c290e4308424975c0af4f9eb604194537e51ede`; it is retained as prior-source evidence only.
+- [x] The assembled unsigned scaffold records pbxproj SHA-256 `dbbc0f658d31f09a8ad0b020a4ef1d1f6072e422088d13c996dd0d09ee7748bb` and a 411-byte app-store-method export-options plist with SHA-256 `50c3cbc7d11c6c3c37357dc14e59ef93f1c011897467a9b94bb11637a795ea7d`.
+- [ ] Remove the empty Camera, Microphone, and Photo Library usage-description keys from the retained iOS `Info.plist` before any archive/store claim; these capabilities are not used by the current game.
 - [ ] The full current source is successfully exported as a regenerated Xcode project and compiled for iOS; the attempt failed because the preset has no Apple Development Team ID, although the current-source PCK was exported separately.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
 - [x] The retained unsigned scaffold contains 47 files and records an approximately 368 MB directory size; this does not claim that the scaffold itself was regenerated for the current tree.
