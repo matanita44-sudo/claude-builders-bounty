@@ -1,10 +1,11 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "brand": "INFINIDIVE",
   "owner": "Matan",
   "copyright": "Copyright 2026 Matan. All rights reserved.",
+  "copyright_scope": "Applies to hand-authored vector portions of the SVG brand materials and project documentation; generated raster sources, linked generated imagery, and derivatives remain subject to the provider-terms notes below.",
   "tagline": "Fight giants outside. Destroy them within.",
-  "visual_concept": "A monumental marble Titan frames a golden time-sun seal while a tiny unarmed Keeper awakens the Aion spark. The seal combines a clock face, a controlled breach and divine sunlight; it communicates the game's scale, mythic sky-world and outside-to-inside transformation without depicting or claiming a gameplay screen.",
+  "visual_concept": "A monumental crowned stone Titan towers behind a tiny unarmed Keeper awakening the Aion Spark in a bright Greek-mythic sky world. The scale contrast, hand-cast light, warm gold, red mantle and turquoise scarf communicate mythic adventure and the game's outside-to-inside fantasy without depicting or claiming a gameplay screen.",
   "palette": {
     "sky": "#8EDCF4",
     "sky_haze": "#C8F1EC",
@@ -29,11 +30,26 @@
       "gameplay_representation": false
     },
     {
+      "file": "app_icon_source_v2.png",
+      "source_dimensions": "1254x1254",
+      "background": "opaque",
+      "channels": "8-bit/color RGB",
+      "byte_size": 2805506,
+      "sha256": "a3543a1d1ba0340594afad7d233301bff88396860106a7550deb0e2c3dce2b6a",
+      "intended_use": ["current App Store icon source", "current Google Play listing-icon source", "current iOS icon-family source"],
+      "gameplay_representation": false,
+      "creation_method": "Project-directed original image-generator output using project-owned CRONUS, unarmed Aion hero, and bright sky-battle images as visual references",
+      "c2pa_generator": "gpt-image 2.0",
+      "c2pa_digital_source_type": "trainedAlgorithmicMedia",
+      "rights_note": "Use is subject to the image-generator provider terms applicable to the owner and service account; no independent copyrightability or exclusivity claim is made beyond those terms."
+    },
+    {
       "file": "app_icon.svg",
       "source_dimensions": "1024x1024",
       "background": "opaque",
-      "intended_use": ["App Store icon source", "Google Play icon source"],
-      "gameplay_representation": false
+      "intended_use": ["historical brand provenance"],
+      "gameplay_representation": false,
+      "status": "legacy; retained but no longer an app-icon source of truth"
     },
     {
       "file": "android_adaptive_background.svg",
@@ -86,24 +102,198 @@
       "file": "../platform/ios/launch_screen.svg",
       "source_dimensions": "1170x2532",
       "background": "opaque",
+      "byte_size": 9875,
+      "sha256": "1a458c66dc7627a21fe14b02d45357b3bfdcba7bb43ff44a134ec36bd113dcee",
       "intended_use": ["iOS static launch screen source"],
       "gameplay_representation": false,
-      "disclosure": "Original static brand treatment; raster exports are generated from this vector source"
+      "loading_or_progress_representation": false,
+      "creation_method": "Original hand-authored vector Aion crest and custom path-only wordmark over the linked project-generated sky-battle background",
+      "linked_project_asset": "../art/backgrounds/sky_battle.png",
+      "linked_project_asset_sha256": "020e2702d677950e2224ec03a87e10805bdf01f1d7892a56a423ffacac82b3a8",
+      "disclosure": "Static illustrative brand treatment, not gameplay, a captured screen, or a loading/progress indicator; raster exports are generated from this source",
+      "raster_derivatives": [
+        {
+          "file": "../platform/ios/launch_screen@2x.png",
+          "dimensions": "780x1688",
+          "channels": "8-bit/color RGB",
+          "background": "opaque",
+          "byte_size": 1053086,
+          "sha256": "9b43acec7db8a8046a4ed88e48d53be79ade7ee85bb959bd4b398743097819bb"
+        },
+        {
+          "file": "../platform/ios/launch_screen.png",
+          "dimensions": "1170x2532",
+          "channels": "8-bit/color RGB",
+          "background": "opaque",
+          "byte_size": 1863629,
+          "sha256": "7011671570f697ee87a5b007cbb548408bdd9ea33cc82ad49269519c421177ff"
+        }
+      ]
+    }
+  ],
+  "app_icon_derivatives": [
+    {
+      "file": "../store/app-icon-1024.png",
+      "dimensions": "1024x1024",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 1929348,
+      "sha256": "ea21459bafafd32851bc0e56a791ac6fdc253e58b64e8d7624bec69fff95f22f"
+    },
+    {
+      "file": "../store/google-play-icon-512.png",
+      "dimensions": "512x512",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 546245,
+      "sha256": "e1fbcf95badb833282da7d5eb12031fbe8a7e91d3d58c4046664f87f6fd7d187",
+      "submission_note": "Dimension and byte-size checks pass, but this RGB/no-alpha file does not match the separately recorded Play 32-bit RGBA requirement; regenerate or confirm console acceptance before submission."
+    },
+    {
+      "file": "../platform/ios/icon-40.png",
+      "dimensions": "40x40",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 4440,
+      "sha256": "cf469765ef193d41ab6b79d63c91d63096ad5319caa4a83736ce747c6a872d8d"
+    },
+    {
+      "file": "../platform/ios/icon-58.png",
+      "dimensions": "58x58",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 9020,
+      "sha256": "73f064343168a2aca2e63265b82b83d91675a16262ce9a034cbcbec2102a64cf"
+    },
+    {
+      "file": "../platform/ios/icon-60.png",
+      "dimensions": "60x60",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 9612,
+      "sha256": "73c112cac5ef9b9ff7707b8c192c7f4889d8fbc5e764811ee2c3fea46f9017a6"
+    },
+    {
+      "file": "../platform/ios/icon-76.png",
+      "dimensions": "76x76",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 15088,
+      "sha256": "e491f16911204d420911de2f50a11d5f11e5c02cdcc33aefc716c1bb56a0ef54"
+    },
+    {
+      "file": "../platform/ios/icon-80.png",
+      "dimensions": "80x80",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 16645,
+      "sha256": "7f7846c4ddf59edef2f796e0843cddfe7313d5bfad8c23c6c247309f898c17f5"
+    },
+    {
+      "file": "../platform/ios/icon-87.png",
+      "dimensions": "87x87",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 19521,
+      "sha256": "99559cb15e28061e0f77fc1a69b7e3c8229341b6a1c950daa676dbe566ba356d"
+    },
+    {
+      "file": "../platform/ios/icon-114.png",
+      "dimensions": "114x114",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 32734,
+      "sha256": "40c2d678942c352edc8aaa5c46942c58a36a0b6f4bb19cce7959aa2594bf8fc0"
+    },
+    {
+      "file": "../platform/ios/icon-120.png",
+      "dimensions": "120x120",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 36093,
+      "sha256": "d392e593e25cf498086cc66bc6e9f34a0654de2a1cbbb74b8360f961686e01d8"
+    },
+    {
+      "file": "../platform/ios/icon-128.png",
+      "dimensions": "128x128",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 40852,
+      "sha256": "0c89497a83d712df53d1f2f653a114be6ecbf12f0ff31fef0fdbf1c0575935bf"
+    },
+    {
+      "file": "../platform/ios/icon-136.png",
+      "dimensions": "136x136",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 45817,
+      "sha256": "86e27a7b4d7edc5bb1615f234fb401c2551ce9e46e652f0b8131d9ccc0e42a7d"
+    },
+    {
+      "file": "../platform/ios/icon-152.png",
+      "dimensions": "152x152",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 56582,
+      "sha256": "70ebf6bd41826a4aa1216eb882d0583f8785e90acf4a1e7ce2476095086f9ca9"
+    },
+    {
+      "file": "../platform/ios/icon-167.png",
+      "dimensions": "167x167",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 67619,
+      "sha256": "623c186d122dc04906b4fe62d58d3c1e98480d64140cf88f3a477d98ce499f88"
+    },
+    {
+      "file": "../platform/ios/icon-180.png",
+      "dimensions": "180x180",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 77829,
+      "sha256": "dbff38cc49a70c6163d1d23982f7d84bf7608908660f7926a092cb6c6483aac8"
+    },
+    {
+      "file": "../platform/ios/icon-192.png",
+      "dimensions": "192x192",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 88002,
+      "sha256": "71d3a03322255fcebb95f491160b63b9b49fe707e44756d487591f14fc224b6d"
+    },
+    {
+      "file": "../platform/ios/icon-1024.png",
+      "dimensions": "1024x1024",
+      "channels": "8-bit/color RGB",
+      "background": "opaque",
+      "byte_size": 1929348,
+      "sha256": "ea21459bafafd32851bc0e56a791ac6fdc253e58b64e8d7624bec69fff95f22f"
     }
   ],
   "production_rules": {
-    "app_icon": "Export opaque at 1024x1024 in sRGB. Do not add rounded corners; store platforms apply their own masks.",
+    "app_icon": "Use app_icon_source_v2.png as the current source of truth. Resize to the required opaque RGB dimensions without adding rounded corners; store platforms apply their own masks. Do not regenerate the current icon family from legacy app_icon.svg.",
     "adaptive_icon": "Keep the time-sun seal and Aion spark in the central safe zone. Validate foreground against circle, squircle and rounded-square masks, plus Android themed monochrome mode.",
     "wordmark": "Preserve the original proportions and clear space equal to at least one glyph-I width.",
+    "launch_screen": "Keep the composition static and centered with no gameplay UI, buttons, loading text, spinner, or progress treatment. Regenerate both wired PNGs from launch_screen.svg as exact-size opaque RGB derivatives whenever the source changes.",
     "store_graphics": "Verify current platform dimensions and file-size requirements immediately before submission.",
     "screenshots": "Never use the feature graphic or social card as a gameplay screenshot.",
     "edits": "Preserve the sky, marble, bronze, aqua, coral, gold and deep-blue-outline roles; do not restore dark-biopunk, bone-monster or iris imagery."
   },
   "provenance": {
-    "method": "Original hand-authored SVG geometry created as project source code",
-    "external_images": false,
+    "method": "Mixed brand set: original hand-authored SVG geometry, one project-directed generated raster app-icon master, and an iOS launch SVG that links the already documented project-generated sky-battle background",
+    "current_app_icon_method": "Image-generator output created for INFINIDIVE using only project-owned CRONUS, unarmed Aion hero, and sky-battle artwork as visual references",
+    "current_app_icon_provider_terms_note": "Use is subject to the image-generator provider terms applicable to the owner and service account. This metadata does not independently claim copyrightability, exclusivity, or the absence of incidental visual similarity beyond those terms.",
+    "project_owned_reference_images": [
+      "../art/titans/cronus.png",
+      "../art/heroes/aion_diver_unarmed.png",
+      "../art/backgrounds/sky_battle.png"
+    ],
+    "separately_sourced_third_party_images": false,
     "external_fonts": false,
     "external_icons": false,
-    "embedded_raster_data": false
+    "svg_embedded_raster_data": false,
+    "svg_linked_project_assets": [
+      "../art/backgrounds/sky_battle.png"
+    ]
   }
 }

@@ -54,6 +54,13 @@ const PREVIEW_STEP_SECONDS := 1.0/PREVIEW_SAMPLE_RATE_HZ
 const DEFAULT_PREVIEW_SECONDS := 0.8
 const MAX_PREVIEW_SECONDS := 0.82
 const MAX_PREVIEW_SAMPLES := 51
+# Keep every damaging projectile readable over both the pale Olympus sky and
+# the dark Titan interior.  The bright core communicates ownership/type while
+# this shared under-stroke preserves the silhouette when either palette
+# converges with the illustrated background.
+const MYTHIC_INK := Color("#17324B")
+const INK_EDGE_WIDTH_PX := 2.5
+const INK_OPACITY := 0.96
 const TITAN_VISUAL_FAMILIES := {
 	"fate_eye_sickle_star":"sickle_star",
 	"gaia_gravity_seed":"gravity_seed",
@@ -1083,6 +1090,36 @@ static func enemy_visual_family(visual_token: String, shape: String, travel_mode
 		return "shape:%s" % shape
 	return "travel:%s" % travel_model
 
+static func ink_stroke_width(core_width: float) -> float:
+	# Custom-draw line widths expand around their centerline. Adding twice the
+	# edge width leaves an authored 2.5 logical-pixel border on either side.
+	return maxf(0.0,core_width)+INK_EDGE_WIDTH_PX*2.0
+
+func _ink_color(alpha: float = 1.0) -> Color:
+	return Color(MYTHIC_INK,clampf(alpha,0.0,1.0)*INK_OPACITY)
+
+func _draw_ink_line(from: Vector2, to: Vector2, core_color: Color, core_width: float) -> void:
+	draw_line(from,to,_ink_color(),ink_stroke_width(core_width),true)
+	draw_line(from,to,core_color,core_width,true)
+
+func _draw_ink_arc(center: Vector2, radius: float, start_angle: float, end_angle: float, point_count: int, core_color: Color, core_width: float) -> void:
+	draw_arc(center,radius,start_angle,end_angle,point_count,_ink_color(),ink_stroke_width(core_width),true)
+	draw_arc(center,radius,start_angle,end_angle,point_count,core_color,core_width,true)
+
+func _draw_ink_polygon(points: PackedVector2Array, fill_color: Color) -> void:
+	if points.size()<3:
+		return
+	var closed_points := PackedVector2Array(points)
+	closed_points.append(points[0])
+	# Draw the border first so the fill covers its inner half, leaving the full
+	# 2.5 px readability edge outside the authored silhouette.
+	draw_polyline(closed_points,_ink_color(),INK_EDGE_WIDTH_PX*2.0,true)
+	draw_colored_polygon(points,fill_color)
+
+func _draw_ink_circle(center: Vector2, radius: float, fill_color: Color) -> void:
+	draw_circle(center,maxf(0.0,radius)+INK_EDGE_WIDTH_PX,_ink_color())
+	draw_circle(center,maxf(0.0,radius),fill_color)
+
 func _draw() -> void:
 	for bullet in player_active:
 		var pos: Vector2 = bullet.position
@@ -1091,14 +1128,14 @@ func _draw() -> void:
 		var color: Color = bullet.color
 		match String(bullet.behavior):
 			"rail":
-				draw_line(pos - dir * 21.0, pos + dir * 17.0, color, 5.0)
-				draw_line(pos - dir * 27.0, pos + dir * 20.0, Color(color, 0.24), 11.0)
+				draw_line(pos-dir*27.0,pos+dir*20.0,Color(color,0.24),14.0,true)
+				_draw_ink_line(pos-dir*21.0,pos+dir*17.0,color,5.0)
 			"scatter":
-				draw_colored_polygon(PackedVector2Array([pos+dir*8,pos-dir*5+normal*5,pos-dir*5-normal*5]), color)
+				_draw_ink_polygon(PackedVector2Array([pos+dir*8,pos-dir*5+normal*5,pos-dir*5-normal*5]),color)
 			"arc":
-				draw_arc(pos, 7.0, -PI*0.65, PI*0.65, 8, color, 3.0)
+				_draw_ink_arc(pos,7.0,-PI*0.65,PI*0.65,8,color,3.0)
 			_:
-				draw_line(pos - dir * 8.0, pos + dir * 8.0, color, 4.0)
+				_draw_ink_line(pos-dir*8.0,pos+dir*8.0,color,4.0)
 	for bullet in enemy_active:
 		var pos: Vector2 = bullet.position
 		var radius := float(bullet.radius)
@@ -1110,48 +1147,48 @@ func _draw() -> void:
 		var visual_family:=enemy_visual_family(String(bullet.get("visual_token","")),String(bullet.get("shape","")),String(bullet.get("travel_model","linear")))
 		match visual_family:
 			"sickle_star":
-				draw_arc(pos-normal*radius*0.2,radius*1.15,-PI*0.78,PI*0.78,14,color,3.2)
-				draw_colored_polygon(PackedVector2Array([pos+direction*radius*1.45,pos-direction*radius*0.35+normal*radius*0.42,pos-direction*radius*0.35-normal*radius*0.42]),Color.WHITE)
+				_draw_ink_arc(pos-normal*radius*0.2,radius*1.15,-PI*0.78,PI*0.78,14,color,3.2)
+				_draw_ink_polygon(PackedVector2Array([pos+direction*radius*1.45,pos-direction*radius*0.35+normal*radius*0.42,pos-direction*radius*0.35-normal*radius*0.42]),Color.WHITE)
 			"gravity_seed":
 				draw_circle(pos,radius,Color(color,0.12))
-				draw_arc(pos,radius,0.0,TAU,18,color,2.7)
-				draw_arc(pos,radius*0.55,0.0,TAU,14,Color.WHITE,1.8)
+				_draw_ink_arc(pos,radius,0.0,TAU,18,color,2.7)
+				_draw_ink_arc(pos,radius*0.55,0.0,TAU,14,Color.WHITE,1.8)
 			"adamant_shard":
 				var shard:=PackedVector2Array([pos+direction*radius*1.9,pos-direction*radius*1.15+normal*radius*0.7,pos-direction*radius*0.55,pos-direction*radius*1.15-normal*radius*0.7])
-				draw_colored_polygon(shard,color)
-				draw_polyline(PackedVector2Array(shard+PackedVector2Array([shard[0]])),Color("#513F52"),2.0,true)
+				_draw_ink_polygon(shard,color)
 			"prism_lance":
 				draw_line(pos-direction*radius*2.2,pos+direction*radius*2.4,Color(color,0.28),radius*1.45,true)
-				draw_line(pos-direction*radius*2.0,pos+direction*radius*2.2,Color.WHITE,3.0,true)
+				_draw_ink_line(pos-direction*radius*2.0,pos+direction*radius*2.2,Color.WHITE,3.0)
 			"solar_ray":
 				var ray:=PackedVector2Array([pos+direction*radius*1.6+normal*radius*0.5,pos+direction*radius*1.6-normal*radius*0.5,pos-direction*radius*1.6-normal*radius*0.5,pos-direction*radius*1.6+normal*radius*0.5])
-				draw_colored_polygon(ray,Color("#FFD45E"))
+				_draw_ink_polygon(ray,Color("#FFD45E"))
 				draw_polyline(PackedVector2Array(ray+PackedVector2Array([ray[0]])),color,2.0,true)
 			"halo_orb":
-				draw_circle(pos,radius*0.42,Color.WHITE)
-				draw_arc(pos,radius*1.18,0.2,TAU-0.2,18,Color("#FFD85E"),2.8)
+				_draw_ink_circle(pos,radius*0.42,Color.WHITE)
+				_draw_ink_arc(pos,radius*1.18,0.2,TAU-0.2,18,Color("#FFD85E"),2.8)
 			"tide_wave":
 				for wave_index in 3:
-					draw_arc(pos-direction*float(wave_index)*radius*0.38,radius*(0.65+float(wave_index)*0.22),-PI*0.7,PI*0.7,12,Color("#52D9F4",0.92-float(wave_index)*0.18),2.2)
+					_draw_ink_arc(pos-direction*float(wave_index)*radius*0.38,radius*(0.65+float(wave_index)*0.22),-PI*0.7,PI*0.7,12,Color("#52D9F4",0.92-float(wave_index)*0.18),2.2)
 			"storm_arc":
 				var arc_points:=PackedVector2Array([pos-direction*radius*1.4,pos-direction*radius*0.45+normal*radius*0.7,pos+direction*radius*0.15-normal*radius*0.55,pos+direction*radius*1.4])
+				draw_polyline(arc_points,_ink_color(),ink_stroke_width(4.2),true)
 				draw_polyline(arc_points,Color.WHITE,4.2,true)
 				draw_polyline(arc_points,Color("#6ADFF5"),2.2,true)
 			"river_sprite":
 				var sprite_points:=PackedVector2Array([pos+direction*radius*1.45,pos-direction*radius+normal*radius,pos-direction*radius*0.42,pos-direction*radius-normal*radius])
-				draw_colored_polygon(sprite_points,Color("#54DDBA"))
-				draw_circle(pos+direction*radius*0.28,maxf(1.5,radius*0.18),Color.WHITE)
+				_draw_ink_polygon(sprite_points,Color("#54DDBA"))
+				_draw_ink_circle(pos+direction*radius*0.28,maxf(1.5,radius*0.18),Color.WHITE)
 			"memory_copy":
 				for echo_offset in [-1.0,1.0]:
-					draw_line(pos-direction*radius+normal*radius*0.48*echo_offset,pos+direction*radius+normal*radius*0.48*echo_offset,Color("#A58BFF",0.78),2.8,true)
-				draw_circle(pos,radius*0.3,Color.WHITE)
+					_draw_ink_line(pos-direction*radius+normal*radius*0.48*echo_offset,pos+direction*radius+normal*radius*0.48*echo_offset,Color("#A58BFF",0.78),2.8)
+				_draw_ink_circle(pos,radius*0.3,Color.WHITE)
 			"echo_trail":
 				draw_rect(Rect2(pos-Vector2(radius,radius),Vector2(radius*2.0,radius*2.0)),Color("#A98BFF",0.24),true)
-				draw_line(pos-direction*radius*2.4,pos+direction*radius,Color("#6FE5F0",0.82),4.0,true)
+				_draw_ink_line(pos-direction*radius*2.4,pos+direction*radius,Color("#6FE5F0",0.82),4.0)
 			"mirror_shard":
 				var mirror:=PackedVector2Array([pos+direction*radius*1.5,pos+normal*radius,pos-direction*radius*1.5,pos-normal*radius])
-				draw_colored_polygon(mirror,Color("#F8D8FF",0.88))
-				draw_line(pos-direction*radius,pos+direction*radius,Color("#9C76E8"),2.0,true)
+				_draw_ink_polygon(mirror,Color("#F8D8FF",0.88))
+				_draw_ink_line(pos-direction*radius,pos+direction*radius,Color("#9C76E8"),2.0)
 			_:
 				_draw_enemy_travel_fallback(bullet,pos,radius,color)
 
@@ -1159,25 +1196,23 @@ func _draw_enemy_travel_fallback(bullet: Dictionary, pos: Vector2, radius: float
 	match String(bullet.get("travel_model","linear")):
 		"expanding":
 			draw_circle(pos,radius,Color(color,0.16))
-			draw_arc(pos,radius,0.0,TAU,18,color,3.0)
+			_draw_ink_arc(pos,radius,0.0,TAU,18,color,3.0)
 		"node_link":
-			draw_arc(pos,radius,-PI*0.8,PI*0.8,9,color,3.0)
-			draw_circle(pos,maxf(1.8,radius*0.3),Color.WHITE)
+			_draw_ink_arc(pos,radius,-PI*0.8,PI*0.8,9,color,3.0)
+			_draw_ink_circle(pos,maxf(1.8,radius*0.3),Color.WHITE)
 		"lunge":
 			var direction := Vector2(bullet.velocity).normalized()
 			var normal := Vector2(-direction.y,direction.x)
 			var points := PackedVector2Array([pos+direction*radius*1.5,pos-direction*radius+normal*radius*0.65,pos-direction*radius-normal*radius*0.65])
-			draw_colored_polygon(points,color)
-			draw_polyline(PackedVector2Array(points+PackedVector2Array([points[0]])),Color(0.05,0.02,0.04,1),2.0)
+			_draw_ink_polygon(points,color)
 		"recorded_path", "delayed_linear":
 			draw_rect(Rect2(pos-Vector2(radius,radius),Vector2(radius*2.0,radius*2.0)),Color(color,0.18),true)
-			draw_arc(pos,radius*1.25,float(bullet.age)*4.0,float(bullet.age)*4.0+PI*1.45,12,color,2.5)
+			_draw_ink_arc(pos,radius*1.25,float(bullet.age)*4.0,float(bullet.age)*4.0+PI*1.45,12,color,2.5)
 		"soft_homing":
 			draw_circle(pos,radius,Color(color,0.28))
-			draw_arc(pos,radius,0.0,TAU,14,color,2.5)
-			draw_circle(pos,maxf(1.8,radius*0.28),Color.WHITE)
+			_draw_ink_arc(pos,radius,0.0,TAU,14,color,2.5)
+			_draw_ink_circle(pos,maxf(1.8,radius*0.28),Color.WHITE)
 		_:
 			var points := PackedVector2Array([pos+Vector2(0,-radius),pos+Vector2(radius,0),pos+Vector2(0,radius),pos+Vector2(-radius,0)])
-			draw_colored_polygon(points, color)
-			draw_polyline(PackedVector2Array([points[0],points[1],points[2],points[3],points[0]]), Color(0.05,0.02,0.04,1), 2.0)
-			draw_circle(pos, maxf(1.8, radius * 0.25), Color.WHITE)
+			_draw_ink_polygon(points,color)
+			_draw_ink_circle(pos,maxf(1.8,radius*0.25),Color.WHITE)

@@ -24,6 +24,8 @@ func _run() -> void:
 	_check(runtime_source.find("call_deferred(\"_finish_startup_after_initial_frame\")") >= 0 and runtime_source.find("await get_tree().process_frame") >= 0, "Production audio startup must remain deferred until game frames can be presented")
 	var export_presets := FileAccess.get_file_as_string("res://export_presets.cfg")
 	_check(export_presets.count("tools/*") == 4, "Every production export preset must exclude offline audio tools")
+	_check(export_presets.count("assets/brand/app_icon.svg") == 4, "Every production export preset must exclude the legacy app-icon master")
+	_check(export_presets.count("assets/brand/app_icon_source_v2.png") == 4, "Every production export preset must exclude the current app-icon master")
 	_check(String(ProceduralAudioClass.SFX_ALIASES.get("mutation_select", "")) == "mutation", "Legacy mutation-select event must resolve to the release mutation asset")
 	var counts: Dictionary = synth.get_runtime_player_counts_for_tests()
 	var caches: Dictionary = synth.get_runtime_cache_counts_for_tests()

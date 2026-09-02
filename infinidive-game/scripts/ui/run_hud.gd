@@ -10,6 +10,11 @@ const MYTHIC_AQUA := Color("#2CB8BC")
 const MYTHIC_CORAL := Color("#F25F5C")
 const MYTHIC_BRONZE := Color("#C88936")
 const MYTHIC_GOLD := Color("#F1BE48")
+const PHASE_CHIP_RECT := Rect2(108.0, 130.0, 324.0, 38.0)
+# Guidance owns the bottom-center lane between the two action rings. Gameplay
+# bounds stop above it, so a persistent tutorial can never conceal the Diver or
+# contradict a hazard. The taller maximum also holds the two-part breach story.
+const GUIDANCE_TOAST_RECT := Rect2(124.0, 858.0, 292.0, 92.0)
 
 
 class ActionRing:
@@ -175,6 +180,9 @@ var _player_in_danger := false
 var damage_edge_feedback: DamageEdgeFeedback
 
 func _ready() -> void:
+	# CanvasLayer breaks the transformed gameplay hierarchy deliberately: the
+	# HUD applies the same safe-area fit once to its own authored root.
+	follow_viewport_enabled = false
 	_build()
 	get_viewport().size_changed.connect(_apply_safe_layout)
 	_apply_safe_layout()
@@ -279,8 +287,8 @@ func _build() -> void:
 
 	var phase_panel := PanelContainer.new()
 	phase_panel.name = "CombatPhaseChip"
-	phase_panel.position = Vector2(108,136)
-	phase_panel.size = Vector2(324,38)
+	phase_panel.position = PHASE_CHIP_RECT.position
+	phase_panel.size = PHASE_CHIP_RECT.size
 	phase_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	phase_panel.add_theme_stylebox_override("panel", _panel_style(Color("#BCEBE4"), MYTHIC_AQUA, 19, 0.82))
 	root.add_child(phase_panel)
@@ -333,13 +341,13 @@ func _build() -> void:
 
 	toast_panel = PanelContainer.new()
 	toast_panel.name = "CombatToast"
-	toast_panel.position = Vector2(64,184)
-	toast_panel.size = Vector2(412,54)
+	toast_panel.position = GUIDANCE_TOAST_RECT.position
+	toast_panel.size = Vector2(GUIDANCE_TOAST_RECT.size.x,54)
 	toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	toast_panel.add_theme_stylebox_override("panel", _panel_style(Color("#255B72"), MYTHIC_GOLD, 15, 0.82))
+	toast_panel.add_theme_stylebox_override("panel", _panel_style(Color("#255B72",0.90), MYTHIC_GOLD, 15, 0.82))
 	toast_panel.modulate.a = 0.0
 	root.add_child(toast_panel)
-	toast_label = VisualTheme.label("", 13)
+	toast_label = VisualTheme.label("", 12)
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -497,8 +505,12 @@ func set_dive_ready(ready: bool) -> void:
 func show_toast(message: String, color: Color = VisualTheme.TEXT, duration_seconds: float = 1.45) -> void:
 	_toast_is_transient = true
 	toast_label.text = message
-	toast_label.add_theme_color_override("font_color",color)
-	toast_panel.size = Vector2(412,72 if message.contains("\n") else 54)
+	# Small guidance text always uses warm marble against the navy surface. The
+	# caller's semantic color moves to the border, preserving meaning without
+	# sacrificing contrast (notably the former coral-on-blue breach message).
+	toast_label.add_theme_color_override("font_color",MYTHIC_MARBLE_WARM)
+	toast_panel.add_theme_stylebox_override("panel",_panel_style(Color("#255B72",0.94),color,15,0.92))
+	toast_panel.size = Vector2(GUIDANCE_TOAST_RECT.size.x,GUIDANCE_TOAST_RECT.size.y if message.contains("\n") else 54)
 	if _toast_tween and _toast_tween.is_running():
 		_toast_tween.kill()
 	var reduced_motion := SettingsManager.reduced_motion_enabled()
@@ -528,14 +540,15 @@ func set_tutorial_prompt(message: String, color: Color = VisualTheme.FRIENDLY) -
 
 func _restore_tutorial_prompt() -> void:
 	_toast_is_transient = false
-	toast_panel.size = Vector2(412,54)
+	toast_panel.size = Vector2(GUIDANCE_TOAST_RECT.size.x,54)
 	if _tutorial_message.is_empty():
 		toast_label.text = ""
 		toast_label.modulate.a = 0.0
 		toast_panel.modulate.a = 0.0
 		return
 	toast_label.text = _tutorial_message
-	toast_label.add_theme_color_override("font_color",_tutorial_color)
+	toast_label.add_theme_color_override("font_color",MYTHIC_MARBLE_WARM)
+	toast_panel.add_theme_stylebox_override("panel",_panel_style(Color("#255B72",0.94),_tutorial_color,15,0.92))
 	toast_label.modulate.a = 1.0
 	toast_panel.modulate.a = 1.0
 

@@ -64,6 +64,24 @@ static func fitted_design_rect(safe_rect: Rect2, design_size: Vector2 = DEFAULT_
 	return Rect2(safe_rect.position + (safe_rect.size - fitted_size) * 0.5, fitted_size)
 
 
+static func design_space_viewport_rect(visible_rect: Rect2, fitted_rect: Rect2, design_size: Vector2 = DEFAULT_DESIGN_SIZE) -> Rect2:
+	if design_size.x <= 0.0 or design_size.y <= 0.0 or fitted_rect.size.x <= 0.0 or fitted_rect.size.y <= 0.0:
+		return Rect2(Vector2.ZERO, design_size)
+	var fit_scale := Vector2(fitted_rect.size.x / design_size.x, fitted_rect.size.y / design_size.y)
+	if fit_scale.x <= 0.0 or fit_scale.y <= 0.0:
+		return Rect2(Vector2.ZERO, design_size)
+	return Rect2(
+		(visible_rect.position - fitted_rect.position) / fit_scale,
+		visible_rect.size / fit_scale
+	)
+
+
+static func viewport_backdrop_rect(viewport: Viewport, design_size: Vector2 = DEFAULT_DESIGN_SIZE) -> Rect2:
+	var visible := viewport.get_visible_rect()
+	var fitted := fitted_design_rect(logical_safe_rect(viewport), design_size)
+	return design_space_viewport_rect(visible, fitted, design_size)
+
+
 static func fit_design_control(control: Control, design_size: Vector2 = DEFAULT_DESIGN_SIZE) -> void:
 	var fitted := fitted_design_rect(logical_safe_rect(control.get_viewport()), design_size)
 	control.set_anchor(SIDE_LEFT, 0.0)
@@ -74,6 +92,13 @@ static func fit_design_control(control: Control, design_size: Vector2 = DEFAULT_
 	control.position = fitted.position
 	control.size = design_size
 	control.scale = Vector2(fitted.size.x / design_size.x, fitted.size.y / design_size.y)
+
+
+static func fit_design_node_2d(node: Node2D, design_size: Vector2 = DEFAULT_DESIGN_SIZE) -> Rect2:
+	var fitted := fitted_design_rect(logical_safe_rect(node.get_viewport()), design_size)
+	node.position = fitted.position
+	node.scale = Vector2(fitted.size.x / design_size.x, fitted.size.y / design_size.y)
+	return fitted
 
 
 static func _web_safe_area_metrics() -> Dictionary:

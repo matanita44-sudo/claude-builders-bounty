@@ -79,7 +79,8 @@ IOS_PRESET_GENERAL = {
     "exclude_filter": (
         '"tests/*,artifacts/*,tools/*,assets/store/*,'
         'assets/audio/generated/trailer/*,assets/platform/ios/*,'
-        'assets/brand/android_adaptive_*.svg,assets/brand/feature_graphic.svg,'
+        'assets/brand/android_adaptive_*.svg,assets/brand/app_icon.svg,'
+        'assets/brand/app_icon_source_v2.png,assets/brand/feature_graphic.svg,'
         'assets/brand/logo_mark.svg,assets/brand/social_card.svg,'
         'assets/brand/wordmark.svg"'
     ),

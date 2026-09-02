@@ -354,6 +354,10 @@ func _apply_layout_direction() -> void:
 func _apply_safe_layout() -> void:
 	if is_instance_valid(root):
 		SafeAreaHelperScript.fit_design_control(root, DESIGN_SIZE)
+		var backdrop_rect := SafeAreaHelperScript.viewport_backdrop_rect(get_viewport(), DESIGN_SIZE)
+		backdrop.position = backdrop_rect.position
+		backdrop.size = backdrop_rect.size
+		backdrop.queue_redraw()
 
 
 func _on_locale_changed(_locale: String) -> void:

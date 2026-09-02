@@ -165,8 +165,49 @@ func _test_nest(locale: String, logical_size: Vector2i) -> void:
 	_check(nest._tagline.horizontal_alignment == _expected_alignment(locale), context + " tagline must align to the locale start edge")
 	_check(nest._mode_label.horizontal_alignment == _expected_alignment(locale), context + " mode label must align to the locale start edge")
 	_check(nest._tagline.layout_direction == _expected_direction(locale), context + " tagline must use the locale direction")
+	var settings_button := nest.get_node_or_null("SettingsButton") as Button
+	_check(settings_button != null, context + " must expose a semantic Settings button")
+	if settings_button != null:
+		_check(settings_button.text == "⚙", context + " Settings must use the recognizable gear glyph instead of an unexplained abbreviation")
+		_check(settings_button.tooltip_text == LocalizationService.text("settings"), context + " Settings glyph must expose a localized tooltip")
+		_check(settings_button.accessibility_name == LocalizationService.text("settings"), context + " Settings glyph must expose a localized accessibility name")
+	var boss_card := nest.get_node_or_null("BossCard") as PanelContainer
+	var boss_portrait := nest.find_child("BossPortrait", true, false) as TextureRect
+	_check(boss_card != null and boss_portrait != null, context + " boss selection must include a real Titan portrait")
+	if boss_card != null and boss_portrait != null:
+		_check(boss_portrait.texture is AtlasTexture, context + " boss portrait must use the authored Titan bust crop")
+		_check(boss_portrait.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED, context + " Titan bust must fill its portrait frame without distortion")
+		_check(_rect_inside(_screen_rect(boss_portrait), _screen_rect(boss_card)), context + " Titan portrait must stay inside the compact boss card")
+		var boss_ids := _baseline_boss_ids()
+		for boss_index in range(boss_ids.size()):
+			var boss_id := boss_ids[boss_index]
+			nest._boss_index = boss_index
+			nest._refresh_boss()
+			var bust := boss_portrait.texture as AtlasTexture
+			_check(bust != null and bust.atlas == NestViewClass.TITAN_PORTRAITS[boss_id], context + " %s must use its matching authored Titan art" % boss_id)
+			_check(bust != null and bust.region.size.y < bust.atlas.get_height(), context + " %s portrait must use the compact bust crop" % boss_id)
+	var gradient := nest._sky_gradient_for(4)
+	_check(gradient != null and gradient.width == 540 and gradient.height == 446, context + " sky must use the full-resolution smooth gradient texture")
+	_check(nest._sky_gradient_for(4) == gradient, context + " sky gradient must be cached instead of allocated every animation frame")
+	for facility_value in NestViewClass.FACILITIES:
+		var facility := facility_value as Dictionary
+		var facility_id := String(facility.get("id", ""))
+		var facility_button := nest.get_node_or_null("Facility_%s" % facility_id) as Button
+		var chip := nest.get_node_or_null("Facility_%s/FacilityCaptionChip_%s" % [facility_id,facility_id]) as PanelContainer
+		var caption := nest.get_node_or_null("Facility_%s/FacilityCaptionChip_%s/FacilityCaption_%s" % [facility_id,facility_id,facility_id]) as Label
+		_check(facility_button != null and chip != null and caption != null, context + " %s must expose a dedicated caption chip" % facility_id)
+		if facility_button != null and chip != null and caption != null:
+			_check(chip.position.y >= 68.0, context + " %s caption chip must begin below its facility silhouette" % facility_id)
+			var chip_style := chip.get_theme_stylebox("panel") as StyleBoxFlat
+			_check(chip_style != null and chip_style.bg_color.a >= 0.85, context + " %s caption chip must retain an opaque readable background" % facility_id)
+			_check(caption.text == LocalizationService.text(String(facility.get("key", ""))), context + " %s caption must use localized copy" % facility_id)
+			_check(_rect_inside(_screen_rect(caption), _screen_rect(chip)), context + " %s caption must stay inside its chip" % facility_id)
 	_assert_surface_geometry(nest, viewport, context)
 	await _destroy_viewport(viewport)
+
+
+func _baseline_boss_ids() -> Array[String]:
+	return ["gravemaw", "seraph_9", "abyss_leviathan", "null_twin"]
 
 
 func _test_settings(locale: String, logical_size: Vector2i) -> void:

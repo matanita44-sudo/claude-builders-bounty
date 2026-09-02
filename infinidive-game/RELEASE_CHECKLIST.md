@@ -2,7 +2,7 @@
 
 This checklist is evidence-based. Check an item only after the artifact or test exists. A configured preset, authored data row, or code path is not equivalent to a validated build or feature.
 
-> The live Pages marker is hardening commit `e7275f5`; its run `33668271115` passed Validate, Web, Android debug, unsigned-iOS scaffold, deploy, 30-minute soak, and unsigned Xcode 26 Simulator/iPhoneOS compilation, but native capture and the later public trailer step failed. Bright Greek-mythic/AION commit `a550ca867506f34856cf337fbe28083a9cdbaec5` therefore remains the latest fully passing public whole-path evidence candidate. The current local tree passes editor/import and a fresh 21-suite `40,709/0` matrix. Its capture fixes still need a final push and remote rerun.
+> The live Pages marker is hardening commit `e7275f5`; its run `33668271115` passed Validate, Web, Android debug, unsigned-iOS scaffold, deploy, 30-minute soak, and unsigned Xcode 26 Simulator/iPhoneOS compilation, but native capture and the later public trailer step failed. Bright Greek-mythic/AION commit `a550ca867506f34856cf337fbe28083a9cdbaec5` therefore remains the latest fully passing public whole-path evidence candidate. The current local tree passes editor/import and a fresh 21-suite `41,194/0` matrix, a source-current bounded soak, fresh Web export plus complete Chromium 140 whole-path/reload capture, and fresh unsigned Linux iOS scaffold validation/pack boot. The repaired breach tutorial/story-toast presentation has current-source pixel proof and a focused 0 P0 / 0 P1 red-team verdict. Final push and remote rerun remain pending.
 
 ## 0. Source and version control
 
@@ -25,7 +25,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Dedicated button, double-tap, and flick dash input paths exist in code.
 - [x] Dash invulnerability has an automated logic test.
 - [x] Dash readiness is displayed as a percentage/ready state.
-- [x] Native/Web safe-area inset adapters are wired to the Nest and run HUD, and inset-to-logical-coordinate math is automated.
+- [x] Native/Web safe-area inset adapters are wired to the Nest and run HUD. Independent fitted world/HUD canvases, asymmetric tall-aspect background coverage, and touch-to-world inversion including the finger offset have deterministic coverage, including a 1320×2868 mapping case.
 - [ ] Touch behavior is tested on a small iPhone-sized display.
 - [ ] Touch behavior is tested on a large iPhone with Dynamic Island/safe areas.
 - [ ] Touch behavior is tested on representative mid-range and high-refresh Android devices.
@@ -154,9 +154,11 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 7. Automated QA and CI
 
-- [x] Latest local JUnit-style artifact reports main `2,868/0` with recorded time `14.049` seconds.
-- [x] Deployed `a550ca8` passed remote `28,949/0`. The current local tree passes `40,709/0` across 21 suites, including organs `7,354`, Titan attack specs `1,045`, and localized layouts `2,408`. Editor/import, exact sentinels, and strict zero-error scanning pass. The latest exact tree still needs remote proof.
-- [x] Current local bounded soak passes at 8.05 seconds with 97 iterations, 10 restarts/Dives, 97 projectile cycles, six saves, 530 queue events, peak 540, all seven movement models, and zero failures.
+- [x] Latest local JUnit-style artifact reports main `2,872/0` with recorded time `14.173` seconds.
+- [x] Deployed `a550ca8` passed remote `28,949/0`. The current local tree passes `41,194/0` across 21 suites, including organs `7,354`, Titan attack specs `1,045`, audio `686`, visual regression `651`, and localized layouts `2,648`. Editor/import, exact sentinels, and strict zero-error scanning pass. The latest exact tree still needs remote proof.
+- [x] Current local bounded soak passes at 8.00 seconds with 99 iterations/projectile cycles, 10 restarts/Dives, six saves, 530 queue events, peak 540, all seven movement models, zero orphan nodes, and zero failures. This is Linux-headless structural evidence, not device-performance evidence.
+- [x] Fresh current-tree Web release export passes static/legal/export-exclusion validation with PCK `15,520,528` bytes / SHA-256 `51a74e260575c1011517c0b97d72ab2402bbd9c2696081516c6be1e2d1f670f8` and WebAssembly `39,514,754` bytes.
+- [x] Fresh current-tree Web browser/runtime capture passes locally on Chromium `140.0.7339.16` headless-shell at production fingerprint `68c2f81fe51fa09efa0ab25f190de482646fa865b3562ae32f604b656e8bd01b`: 9/9 semantic 540×960 stages, 9/9 unscaled 1320×2868 review stages, both stage/store validators, complete changed-exterior path, exact same-context primary-save reload, and zero page errors/crashes/request failures. A separate fresh-profile non-QA frame proves the real three-line first-breach story toast is fully visible without blocking the Diver or action rings. This is local automated browser QA only—not Mobile Safari/Chrome, native iOS, physical-device, submission-ready screenshot, deployed-public, or current remote-CI evidence.
 - [x] Editor import and every suite pass the isolated strict wrapper with exact sentinel/count validation and zero engine `ERROR`, script-error, or parse-error lines.
 - [x] Main TestRunner requires `INFINIDIVE_TEST_ISOLATED=1` and a temporary `XDG_DATA_HOME`, failing closed before it can touch an ordinary player profile.
 - [x] Data integrity, all boss/organ orders, challenge-code malformed/fuzz cases, mutation/weapon runtime, localized UI, analytics contract, local reset cleanup, room safety, project/safe-area configuration, projectile collision, movement, dash/shields, save recovery/migration/banking, live telegraph avoidance, rate-limited combat cues, core hook, and complete-victory tests exist.
@@ -260,7 +262,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [x] Godot 4.7 still generates empty Camera, Microphone, and Photo Library usage-description entries even when the preset omits them. The deterministic post-export sanitizer removes only empty reviewed defaults plus `CFBundleSignature`; it rejects non-empty/non-string reviewed descriptions and every new unreviewed `NS*UsageDescription` key, writes atomically, reparses, and passes positive/negative/idempotency self-tests.
 - [x] A fresh local Linux-generated scaffold passed exact custom 780×1688/1170×2532 RGB launch-pixel comparison, rejected the stock Godot splash path, and emitted tracking false with only `FileTimestamp:C617.1`, `SystemBootTime:35F9.1`, and `DiskSpace:E174.1`; collected-data and tracking-domain arrays are absent/empty. This is structural export evidence, not an Apple-platform build result.
 - [x] The deployed-candidate CI unsigned-scaffold job passes remotely; artifact `9832974829` is a sanitized current-source Xcode handoff for `a550ca8`. It uses a fake Team ID only in a temporary project copy, scrubs it from generated project/export-options files, scans the whole artifact, and labels the result as unsigned Linux export evidence.
-- [x] A regenerated local iOS scaffold repairs scheme-to-target binding, declares exactly `en` and `he` through `CFBundleLocalizations`, and passes metadata, icon, launch, and privacy validators.
+- [x] A fresh current-tree Linux iOS scaffold repairs scheme-to-target binding, contains 48 files / 405,237,476 bytes, declares exactly `en` and `he` through `CFBundleLocalizations`, and passes source, 16-slot RGB/no-alpha icon, launch-pixel, metadata, `Info.plist`, privacy-manifest, and one-target control-surface validators. Its PCK is `15,520,624` bytes / SHA-256 `28fb6f2c4e66e1ceb13ba86c05604cfbdb0fe900b91fa0bcffe59f201b8e05d2` and boots for 120 Linux-headless frames. This remains unsigned structural evidence only.
 - [x] The protected signed archive-only workflow and fail-closed source/profile/certificate/archive/IPA validator pass local self-tests, source checks, YAML/Bash parsing, full-SHA action-pin checks, trust-chain contract tests, and archive/IPA substitution negatives. No signed artifact is claimed.
 - [x] The byte-identical signed workflow is registered on default `main` through PR [#1](https://github.com/matanita44-sudo/claude-builders-bounty/pull/1), squash merge `4bbdbb3ec41e77ec653775b0d8f3a200b5f93122`; its workflow blob matches production.
 - [ ] Protect `infinidive-production` and immutable `ios-v*` tags, configure the `app-store-production` environment/reviewers, and provide protected Apple signing credentials.
@@ -270,7 +272,7 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 - [ ] The Xcode 26 Simulator lanes pass end to end. Run `33668271115` compiled unsigned Release x86_64 Simulator and arm64 iPhoneOS builds but failed during screenshot-loop transport timing; Debug run `33668271147` stopped after the first stage. Local fixes require remote rerun through install/launch/full capture/termination and source-bound artifact upload.
 - [x] Hardening checkpoint `e7275f5` compiled with Xcode 26 for unsigned Release x86_64 Simulator and arm64 iPhoneOS in run `33668271115`. This is compile evidence only, not an archive, signature, physical-device install, or TestFlight build.
 - [ ] Direct release export/archive from the checked-in blank-Team-ID preset succeeds; owner Team ID and signing configuration are still required.
-- [x] The retained unsigned scaffold contains 47 files and records an approximately 368 MB directory size; this does not claim that the scaffold itself was regenerated for the current tree.
+- [x] Historical retained scaffolds remain provenance only; the separately recorded fresh current-tree scaffold has 48 files / 405,237,476 bytes and passed the Linux structural checks above. Neither is a signed Apple-platform archive.
 - [ ] Bundle ID, Apple team, capabilities, and minimum iOS version receive final owner/store approval.
 - [ ] Xcode archive is produced on macOS.
 - [ ] Release candidate is compiled and archived with Xcode 26 or later and the iOS 26 SDK.
@@ -283,20 +285,21 @@ This checklist is evidence-based. Check an item only after the artifact or test 
 
 ## 12. Store assets and metadata
 
-- [x] Original 1024×1024 app-icon source/raster exists; the raster is verified RGB without alpha.
+- [x] A rebuilt bright Greek-mythic 1254×1254 source and its exact 1024×1024 App Store raster exist; the App Store raster is verified RGB without alpha and SHA-256 `ea21459bafafd32851bc0e56a791ac6fdc253e58b64e8d7624bec69fff95f22f`.
 - [x] Dedicated Google Play icon raster exists at 512×512, 72,562 bytes, 8-bit/color RGBA; final visual and console-upload validation remain pending.
-- [x] Exact-size RGB/no-alpha iOS icon rasters and custom portrait launch assets are wired in the preset. A fresh local scaffold validates launch pixel parity, metadata, and exact English/Hebrew localization declaration; final signed-archive inspection remains open.
+- [x] All exact-size RGB/no-alpha iOS icon rasters and the bright Olympus portrait launch assets are wired in the preset. A fresh current-tree scaffold validates all 16 icon slots, launch pixel parity, metadata, and exact English/Hebrew localization declaration; final signed-archive inspection remains open.
 - [ ] App icon is visually tested at small sizes and wired into the final Android asset catalog.
-- [x] Five direct runtime screenshots exist at 1080×1920 with provenance and hashes.
+- [x] Five direct 1080×1920 runtime screenshots exist with provenance and hashes, but they show the superseded identity and are historical evidence only; they are barred from the current store listing.
+- [x] Nine current-source 1320×2868 images were captured unscaled from the local Chromium 140 automated path, are source-bound to production fingerprint `68c2f81fe51fa09efa0ab25f190de482646fa865b3562ae32f604b656e8bd01b`, and pass the stage/store validators. They are review candidates only, not target-device or submission-ready App Store screenshots.
 - [ ] At least one complete 6.9-inch screenshot set is recaptured from the RC at Apple-accepted dimensions; the planned eight-scene narrative is a product choice, not Apple's minimum count.
-- [x] A technical 886×1920, 17.2-second H.264/AAC stereo Apple-format candidate exists with provenance and hash.
+- [x] A technical 886×1920, 17.2-second H.264/AAC stereo Apple-format experiment exists with provenance and hash, but it shows the superseded identity and is not a current App Preview candidate.
 - [ ] If an App Preview is used, recapture it from the RC in Xcode Device Hub on a supported simulated or physical iPhone and pass App Store Connect processing; otherwise omit it for 1.0. App Preview is optional.
 - [ ] Final Android screenshot narrative contains the planned eight real-gameplay scenes; current development set contains five.
 - [x] Original Google Play feature-graphic source and verified 1024×500, 79,388-byte RGB raster with no alpha exist.
 - [x] Original logo/wordmark and social-card source/raster assets exist with recorded dimensions, formats, and SHA-256 hashes.
-- [x] A 17.2-second, 1080×1920, H.264/30 fps social-development trailer uses real runtime frames and a stereo AAC arrangement rendered only from shipped procedural-audio code.
+- [x] A historical 17.2-second, 1080×1920, H.264/30 fps social-development trailer uses real runtime frames and a stereo AAC arrangement rendered only from shipped procedural-audio code; it shows the superseded identity and is barred from current marketing.
 - [ ] Final trailer/app preview passes target-device capture, listening/caption review, exact store format, and upload validation.
-- [x] A portrait 1080×1920 social clip uses real gameplay capture; platform publication and device playback are untested.
+- [x] A historical portrait 1080×1920 social clip uses real gameplay capture; it is not current-identity marketing, and platform publication/device playback are untested.
 - [x] English and Hebrew metadata drafts exist in `STORE_METADATA.md`, including current official source URLs and character/dimension constraints.
 - [ ] English title, subtitle/short description, full description, keywords, captions, and release notes are final and entered in the store consoles.
 - [ ] Hebrew metadata is reviewed by a fluent human and entered only after complete in-game RTL QA.

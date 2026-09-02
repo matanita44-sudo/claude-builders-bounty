@@ -6,6 +6,12 @@ const PermanentUpgradeEngineScript := preload("res://scripts/core/permanent_upgr
 const TutorialFlowScript := preload("res://scripts/core/tutorial_flow.gd")
 const MetaGoalServiceScript := preload("res://scripts/services/meta_goal_service.gd")
 const NATIVE_PUBLIC_SITE_BASE := "https://matanita44-sudo.github.io/claude-builders-bounty/infinidive/"
+const TITAN_PORTRAITS := {
+	"gravemaw": preload("res://assets/art/titans/cronus.png"),
+	"seraph_9": preload("res://assets/art/titans/hyperion.png"),
+	"abyss_leviathan": preload("res://assets/art/titans/oceanus.png"),
+	"null_twin": preload("res://assets/art/titans/mnemosyne.png"),
+}
 
 signal start_requested(config: Dictionary)
 
@@ -23,16 +29,22 @@ var _boss_index:=0
 var _difficulty:OptionButton
 var _boss_title:Label
 var _boss_subtitle:Label
+var _boss_portrait:TextureRect
 var _currency:Label
 var _stage_label:Label
 var _hunt_button:Button
+var _settings_button:Button
 var _overlay:PanelContainer
 var _facility_buttons:Dictionary={}
+var _facility_caption_labels:Dictionary={}
 var _logo:Label
 var _tagline:Label
 var _mode_label:Label
 var _footer:Label
 var _meta_goals := MetaGoalServiceScript.new()
+var _sky_gradients:Dictionary={}
+var _titan_busts:Dictionary={}
+var _design_backdrop_rect := Rect2(Vector2.ZERO, SafeAreaHelperScript.DEFAULT_DESIGN_SIZE)
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -52,6 +64,8 @@ func _ready() -> void:
 
 func _apply_safe_layout() -> void:
 	SafeAreaHelperScript.fit_design_control(self)
+	_design_backdrop_rect = SafeAreaHelperScript.viewport_backdrop_rect(get_viewport())
+	queue_redraw()
 
 func _process(delta:float)->void:
 	# Sanctuary structures remain visible in Reduced Motion, but decorative
@@ -76,14 +90,20 @@ func _build_ui()->void:
 	_currency.position=Vector2(330,28)
 	_currency.size=Vector2(186,52)
 	add_child(_currency)
-	var settings_button:=Button.new()
-	settings_button.text="SET"
-	settings_button.position=Vector2(472,82)
-	settings_button.size=Vector2(48,48)
-	settings_button.add_theme_font_size_override("font_size",12)
-	settings_button.add_theme_stylebox_override("normal",VisualTheme.button_style(Color("#173B55",0.88),20))
-	settings_button.pressed.connect(_show_settings)
-	add_child(settings_button)
+	_settings_button=Button.new()
+	_settings_button.name="SettingsButton"
+	_settings_button.text="⚙"
+	_settings_button.position=Vector2(468,82)
+	_settings_button.size=Vector2(52,48)
+	_settings_button.focus_mode=Control.FOCUS_ALL
+	_settings_button.add_theme_font_size_override("font_size",23)
+	_settings_button.add_theme_color_override("font_color",Color("#FFF7D6"))
+	_settings_button.add_theme_color_override("font_hover_color",Color.WHITE)
+	_settings_button.add_theme_stylebox_override("normal",VisualTheme.button_style(Color("#173B55",0.92),20))
+	_settings_button.add_theme_stylebox_override("hover",VisualTheme.button_style(Color("#246582",0.96),20))
+	_settings_button.add_theme_stylebox_override("focus",VisualTheme.button_style(Color("#246582",0.96),20))
+	_settings_button.pressed.connect(_show_settings)
+	add_child(_settings_button)
 
 	_stage_label=VisualTheme.label("",11,VisualTheme.FRIENDLY)
 	_stage_label.position=Vector2(22,134)
@@ -95,14 +115,8 @@ func _build_ui()->void:
 		var button:=Button.new()
 		button.name="Facility_%s"%String(facility.id)
 		button.position=Vector2(facility.position)-Vector2(52,38)
-		button.size=Vector2(104,76)
-		button.add_theme_font_size_override("font_size",9)
-		button.add_theme_color_override("font_color",Color("#102D4D"))
-		button.add_theme_color_override("font_hover_color",Color("#102D4D"))
-		button.add_theme_color_override("font_disabled_color",Color("#60777F"))
-		button.add_theme_color_override("font_shadow_color",Color(1,1,1,0.72))
-		button.add_theme_constant_override("shadow_offset_x",1)
-		button.add_theme_constant_override("shadow_offset_y",2)
+		button.size=Vector2(104,100)
+		button.focus_mode=Control.FOCUS_ALL
 		button.add_theme_stylebox_override("normal",VisualTheme.button_style(Color(1,1,1,0.035),22))
 		button.add_theme_stylebox_override("hover",VisualTheme.button_style(Color("#DFFDF3",0.34),22))
 		button.add_theme_stylebox_override("pressed",VisualTheme.button_style(Color("#FFD66E",0.28),22))
@@ -111,25 +125,61 @@ func _build_ui()->void:
 		button.pressed.connect(func():_open_facility(facility_id))
 		add_child(button)
 		_facility_buttons[facility_id]=button
+		var caption_chip:=PanelContainer.new()
+		caption_chip.name="FacilityCaptionChip_%s"%facility_id
+		caption_chip.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		caption_chip.position=Vector2(3,68)
+		caption_chip.size=Vector2(98,26)
+		button.add_child(caption_chip)
+		var caption:=VisualTheme.label("",8,Color("#FFF8DE"))
+		caption.name="FacilityCaption_%s"%facility_id
+		caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+		caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+		caption.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+		caption_chip.add_child(caption)
+		_facility_caption_labels[facility_id]=caption
 
 	var boss_panel:=PanelContainer.new()
+	boss_panel.name="BossCard"
 	boss_panel.position=Vector2(18,606)
 	boss_panel.size=Vector2(504,184)
 	boss_panel.add_theme_stylebox_override("panel",VisualTheme.panel_style(Color("#102D4D",0.95),25,Color("#F3BE45",0.42)))
 	add_child(boss_panel)
-	var boss_box:=VBoxContainer.new()
-	boss_box.add_theme_constant_override("separation",6)
+	var boss_box:=HBoxContainer.new()
+	boss_box.add_theme_constant_override("separation",12)
 	boss_panel.add_child(boss_box)
+	var portrait_frame:=PanelContainer.new()
+	portrait_frame.name="BossPortraitFrame"
+	portrait_frame.custom_minimum_size=Vector2(122,156)
+	portrait_frame.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	portrait_frame.clip_contents=true
+	portrait_frame.add_theme_stylebox_override("panel",VisualTheme.panel_style(Color("#F6ECD2",0.12),18,Color("#F3BE45",0.48)))
+	boss_box.add_child(portrait_frame)
+	_boss_portrait=TextureRect.new()
+	_boss_portrait.name="BossPortrait"
+	_boss_portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	_boss_portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+	_boss_portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_boss_portrait.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	portrait_frame.add_child(_boss_portrait)
+	var boss_content:=VBoxContainer.new()
+	boss_content.name="BossCardContent"
+	boss_content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	boss_content.add_theme_constant_override("separation",7)
+	boss_box.add_child(boss_content)
 	var row:=HBoxContainer.new()
-	boss_box.add_child(row)
-	var prev:=Button.new();prev.text="‹";prev.custom_minimum_size=Vector2(46,46);prev.pressed.connect(func():_cycle_boss(-1));row.add_child(prev)
+	row.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	boss_content.add_child(row)
+	var prev:=Button.new();prev.name="PreviousBoss";prev.text="‹";prev.custom_minimum_size=Vector2(42,44);prev.pressed.connect(func():_cycle_boss(-1));row.add_child(prev)
 	var title_box:=VBoxContainer.new();title_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(title_box)
-	_boss_title=VisualTheme.label("",22);_boss_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;title_box.add_child(_boss_title)
+	_boss_title=VisualTheme.label("",20);_boss_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;title_box.add_child(_boss_title)
 	_boss_subtitle=VisualTheme.label("",10,VisualTheme.MUTED);_boss_subtitle.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;title_box.add_child(_boss_subtitle)
-	var next:=Button.new();next.text="›";next.custom_minimum_size=Vector2(46,46);next.pressed.connect(func():_cycle_boss(1));row.add_child(next)
-	var options:=HBoxContainer.new();boss_box.add_child(options)
+	var next:=Button.new();next.name="NextBoss";next.text="›";next.custom_minimum_size=Vector2(42,44);next.pressed.connect(func():_cycle_boss(1));row.add_child(next)
+	var divider:=HSeparator.new();divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;divider.modulate=Color("#F3BE45",0.38);boss_content.add_child(divider)
+	var options:=HBoxContainer.new();boss_content.add_child(options)
 	_mode_label=VisualTheme.label("",11,VisualTheme.SHARD);_mode_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;options.add_child(_mode_label)
-	_difficulty=OptionButton.new();_difficulty.add_item("DIVER");_difficulty.add_item("DEEP");_difficulty.add_item("ABYSS");_difficulty.selected=0;options.add_child(_difficulty)
+	_difficulty=OptionButton.new();_difficulty.name="Difficulty";_difficulty.custom_minimum_size=Vector2(112,48);_difficulty.add_item("DIVER");_difficulty.add_item("DEEP");_difficulty.add_item("ABYSS");_difficulty.selected=0;options.add_child(_difficulty)
 
 	_hunt_button=Button.new()
 	_hunt_button.name="BeginDive"
@@ -155,6 +205,9 @@ func _refresh_all()->void:
 	_tagline.text=LocalizationService.text("tagline")
 	_tagline.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT if rtl else HORIZONTAL_ALIGNMENT_LEFT
 	_tagline.layout_direction=LocalizationService.layout_direction()
+	_settings_button.tooltip_text=LocalizationService.text("settings")
+	_settings_button.accessibility_name=LocalizationService.text("settings")
+	_settings_button.accessibility_description=LocalizationService.text("settings_subtitle")
 	_currency.text="%s %d\n%s %d"%[LocalizationService.text("bio"),int(SaveManager.profile.get("bio_matter",0)),LocalizationService.text("shards"),int(SaveManager.profile.get("core_shards",0))]
 	_currency.layout_direction=LocalizationService.layout_direction()
 	var stage:=clampi(int(SaveManager.profile.get("nest_stage",0)),0,4)
@@ -179,10 +232,22 @@ func _refresh_all()->void:
 		if String(facility.id)=="core" and bool(SaveManager.profile.get("abyss_unlocked",false)):
 			unlocked=true
 		button.disabled=not unlocked
-		button.add_theme_color_override("font_color",Color("#102D4D") if unlocked else Color("#60777F"))
-		# The first line reserves the facility silhouette instead of covering it
-		# with a menu-card label. The full button remains a generous touch target.
-		button.text="\n%s"%(LocalizationService.text(String(facility.key)) if unlocked else LocalizationService.text("locked"))
+		var facility_id:=String(facility.id)
+		var facility_name:=LocalizationService.text(String(facility.key))
+		var locked_status:=LocalizationService.text("locked")
+		button.text=""
+		button.tooltip_text=facility_name
+		button.accessibility_name=facility_name
+		button.accessibility_description=facility_name if unlocked else "%s · %s"%[facility_name,locked_status]
+		var caption:=_facility_caption_labels[facility_id] as Label
+		# Keep every room identifiable while color, disabled state, and the screen
+		# reader description communicate its lock. Generic LOCKED chips made the
+		# sanctuary look like unlabeled menu placeholders.
+		caption.text=facility_name
+		caption.layout_direction=LocalizationService.layout_direction()
+		caption.add_theme_color_override("font_color",Color("#FFF8DE") if unlocked else Color("#D2DDDA"))
+		var caption_chip:=button.get_node("FacilityCaptionChip_%s"%facility_id) as PanelContainer
+		caption_chip.add_theme_stylebox_override("panel",_facility_chip_style(unlocked,_facility_color(facility_id)))
 	_refresh_boss()
 	queue_redraw()
 
@@ -210,6 +275,10 @@ func _refresh_boss()->void:
 	var boss_id:=String(boss.get("id","gravemaw"))
 	_boss_title.text=LocalizationService.content_text("boss",boss_id,"name",String(boss.get("name","CRONUS")))
 	_boss_subtitle.text=LocalizationService.content_text("boss",boss_id,"subtitle",String(boss.get("subtitle","THE GILDED HARVESTER")))
+	_boss_portrait.texture=_titan_bust_texture(boss_id)
+	_boss_portrait.tooltip_text=_boss_title.text
+	_boss_portrait.accessibility_name=_boss_title.text
+	_boss_portrait.accessibility_description=_boss_subtitle.text
 
 func _selected_boss_id()->String:
 	return _unlocked_bosses()[_boss_index]
@@ -611,10 +680,11 @@ func _clear_overlay()->void:
 	for child in _overlay.get_children():child.queue_free()
 
 func _draw()->void:
-	var canvas_width:=size.x if size.x>0 else 540.0
-	var canvas_height:=size.y if size.y>0 else 960.0
 	var stage:=clampi(int(SaveManager.profile.get("nest_stage",0)),0,4)
-	draw_rect(Rect2(0,0,canvas_width,canvas_height),Color("#102D4D"))
+	# Paint through the entire physical viewport in design coordinates. The
+	# authored 9:16 sanctuary stays uncropped while tall phones receive an
+	# intentional ink-blue frame instead of clear-color letterbox bands.
+	draw_rect(_design_backdrop_rect,Color("#102D4D"))
 	_draw_sky_background(stage)
 	_draw_floating_island(stage)
 	_draw_temple_frame(stage)
@@ -629,11 +699,9 @@ func _draw()->void:
 	_draw_island_edge(stage)
 
 func _draw_sky_background(stage:int)->void:
-	var sky_top:=Color("#3F91C5").lerp(Color("#5BCDE1"),float(stage)/5.0)
-	var sky_bottom:=Color("#B9E9EE").lerp(Color("#E5FFF4"),float(stage)/5.0)
-	for band in 14:
-		var amount:=float(band)/13.0
-		draw_rect(Rect2(0,154.0+amount*446.0,540,36),sky_top.lerp(sky_bottom,amount))
+	# A real filtered GradientTexture2D avoids the visible horizontal banding of
+	# the old fourteen-rectangle sky, especially after App Store downscaling.
+	draw_texture_rect(_sky_gradient_for(stage),Rect2(0,154,540,446),false)
 	var sun:=Vector2(442,214)
 	for halo in range(4,0,-1):
 		draw_circle(sun,26.0+halo*13.0,Color("#FFF1A8",0.028+stage*0.008))
@@ -653,6 +721,27 @@ func _draw_sky_background(stage:int)->void:
 			distant_center+Vector2(-13,17)
 		]),Color("#52798D",0.28))
 		draw_line(distant_center+Vector2(-23,-2),distant_center+Vector2(22,-2),Color("#EAF8E4",0.45),3.0,true)
+
+func _sky_gradient_for(stage:int)->GradientTexture2D:
+	var safe_stage:=clampi(stage,0,4)
+	if _sky_gradients.has(safe_stage):
+		return _sky_gradients[safe_stage] as GradientTexture2D
+	var restoration:=float(safe_stage)/4.0
+	var sky_top:=Color("#3F91C5").lerp(Color("#65D5E5"),restoration)
+	var sky_mid:=Color("#75C7DD").lerp(Color("#A8E9DF"),restoration)
+	var sky_bottom:=Color("#B9E9EE").lerp(Color("#E5FFF4"),restoration)
+	var gradient:=Gradient.new()
+	gradient.interpolation_mode=Gradient.GRADIENT_INTERPOLATE_CUBIC
+	gradient.offsets=PackedFloat32Array([0.0,0.54,1.0])
+	gradient.colors=PackedColorArray([sky_top,sky_mid,sky_bottom])
+	var texture:=GradientTexture2D.new()
+	texture.width=540
+	texture.height=446
+	texture.fill_from=Vector2(0.5,0.0)
+	texture.fill_to=Vector2(0.5,1.0)
+	texture.gradient=gradient
+	_sky_gradients[safe_stage]=texture
+	return texture
 
 func _draw_cloud(center:Vector2,scale_value:float,alpha:float)->void:
 	var shade:=Color("#C6E4EA",alpha*0.72)
@@ -831,6 +920,29 @@ func _facility_color(id:String)->Color:
 		"trophies":return Color("#F3BE45")
 		"core":return Color("#E84D83")
 	return Color("#24B8C7")
+
+func _facility_chip_style(unlocked:bool,accent:Color)->StyleBoxFlat:
+	var style:=StyleBoxFlat.new()
+	style.bg_color=Color("#102D4D",0.94 if unlocked else 0.86)
+	style.border_color=Color(accent,0.82) if unlocked else Color("#8FA4A5",0.58)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(11)
+	style.content_margin_left=5
+	style.content_margin_right=5
+	style.content_margin_top=3
+	style.content_margin_bottom=3
+	return style
+
+func _titan_bust_texture(boss_id:String)->Texture2D:
+	if _titan_busts.has(boss_id):
+		return _titan_busts[boss_id] as Texture2D
+	var source:=TITAN_PORTRAITS.get(boss_id,TITAN_PORTRAITS["gravemaw"]) as Texture2D
+	var source_size:=source.get_size()
+	var bust:=AtlasTexture.new()
+	bust.atlas=source
+	bust.region=Rect2(0,0,source_size.x,maxf(1.0,floorf(source_size.y*0.66)))
+	_titan_busts[boss_id]=bust
+	return bust
 
 func _draw_facility(facility:Dictionary,unlocked:bool,stage:int)->void:
 	var id:=String(facility.id)

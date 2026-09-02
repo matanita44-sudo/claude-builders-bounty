@@ -1,29 +1,32 @@
 # INFINIDIVE brand sources
 
-This directory contains the original, code-native brand and store-art sources for INFINIDIVE. Every visible shape is authored directly in SVG. The files contain no external images, embedded raster data, external icons, linked assets, or font-dependent `<text>` elements.
+This directory contains the brand and store-art sources for INFINIDIVE. Most masters are original, code-native SVG geometry with no external images, embedded raster data, external icons, linked assets, or font-dependent `<text>` elements. The iOS launch SVG is the documented exception: it links the existing project-generated `assets/art/backgrounds/sky_battle.png` behind its original vector crest and path-only wordmark. The current app-icon master is the separate project-directed generated raster `app_icon_source_v2.png`; its embedded C2PA manifest identifies `gpt-image` version `2.0` and `trainedAlgorithmicMedia`. The generated-art provenance and provider-terms notices are recorded in `ASSET_LICENSES.md`.
 
 ## Files
 
 | File | Canvas | Background | Purpose |
 |---|---:|---|---|
 | `logo_mark.svg` | 1024×1024 | Transparent | Master mark for the game, press kit, and UI |
-| `app_icon.svg` | 1024×1024 | Opaque | App-icon source; store platforms add the final corner mask |
+| `app_icon_source_v2.png` | 1254×1254 | Opaque RGB | Current app-icon source of truth; store platforms add the final corner mask |
+| `app_icon.svg` | 1024×1024 | Opaque | Historical vector retained for provenance; no longer an app-icon source |
 | `android_adaptive_background.svg` | 432×432 | Opaque | Android adaptive background layer |
 | `android_adaptive_foreground.svg` | 432×432 | Transparent | Android adaptive foreground layer |
 | `android_adaptive_monochrome.svg` | 432×432 | Transparent | Single-white Android themed-icon silhouette |
 | `wordmark.svg` | 1600×420 | Transparent | Logo lockup with custom path-only lettering |
 | `feature_graphic.svg` | 1024×500 | Opaque | Illustrative Google Play/editorial key-art source |
 | `social_card.svg` | 1200×630 | Opaque | Open Graph, press, and social-sharing key-art source |
-| `../platform/ios/launch_screen.svg` | 1170×2532 | Opaque | Static iOS launch-screen source |
+| `../platform/ios/launch_screen.svg` | 1170×2532 | Opaque | Static iOS launch-screen source; links the project-owned sky-battle background |
 | `brand-metadata.json` | — | — | Machine-readable palette, intended uses, provenance, and disclosures |
 
 The feature graphic and social card are **illustrative key art, not gameplay screenshots**. They must never be placed in a store screenshot slot or described as captured gameplay.
 
-## Mark meaning
+## Current app-icon meaning
 
-The monumental marble figure is a Titan: readable scale and mythic danger, not a portrait of one specific boss. The small foreground figure is the unarmed Keeper at the beginning of the journey. The star between the Keeper's open hands is the first Aion spark.
+The current icon pairs a monumental crowned stone Titan with the small, visibly unarmed Keeper at the beginning of the journey. The star between the Keeper's open hands is the first Aion Spark. Bright sky, floating ruins, warm gold, a red mantle, and a turquoise scarf keep the mythic scale inviting and legible at store-thumbnail size.
 
-The circular emblem combines three ideas:
+The older `app_icon.svg` expressed the same product hook through a time-sun seal and remains useful historical design provenance, but it must not be used to regenerate or replace the current raster icon family.
+
+Across the wider brand system, the circular emblem combines three ideas:
 
 - a gold sun for divine power;
 - clock marks and an hourglass for Aion and time;
@@ -47,15 +50,17 @@ Keep the major silhouettes distinct in grayscale: Titan above, circular seal at 
 
 The 432×432 Android foreground intentionally includes overscan in the Titan crown and Keeper extremities. The time-sun seal and Aion spark—the critical identity—remain within the central safe area. Always preview the foreground and background together under circle, squircle, rounded-square, and Android themed-icon masks. The monochrome file must stay a single white silhouette on transparency; Android supplies the final themed colors.
 
-## Raster export
+## App-icon derivatives and raster export
 
-Keep these SVGs as the source of truth. Rasterize only for a concrete delivery target. Example commands, when Inkscape is available:
+`app_icon_source_v2.png` is the source of truth for `assets/store/app-icon-1024.png`, `assets/store/google-play-icon-512.png`, and every `assets/platform/ios/icon-*.png` file. All current derivatives are opaque 8-bit/color RGB PNGs; do not regenerate them from `app_icon.svg`. Exact byte sizes and SHA-256 fingerprints are recorded in `ASSET_LICENSES.md` and `brand-metadata.json`.
+
+The other SVG masters remain the source of truth for their corresponding raster exports. The iOS launch derivatives must be normalized after Inkscape export because the strict scaffold contract requires PNG color type 2 (opaque RGB, no alpha). Example commands, when Inkscape and ImageMagick are available:
 
 ```bash
-inkscape app_icon.svg --export-filename=app_icon-1024.png --export-width=1024 --export-height=1024
 inkscape feature_graphic.svg --export-filename=feature_graphic-1024x500.png --export-width=1024 --export-height=500
 inkscape social_card.svg --export-filename=social_card-1200x630.png --export-width=1200 --export-height=630
-inkscape ../platform/ios/launch_screen.svg --export-filename=launch-1170x2532.png --export-width=1170 --export-height=2532
+inkscape ../platform/ios/launch_screen.svg --export-filename=launch-1170x2532-rgba.png --export-width=1170 --export-height=2532
+convert launch-1170x2532-rgba.png -alpha off PNG24:launch-1170x2532.png
 ```
 
 Before store submission, verify the current official size, color-space, alpha, and file-size requirements. Do not bake rounded corners into the app icon. Review every raster export at full size and at a 48-pixel thumbnail.
@@ -65,7 +70,7 @@ Before store submission, verify the current official size, color-space, alpha, a
 - Keep clear space around the standalone mark equal to at least 8% of its width.
 - Keep clear space around the wordmark equal to at least one narrow `I` glyph.
 - Scale proportionally; never stretch, shear, or rotate the masters.
-- Preserve the deep-blue outline on the Titan, seal and Keeper at small sizes.
+- Preserve the current icon's Titan/Keeper scale, warm-gold focal path, red/turquoise character accents, and readable separation at small sizes.
 - Keep the Keeper visibly unarmed; the Aion spark is energy, not a physical weapon.
 - Do not add store badges, ratings, awards, player counts, or unsupported claims to these masters.
 

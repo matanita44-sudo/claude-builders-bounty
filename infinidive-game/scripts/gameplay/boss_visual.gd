@@ -47,6 +47,12 @@ var _collapse_next_cue_index := 0
 var _collapse_completion_emitted := false
 
 const EXTERIOR_CENTER := Vector2(0, 58)
+# Includes the widest launch portrait and its 6x8 px offset silhouette.
+const EXTERIOR_PORTRAIT_BOUNDS := Rect2(-140.0, -52.0, 284.0, 318.0)
+# Authored focus envelope shared by all four Titan portraits. It covers each
+# face, crown, and the highest live organ node/glow so HUD layout checks protect
+# the character-readable part of the illustration rather than its empty alpha.
+const EXTERIOR_FOCUS_BOUNDS := Rect2(-96.0, -58.0, 192.0, 150.0)
 const INK_OUTLINE := Color("#18132E")
 const BIO_TEAL := Color("#35E6D0")
 const CORE_GOLD := Color("#FFC857")
@@ -55,6 +61,61 @@ const TITAN_TEXTURES := {
 	"seraph_9": preload("res://assets/art/titans/hyperion.png"),
 	"abyss_leviathan": preload("res://assets/art/titans/oceanus.png"),
 	"null_twin": preload("res://assets/art/titans/mnemosyne.png")
+}
+const TITAN_PORTRAIT_HEIGHT := 310.0
+const TITAN_PORTRAIT_TOP := -52.0
+# Normalized anchors bind gameplay organs to recognizable landmarks in each
+# authored portrait. They intentionally differ per Titan instead of floating at
+# one procedural silhouette coordinate set.
+const TITAN_ORGAN_ANCHORS := {
+	"gravemaw": {
+		"hunter_eye": Vector2(0.52,0.12),
+		"gravity_lung": Vector2(0.51,0.33),
+		"bone_forge": Vector2(0.80,0.37),
+	},
+	"seraph_9": {
+		"prism_cortex": Vector2(0.50,0.10),
+		"wing_reactor": Vector2(0.16,0.20),
+		"halo_choir": Vector2(0.84,0.24),
+	},
+	"abyss_leviathan": {
+		"vortex_stomach": Vector2(0.52,0.45),
+		"shock_gland": Vector2(0.53,0.10),
+		"brood_sac": Vector2(0.90,0.32),
+	},
+	"null_twin": {
+		"memory_cortex": Vector2(0.50,0.12),
+		"echo_heart": Vector2(0.50,0.29),
+		"reflection_lattice": Vector2(0.50,0.45),
+	},
+}
+const ORGAN_NODE_COLORS := {
+	"hunter_eye": CORE_GOLD,
+	"gravity_lung": BIO_TEAL,
+	"bone_forge": Color("#FF8B47"),
+	"prism_cortex": Color("#FFE06B"),
+	"wing_reactor": Color("#FF8B47"),
+	"halo_choir": BIO_TEAL,
+	"vortex_stomach": Color("#49C6DD"),
+	"shock_gland": Color("#FFE06B"),
+	"brood_sac": Color("#72E6B7"),
+	"memory_cortex": Color("#C69AF0"),
+	"echo_heart": Color("#FF7FA2"),
+	"reflection_lattice": Color("#EFAF55"),
+}
+const VISUAL_TOKEN_ORGAN_IDS := {
+	"blinded_hunter_eye": "hunter_eye",
+	"collapsed_gravity_lung": "gravity_lung",
+	"sealed_bone_forge": "bone_forge",
+	"cracked_prism_cortex": "prism_cortex",
+	"collapsed_laser_wing": "wing_reactor",
+	"fractured_halo_choir": "halo_choir",
+	"ruptured_vortex_stomach": "vortex_stomach",
+	"grounded_shock_gland": "shock_gland",
+	"sealed_brood_sac": "brood_sac",
+	"erased_memory_cortex": "memory_cortex",
+	"stilled_echo_heart": "echo_heart",
+	"shattered_reflection_lattice": "reflection_lattice",
 }
 
 func setup(boss_definition: Dictionary) -> void:
@@ -300,6 +361,38 @@ func target_radius() -> float:
 		"null_twin": return 82.0
 		_: return 96.0
 
+static func exterior_focus_bounds_at(world_position: Vector2) -> Rect2:
+	return Rect2(world_position + EXTERIOR_FOCUS_BOUNDS.position, EXTERIOR_FOCUS_BOUNDS.size)
+
+static func exterior_portrait_bounds_at(world_position: Vector2) -> Rect2:
+	return Rect2(world_position + EXTERIOR_PORTRAIT_BOUNDS.position, EXTERIOR_PORTRAIT_BOUNDS.size)
+
+static func titan_portrait_rect(boss_id: String) -> Rect2:
+	var texture: Texture2D = TITAN_TEXTURES.get(boss_id)
+	var aspect_ratio := 0.75
+	if texture != null and texture.get_height() > 0:
+		aspect_ratio = float(texture.get_width())/float(texture.get_height())
+	var portrait_width := TITAN_PORTRAIT_HEIGHT*aspect_ratio
+	return Rect2(-portrait_width*0.5,TITAN_PORTRAIT_TOP,portrait_width,TITAN_PORTRAIT_HEIGHT)
+
+static func titan_organ_anchor_catalog() -> Dictionary:
+	return TITAN_ORGAN_ANCHORS.duplicate(true)
+
+static func titan_organ_anchor_normalized(boss_id: String, organ_id: String) -> Vector2:
+	var boss_anchors: Dictionary = TITAN_ORGAN_ANCHORS.get(boss_id,{})
+	var raw_anchor: Variant = boss_anchors.get(organ_id,Vector2(-1.0,-1.0))
+	return Vector2(raw_anchor) if typeof(raw_anchor)==TYPE_VECTOR2 else Vector2(-1.0,-1.0)
+
+static func titan_organ_anchor_position(boss_id: String, organ_id: String) -> Vector2:
+	var normalized := titan_organ_anchor_normalized(boss_id,organ_id)
+	if normalized.x<0.0 or normalized.y<0.0:
+		return Vector2.INF
+	var portrait_rect := titan_portrait_rect(boss_id)
+	return portrait_rect.position+portrait_rect.size*normalized
+
+static func titan_visual_token_anchor_position(boss_id: String, visual_token: String) -> Vector2:
+	return titan_organ_anchor_position(boss_id,String(VISUAL_TOKEN_ORGAN_IDS.get(visual_token,"")))
+
 func _draw() -> void:
 	if definition.is_empty():
 		return
@@ -374,9 +467,9 @@ func _draw_exterior() -> void:
 			"abyss_leviathan": _draw_oceanus()
 			"null_twin": _draw_mnemosyne()
 			_: _draw_cronus()
+	_draw_titan_organ_nodes(boss_id)
 	_draw_divine_transformations()
 	draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
-	_draw_organ_status()
 	if breach_open:
 		_draw_breach()
 	_draw_collapse_presentation()
@@ -387,9 +480,7 @@ func _draw_titan_texture(boss_id: String) -> bool:
 		return false
 	# Keep the face below the persistent top HUD while still filling the upper
 	# half of a portrait phone like a true Titan-scale encounter.
-	var portrait_height := 310.0
-	var portrait_width := portrait_height * float(texture.get_width()) / float(texture.get_height())
-	var portrait_rect := Rect2(-portrait_width * 0.5, -52.0, portrait_width, portrait_height)
+	var portrait_rect := titan_portrait_rect(boss_id)
 	# A soft offset silhouette separates the detailed illustration from the sky
 	# while retaining the cheerful palette and colossal raid-boss scale.
 	draw_texture_rect(texture,Rect2(portrait_rect.position+Vector2(6,8),portrait_rect.size),false,Color(0.08,0.12,0.20,0.25))
@@ -397,28 +488,23 @@ func _draw_titan_texture(boss_id: String) -> bool:
 	var flash_intensity := SettingsManager.damage_flash_intensity()
 	if hit_flash > 0.0 and flash_intensity > 0.0:
 		draw_texture_rect(texture,portrait_rect,false,Color(1.0,1.0,1.0,clampf(hit_flash*4.5,0.0,0.42)*flash_intensity))
-	_draw_titan_texture_nodes(boss_id)
 	_draw_phase_cracks(Color("#FFF0A8"))
 	return true
 
-func _draw_titan_texture_nodes(boss_id: String) -> void:
-	match boss_id:
-		"seraph_9":
-			_draw_divine_node(Vector2(0,-43),Color("#FFE06B"),"prism",11.0)
-			_draw_divine_node(Vector2(-77,26),Color("#FF8B47"),"wing",13.0)
-			_draw_divine_node(Vector2(57,39),BIO_TEAL,"halo",13.0)
-		"abyss_leviathan":
-			_draw_divine_node(Vector2(-20,82),Color("#49C6DD"),"vortex",13.0)
-			_draw_divine_node(Vector2(38,42),Color("#FFE06B"),"shock",13.0)
-			_draw_divine_node(Vector2(76,28),Color("#72E6B7"),"brood",13.0)
-		"null_twin":
-			_draw_divine_node(Vector2(0,-43),Color("#C69AF0"),"memory",11.0)
-			_draw_divine_node(Vector2(31,47),Color("#FF7FA2"),"heart",13.0)
-			_draw_divine_node(Vector2(-28,87),Color("#EFAF55"),"lattice",13.0)
-		_:
-			_draw_divine_node(Vector2(0,-46),CORE_GOLD,"eye",12.0)
-			_draw_divine_node(Vector2(-43,50),BIO_TEAL,"rings",13.0)
-			_draw_divine_node(Vector2(66,33),Color("#FF8B47"),"forge",13.0)
+func _draw_titan_organ_nodes(boss_id: String) -> void:
+	for raw_organ in definition.get("organs",[]):
+		var organ := raw_organ as Dictionary
+		var organ_id := String(organ.get("id",""))
+		# A destroyed organ is represented by its authored scar below; never draw
+		# an intact badge underneath it as a second contradictory status layer.
+		if destroyed_organs.has(organ_id):
+			continue
+		var anchor := titan_organ_anchor_position(boss_id,organ_id)
+		if not anchor.is_finite():
+			continue
+		var radius := 11.0 if organ_id in ["hunter_eye","prism_cortex","memory_cortex"] else 13.0
+		var color: Color = ORGAN_NODE_COLORS.get(organ_id,VisualTheme.VULNERABLE)
+		_draw_divine_node(anchor,color,String(organ.get("icon","")),radius)
 
 func _draw_chunk(points: PackedVector2Array, fill: Color, outline_width: float = 5.0, shadow_offset: Vector2 = Vector2(4,6)) -> void:
 	var shadow := PackedVector2Array()
@@ -528,9 +614,6 @@ func _draw_cronus() -> void:
 	for tooth in 5:
 		var x := -16.0+tooth*8.0
 		draw_colored_polygon(PackedVector2Array([Vector2(x,60),Vector2(x+6,60),Vector2(x+3,69)]),Color("#FFF8E5"))
-	_draw_divine_node(Vector2(0,-46),CORE_GOLD,"eye",12.0)
-	_draw_divine_node(Vector2(-43,50),BIO_TEAL,"rings",13.0)
-	_draw_divine_node(Vector2(66,33),Color("#FF8B47"),"forge",13.0)
 	_draw_phase_cracks(Color("#FFF0A8"))
 
 func _draw_hyperion() -> void:
@@ -558,9 +641,6 @@ func _draw_hyperion() -> void:
 	draw_circle(Vector2(0,59),23.0,Color("#FFB84D"))
 	for ray in 8:
 		draw_line(Vector2.from_angle(ray*TAU/8.0)*12.0+Vector2(0,59),Vector2.from_angle(ray*TAU/8.0)*20.0+Vector2(0,59),Color("#FFF3B0"),3.0,true)
-	_draw_divine_node(Vector2(0,-43),Color("#FFE06B"),"prism",11.0)
-	_draw_divine_node(Vector2(-77,26),Color("#FF8B47"),"wing",13.0)
-	_draw_divine_node(Vector2(57,39),BIO_TEAL,"halo",13.0)
 	_draw_phase_cracks(Color("#FFF0A8"))
 
 func _draw_oceanus() -> void:
@@ -586,9 +666,6 @@ func _draw_oceanus() -> void:
 	_draw_chunk(wave_beard,Color("#C9F8F1"),3.5,Vector2(2,3))
 	for curl in [-18.0,0.0,18.0]:
 		draw_arc(Vector2(curl,12),9.0,-PI*0.2,PI*1.35,18,Color("#4ABBD1",0.82),2.5,true)
-	_draw_divine_node(Vector2(-20,82),Color("#49C6DD"),"vortex",13.0)
-	_draw_divine_node(Vector2(38,42),Color("#FFE06B"),"shock",13.0)
-	_draw_divine_node(Vector2(76,28),Color("#72E6B7"),"brood",13.0)
 	_draw_phase_cracks(Color("#C8FFF4"))
 
 func _draw_mnemosyne() -> void:
@@ -617,9 +694,6 @@ func _draw_mnemosyne() -> void:
 		draw_circle(spark,3.2,Color("#FFF0A8"))
 	# An open scroll crest signals authored memory rather than generic magic.
 	_draw_layered_line(PackedVector2Array([Vector2(-37,61),Vector2(0,72),Vector2(37,61)]),Color(INK_OUTLINE,0.7),Color("#EFAF55"),8.0,4.0)
-	_draw_divine_node(Vector2(0,-43),Color("#C69AF0"),"memory",11.0)
-	_draw_divine_node(Vector2(31,47),Color("#FF7FA2"),"heart",13.0)
-	_draw_divine_node(Vector2(-28,87),Color("#EFAF55"),"lattice",13.0)
 	_draw_phase_cracks(Color("#FFF0D5"))
 
 func _draw_breach() -> void:
@@ -801,102 +875,87 @@ func _draw_broken_divine_node(node_position: Vector2, color: Color, glyph: Strin
 	draw_polyline(PackedVector2Array([node_position+Vector2(-12,-13),node_position+Vector2(-2,-3),node_position+Vector2(-7,5),node_position+Vector2(12,14)]),Color("#FF6475"),4.0,true)
 
 func _draw_divine_transformations() -> void:
+	var boss_id := String(definition.get("id","gravemaw"))
 	for token in active_visual_tokens():
+		var token_anchor := titan_visual_token_anchor_position(boss_id,token)
+		if not token_anchor.is_finite():
+			continue
 		match token:
 			"blinded_hunter_eye":
-				var eye := Vector2(0,-46)
+				var eye := token_anchor
 				_draw_broken_divine_node(eye,CORE_GOLD,"eye")
 				draw_line(eye+Vector2(-17,-11),eye+Vector2(17,11),Color("#FF6475"),5.0,true)
 				draw_colored_polygon(PackedVector2Array([eye+Vector2(-4,17),eye+Vector2(2,28),eye+Vector2(7,17)]),Color("#FFD765"))
 			"collapsed_gravity_lung":
-				var lung := Vector2(-43,50)
+				var lung := token_anchor
 				_draw_broken_divine_node(lung,BIO_TEAL,"rings")
 				for radius in [24.0,31.0]:
 					draw_arc(lung,radius,-PI*0.85,PI*0.18,24,Color(BIO_TEAL,0.35),3.0,true)
 				draw_line(lung+Vector2(-19,-14),lung+Vector2(20,15),Color("#FF6475"),4.0,true)
 			"sealed_bone_forge":
-				var forge := Vector2(66,33)
+				var forge := token_anchor
 				_draw_broken_divine_node(forge,Color("#FF9B4A"),"forge")
 				for bind in [-8.0,0.0,8.0]:
 					draw_line(forge+Vector2(-18,bind-6),forge+Vector2(18,bind+6),Color("#8E4773"),3.0,true)
 				draw_circle(forge+Vector2(19,-13),4.0,Color(CORE_GOLD,0.68))
 			"cracked_prism_cortex":
-				var prism := Vector2(0,-43)
+				var prism := token_anchor
 				_draw_broken_divine_node(prism,Color("#FFE06B"),"prism")
 				draw_line(prism+Vector2(0,-19),prism+Vector2(-5,-3),Color("#FF6475"),4.0,true)
 				draw_line(prism+Vector2(-5,-3),prism+Vector2(7,17),Color("#FF6475"),4.0,true)
 				for shard in [-1.0,1.0]:
 					draw_colored_polygon(PackedVector2Array([prism+Vector2(shard*15,-13),prism+Vector2(shard*29,-20),prism+Vector2(shard*21,-5)]),Color("#FFF2A5",0.84))
 			"collapsed_laser_wing":
-				var root := Vector2(-77,26)
+				var root := token_anchor
 				_draw_broken_divine_node(root,Color("#FF9A47"),"wing")
 				var broken_mantle := PackedVector2Array([root+Vector2(-8,-16),root+Vector2(-49,3),root+Vector2(-27,20),root+Vector2(-63,45),root+Vector2(-8,31)])
 				draw_polyline(broken_mantle,Color(INK_OUTLINE,0.72),9.0,true)
 				draw_polyline(broken_mantle,Color("#FF6475",0.72),4.0,true)
 			"fractured_halo_choir":
-				var halo := Vector2(0,-48)
-				draw_arc(halo,72.0,-PI*0.86,-PI*0.2,24,Color("#FF6475"),8.0,true)
-				draw_arc(halo,72.0,0.08,PI*0.63,24,Color(CORE_GOLD,0.54),8.0,true)
+				var halo := token_anchor
+				_draw_broken_divine_node(halo,BIO_TEAL,"halo")
+				draw_arc(halo,36.0,-PI*0.86,-PI*0.2,20,Color("#FF6475"),6.0,true)
+				draw_arc(halo,36.0,0.08,PI*0.63,20,Color(CORE_GOLD,0.54),6.0,true)
 				for shard in [-1.0,1.0]:
-					draw_colored_polygon(PackedVector2Array([halo+Vector2(shard*51,-51),halo+Vector2(shard*69,-68),halo+Vector2(shard*59,-40)]),Color("#FFE785",0.74))
+					draw_colored_polygon(PackedVector2Array([halo+Vector2(shard*25,-25),halo+Vector2(shard*42,-39),halo+Vector2(shard*32,-18)]),Color("#FFE785",0.74))
 			"ruptured_vortex_stomach":
-				var vortex := Vector2(-20,82)
+				var vortex := token_anchor
 				_draw_broken_divine_node(vortex,Color("#49C6DD"),"vortex")
 				for radius in [21.0,28.0]:
 					draw_arc(vortex,radius,spin,spin+PI*1.15,28,Color("#5BE0E9",0.56),3.0,true)
 				for drop in 3:
 					draw_circle(vortex+Vector2(-25+drop*9,23+drop*4),3.5-drop*0.5,Color("#C8FFF4",0.82))
 			"grounded_shock_gland":
-				var gland := Vector2(38,42)
+				var gland := token_anchor
 				_draw_broken_divine_node(gland,Color("#FFE06B"),"shock")
 				draw_polyline(PackedVector2Array([gland+Vector2(-21,-24),gland+Vector2(-7,-8),gland+Vector2(-14,0),gland+Vector2(4,15),gland+Vector2(16,29)]),Color("#FF6475"),4.0,true)
 				draw_line(gland+Vector2(-22,25),gland+Vector2(22,25),Color("#4F78A8"),5.0,true)
 			"sealed_brood_sac":
-				var sac := Vector2(76,28)
+				var sac := token_anchor
 				_draw_broken_divine_node(sac,Color("#72E6B7"),"brood")
 				for offset in [Vector2(-12,18),Vector2(0,22),Vector2(12,17)]:
 					draw_circle(sac+offset,6.0,Color("#D4FFF0"))
 					draw_line(sac+offset-Vector2(4,4),sac+offset+Vector2(4,4),Color("#FF6475"),2.5,true)
 			"erased_memory_cortex":
-				var memory := Vector2(0,-43)
+				var memory := token_anchor
 				_draw_broken_divine_node(memory,Color("#C69AF0"),"memory")
 				for stripe in 5:
 					var y := -15.0+stripe*7.0
 					draw_line(memory+Vector2(-21,y),memory+Vector2(21,y+2),Color("#8C70A8",0.48-stripe*0.055),2.5,true)
 				draw_line(memory+Vector2(-22,-18),memory+Vector2(23,18),Color("#FF6475"),5.0,true)
 			"stilled_echo_heart":
-				var heart := Vector2(31,47)
+				var heart := token_anchor
 				_draw_broken_divine_node(heart,Color("#FF7FA2"),"heart")
 				draw_line(heart+Vector2(-2,-20),heart+Vector2(5,19),Color("#FF6475"),5.0,true)
 				draw_arc(heart,27.0,-PI*0.7,PI*0.18,22,Color("#B98AE8",0.36),3.0,true)
 			"shattered_reflection_lattice":
-				var lattice := Vector2(-28,87)
+				var lattice := token_anchor
 				_draw_broken_divine_node(lattice,Color("#EFAF55"),"lattice")
 				for shard in 7:
 					var angle := shard*TAU/7.0+0.18
 					var inner := lattice+Vector2.from_angle(angle)*17.0
 					var outer := lattice+Vector2.from_angle(angle+sin(shard)*0.13)*(35.0+shard%2*8.0)
 					draw_line(inner,outer,Color("#B98AE8",0.72),3.5,true)
-
-func _draw_organ_status() -> void:
-	var organs: Array = definition.get("organs", [])
-	for index in organs.size():
-		var organ: Dictionary = organs[index]
-		var angle := -PI * 0.82 + index * PI * 0.82
-		var direction := Vector2(cos(angle),sin(angle))
-		var position_icon := EXTERIOR_CENTER + direction*172.0
-		var destroyed := destroyed_organs.has(String(organ.id))
-		var status_color := Color(VisualTheme.ENEMY, 0.72) if destroyed else _palette((index+1)%3,VisualTheme.VULNERABLE)
-		draw_line(EXTERIOR_CENTER+direction*134.0,position_icon-direction*17.0,Color(status_color,0.22 if destroyed else 0.4),3.0,true)
-		draw_circle(position_icon+Vector2(2,3),18.0,Color(INK_OUTLINE,0.34))
-		draw_circle(position_icon,16.0,Color("#FFF8E5",0.98))
-		draw_arc(position_icon,16.0,0,TAU,28,Color(status_color,0.48 if destroyed else 0.94),3.0,true)
-		draw_arc(position_icon,11.0,-PI*0.72,PI*0.32,18,Color(status_color,0.16 if destroyed else 0.36),1.2,true)
-		if destroyed:
-			draw_line(position_icon-Vector2(8,8),position_icon+Vector2(8,8),Color(VisualTheme.ENEMY,0.92),3.0,true)
-			draw_line(position_icon+Vector2(8,-8),position_icon-Vector2(8,-8),Color("#5E1A2B"),2.0,true)
-		else:
-			_draw_organ_glyph(position_icon,String(organ.get("icon","")),status_color)
 
 func _draw_organ_glyph(center: Vector2, icon: String, color: Color) -> void:
 	match icon:

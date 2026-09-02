@@ -11,6 +11,7 @@ const MetaGoalServiceScript := preload("res://scripts/services/meta_goal_service
 const StoryPresentationScript := preload("res://scripts/core/story_presentation.gd")
 const BossPatternPlannerScript := preload("res://scripts/core/boss_pattern_planner.gd")
 const TitanAttackSpecFactoryScript := preload("res://scripts/core/titan_attack_spec_factory.gd")
+const SafeAreaHelperScript := preload("res://scripts/ui/safe_area_helper.gd")
 const SkyBattleTexture := preload("res://assets/art/backgrounds/sky_battle.png")
 const DivineInteriorTexture := preload("res://assets/art/backgrounds/divine_interior.png")
 const STORY_BOSS_ORDER := ["gravemaw","seraph_9","abyss_leviathan","null_twin"]
@@ -68,6 +69,8 @@ const QA_ABILITY_STATUSES := [
 ]
 
 const WEAPON_BEHAVIORS := ["pulse", "scatter", "rail", "arc", "orbitals"]
+const EXTERIOR_BOSS_POSITION := Vector2(270.0, 230.0)
+const EXTERIOR_COMBAT_BOUNDS := Rect2(24.0, 395.0, 492.0, 425.0)
 const INTERNAL_DEFENDER_TELEGRAPH_SECONDS := 0.55
 const INTERNAL_COMBAT_BOUNDS := Rect2(35.0, 390.0, 470.0, 430.0)
 const ROOM_DEFENDER_COMBAT_WINDOW := 3.20
@@ -160,11 +163,15 @@ var _first_dash_sent := false
 var _first_breach_sent := false
 var _first_dive_sent := false
 
+var _world_canvas: Node2D
 var _world: Node2D
 var _player: PlayerController
 var _projectiles: ProjectilePool
 var _boss_visual: BossVisual
 var _hud: RunHUD
+var _design_backdrop_rect := Rect2(Vector2.ZERO, SafeAreaHelperScript.DEFAULT_DESIGN_SIZE)
+var _design_draw_position := Vector2.ZERO
+var _design_draw_scale := Vector2.ONE
 var _rng := RandomNumberGenerator.new()
 var _organ_map := OrganAbilityMap.new()
 var _mutation_engine := MutationEngine.new()
@@ -709,6 +716,8 @@ func _ready() -> void:
 			_selected_mutations.append(String(carried_id))
 	_make_stars()
 	_build_world()
+	get_viewport().size_changed.connect(_apply_safe_layout)
+	_apply_safe_layout()
 	_setup_tutorial()
 	_start_phase(0)
 	_transition(RunState.INTRO)
@@ -818,11 +827,14 @@ func _apply_config_defaults() -> void:
 	config.abyss_cumulative_score = maxi(0,int(config.get("abyss_cumulative_score",0))) if String(config.mode)=="abyss" else 0
 
 func _build_world() -> void:
+	_world_canvas = Node2D.new()
+	_world_canvas.name = "FittedWorldCanvas"
+	add_child(_world_canvas)
 	_world = Node2D.new()
 	_world.name = "World"
-	add_child(_world)
+	_world_canvas.add_child(_world)
 	_boss_visual = BossVisual.new()
-	_boss_visual.position = Vector2(270,170)
+	_boss_visual.position = EXTERIOR_BOSS_POSITION
 	_boss_visual.setup(boss_definition)
 	_boss_visual.collapse_cue.connect(_on_titan_collapse_cue)
 	_boss_visual.collapse_completed.connect(_on_titan_collapse_completed)
@@ -831,7 +843,7 @@ func _build_world() -> void:
 	_world.add_child(_projectiles)
 	_player = PlayerController.new()
 	_player.position = Vector2(270,790)
-	_player.combat_bounds = Rect2(24,395,492,450)
+	_player.combat_bounds = EXTERIOR_COMBAT_BOUNDS
 	_player.configure({
 		"max_health": _mutated_max_health(),
 		"responsiveness": 9.0 + float(SettingsManager.get_value("control_sensitivity",0.72))*7.0,
@@ -858,6 +870,14 @@ func _build_world() -> void:
 	_hud.mutation_selected.connect(_select_mutation)
 	_hud.mutation_reroll_requested.connect(_reroll_mutations)
 	_hud.result_action.connect(_on_result_action)
+
+func _apply_safe_layout() -> void:
+	if is_instance_valid(_world_canvas):
+		var fitted := SafeAreaHelperScript.fit_design_node_2d(_world_canvas)
+		_design_draw_position = fitted.position
+		_design_draw_scale = fitted.size / SafeAreaHelperScript.DEFAULT_DESIGN_SIZE
+		_design_backdrop_rect = SafeAreaHelperScript.design_space_viewport_rect(get_viewport().get_visible_rect(),fitted)
+	queue_redraw()
 
 func _build_permanent_stats() -> Dictionary:
 	var engine := PermanentUpgradeEngineScript.new()
@@ -1200,7 +1220,6 @@ func _damage_target(hit: Dictionary) -> void:
 				_begin_titan_collapse()
 		elif state == RunState.EXTERIOR:
 			_play_combat_sfx_limited("armor_hit", _rng.randf_range(0.96, 1.04), 0.52)
-			_tutorial_observe(TutorialFlowScript.EVENT_EXPOSED_ARMOR_HIT)
 			armor_health=maxf(0.0,armor_health-amount)
 			_boss_visual.set_health(armor_health,armor_max)
 			score += int(amount*2.0)
@@ -4012,6 +4031,10 @@ func _open_breach() -> void:
 	if state!=RunState.EXTERIOR:
 		return
 	_transition(RunState.BREACH_OPEN)
+	# The armor lesson is complete only when the breach actually exists. Advancing
+	# on the first chip-damage hit told new players to Dive while the action was
+	# still locked, sometimes for most of the phase.
+	_tutorial_observe(TutorialFlowScript.EVENT_ARMOR_BREACHED)
 	breach_timer = 7.0 * float(_permanent_stats.get("breach_duration_mul", 1.0))
 	_grant_bio(int(round((70+phase*25)*float(_mutation_engine.stats.get("breach_reward_mul",1.0)))))
 	score+=1200+phase*300
@@ -4190,7 +4213,7 @@ func _select_mutation(mutation_id: String) -> void:
 func _return_outside() -> void:
 	phase+=1
 	_player.position=Vector2(270,790)
-	_player.combat_bounds=Rect2(24,395,492,450)
+	_player.combat_bounds=EXTERIOR_COMBAT_BOUNDS
 	_player.reset_physics_interpolation()
 	_player.set_controls_active(true)
 	if int(_mutation_engine.flags.get("shield_after_organ",0))>0:
@@ -4599,15 +4622,45 @@ func _notification(what: int) -> void:
 func _decorative_motion_time() -> float:
 	return 0.0 if SettingsManager.reduced_motion_enabled() else elapsed
 
+static func telegraph_ink_color(core_color: Color) -> Color:
+	# Telegraph progress remains in the colored core. A stable minimum alpha on
+	# the mythic-ink under-stroke prevents an early warning from disappearing
+	# into either the pale sky or the dark interior art.
+	var ink_alpha := clampf(0.64+core_color.a*0.32,0.64,ProjectilePool.INK_OPACITY)
+	return Color(ProjectilePool.MYTHIC_INK,ink_alpha)
+
+func _draw_warning_line(from: Vector2, to: Vector2, core_color: Color, core_width: float) -> void:
+	draw_line(from,to,telegraph_ink_color(core_color),ProjectilePool.ink_stroke_width(core_width),true)
+	draw_line(from,to,core_color,core_width,true)
+
+func _draw_warning_dashed_line(from: Vector2, to: Vector2, core_color: Color, core_width: float, dash_length: float) -> void:
+	draw_dashed_line(from,to,telegraph_ink_color(core_color),ProjectilePool.ink_stroke_width(core_width),dash_length)
+	draw_dashed_line(from,to,core_color,core_width,dash_length)
+
+func _draw_warning_arc(center: Vector2, radius: float, start_angle: float, end_angle: float, point_count: int, core_color: Color, core_width: float) -> void:
+	draw_arc(center,radius,start_angle,end_angle,point_count,telegraph_ink_color(core_color),ProjectilePool.ink_stroke_width(core_width),true)
+	draw_arc(center,radius,start_angle,end_angle,point_count,core_color,core_width,true)
+
+func _draw_warning_polyline(points: PackedVector2Array, core_color: Color, core_width: float) -> void:
+	if points.size()<2:
+		return
+	draw_polyline(points,telegraph_ink_color(core_color),ProjectilePool.ink_stroke_width(core_width),true)
+	draw_polyline(points,core_color,core_width,true)
+
+func _draw_warning_rect_outline(rect: Rect2, core_color: Color, core_width: float) -> void:
+	draw_rect(rect,telegraph_ink_color(core_color),false,ProjectilePool.ink_stroke_width(core_width),true)
+	draw_rect(rect,core_color,false,core_width,true)
+
 func _draw() -> void:
+	draw_set_transform(_design_draw_position,0.0,_design_draw_scale)
 	var interior:=state in [RunState.DIVING_IN,RunState.INTERNAL_ROOMS,RunState.ORGAN_CHAMBER,RunState.MUTATION_CHOICE,RunState.DIVING_OUT]
 	var motion_time:=_decorative_motion_time()
 	var background_texture: Texture2D = DivineInteriorTexture if interior else SkyBattleTexture
-	draw_texture_rect(background_texture,Rect2(0,0,540,960),false,Color(1,1,1,0.96))
+	draw_texture_rect(background_texture,_design_backdrop_rect,false,Color(1,1,1,0.96))
 	# Keep combat silhouettes legible over the illustrated sky without returning
 	# to the old near-black space backdrop. The warm/cool wash also makes the
 	# outside-to-inside transition readable in a single phone-sized glance.
-	draw_rect(Rect2(0,0,540,960),Color("#DFF7FF",0.10) if not interior else Color("#184F78",0.18))
+	draw_rect(_design_backdrop_rect,Color("#DFF7FF",0.10) if not interior else Color("#184F78",0.18))
 	for star in _stars:
 		var point:Vector2=star.position
 		var alpha:=0.0 if interior else 0.045+sin(motion_time*1.4+float(star.phase))*0.025
@@ -4627,8 +4680,8 @@ func _draw() -> void:
 			var target := Vector2(enemy.get("shot_target",p))
 			var warning_progress := 1.0-float(enemy.shot_telegraph_timer)/maxf(0.01,float(enemy.get("shot_telegraph_total",0.01)))
 			var warning_color := Color(VisualTheme.TELEGRAPH,0.38+warning_progress*0.58)
-			draw_dashed_line(p,target,warning_color,2.5,9.0)
-			draw_circle(target,12.0+warning_progress*7.0,warning_color,false,2.5)
+			_draw_warning_dashed_line(p,target,warning_color,2.5,9.0)
+			_draw_warning_arc(target,12.0+warning_progress*7.0,0.0,TAU,24,warning_color,2.5)
 	for pickup in _bio_pickups:
 		var pickup_position:=Vector2(pickup.position)
 		var pickup_phase:=0.0 if SettingsManager.reduced_motion_enabled() else float(pickup.phase)
@@ -4649,6 +4702,8 @@ func _draw() -> void:
 		draw_arc(Vector2(270,430),maxf(10,radius),0,TAU,64,VisualTheme.VULNERABLE,8.0)
 		if reduced_motion:
 			draw_arc(Vector2(270,430),radius+22.0,0,TAU,64,Color(VisualTheme.FRIENDLY,0.72),3.0)
+	draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+
 func _draw_active_boss_effects() -> void:
 	for raw_effect in _active_boss_effects:
 		var effect:=raw_effect as Dictionary
@@ -4720,23 +4775,23 @@ func _draw_factory_telegraph(factory_plan: Dictionary, progress: float, color: C
 		var safe_half:=float(safe.half_arc_radians)
 		for boundary in [-safe_half,safe_half]:
 			var direction:=Vector2.from_angle(safe_angle+boundary)
-			draw_dashed_line(origin+direction*48.0,origin+direction*250.0,corridor_color,3.0,10.0)
-		draw_arc(origin,82.0+progress*120.0,safe_angle-safe_half,safe_angle+safe_half,28,corridor_color,5.0)
+			_draw_warning_dashed_line(origin+direction*48.0,origin+direction*250.0,corridor_color,3.0,10.0)
+		_draw_warning_arc(origin,82.0+progress*120.0,safe_angle-safe_half,safe_angle+safe_half,28,corridor_color,5.0)
 	elif safe.has("lane_center_x"):
 		var lane_x:=float(safe.lane_center_x)
 		var half_width:=float(safe.get("lane_width_px",96.0))*0.5
-		draw_dashed_line(Vector2(lane_x-half_width,228.0),Vector2(lane_x-half_width,920.0),corridor_color,3.0,12.0)
-		draw_dashed_line(Vector2(lane_x+half_width,228.0),Vector2(lane_x+half_width,920.0),corridor_color,3.0,12.0)
+		_draw_warning_dashed_line(Vector2(lane_x-half_width,228.0),Vector2(lane_x-half_width,920.0),corridor_color,3.0,12.0)
+		_draw_warning_dashed_line(Vector2(lane_x+half_width,228.0),Vector2(lane_x+half_width,920.0),corridor_color,3.0,12.0)
 		draw_rect(Rect2(lane_x-half_width,228.0,half_width*2.0,692.0),Color(VisualTheme.FRIENDLY,0.04+progress*0.05))
 	else:
-		draw_dashed_line(origin,target,color,3.0,11.0)
+		_draw_warning_dashed_line(origin,target,color,3.0,11.0)
 	# The Factory resolves the absolute target once against the frozen player
 	# snapshot. Never reconstruct a relative side here: at an edge that can point
 	# outward or disagree with the geometry protected by ProjectilePool.
-	draw_dashed_line(_player.position,safe_target,corridor_color,3.0,10.0)
+	_draw_warning_dashed_line(_player.position,safe_target,corridor_color,3.0,10.0)
 	var safe_radius:=float(safe.get("safe_radius_px",34.0))
 	draw_circle(safe_target,safe_radius,Color(VisualTheme.FRIENDLY,0.07+progress*0.09))
-	draw_arc(safe_target,safe_radius,0.0,TAU,28,corridor_color,3.0,true)
+	_draw_warning_arc(safe_target,safe_radius,0.0,TAU,28,corridor_color,3.0)
 	for raw_effect in factory_plan.get("effect_directives",[]):
 		var effect:=raw_effect as Dictionary
 		match String(effect.get("type","")):
@@ -4745,10 +4800,10 @@ func _draw_factory_telegraph(factory_plan: Dictionary, progress: float, color: C
 				for raw_point in effect.get("path_points",[]):
 					path.append(Vector2(raw_point))
 				if path.size()>=2:
-					draw_polyline(path,Color(VisualTheme.ENEMY,0.26+progress*0.48),5.0,true)
+					_draw_warning_polyline(path,Color(VisualTheme.ENEMY,0.26+progress*0.48),5.0)
 			"spawn_decoy_weakpoints":
 				for raw_position in effect.get("decoy_positions",[]):
-					draw_arc(Vector2(raw_position),22.0,0.0,TAU,20,Color(VisualTheme.TELEGRAPH,0.32+progress*0.48),3.0)
+					_draw_warning_arc(Vector2(raw_position),22.0,0.0,TAU,20,Color(VisualTheme.TELEGRAPH,0.32+progress*0.48),3.0)
 	return true
 
 func _draw_telegraph() -> void:
@@ -4766,10 +4821,10 @@ func _draw_telegraph() -> void:
 	if _telegraph.has("safe_position"):
 		var safe_position := Vector2(_telegraph.safe_position)
 		draw_circle(safe_position,34.0+sin(_decorative_motion_time()*8.0)*3.0,Color(VisualTheme.FRIENDLY,0.1+progress*0.12))
-		draw_arc(safe_position,38.0,0.0,TAU,30,Color(VisualTheme.FRIENDLY,0.55+progress*0.35),3.0)
-		draw_dashed_line(_player.position,safe_position,Color(VisualTheme.FRIENDLY,0.26),2.0,10.0)
+		_draw_warning_arc(safe_position,38.0,0.0,TAU,30,Color(VisualTheme.FRIENDLY,0.55+progress*0.35),3.0)
+		_draw_warning_dashed_line(_player.position,safe_position,Color(VisualTheme.FRIENDLY,0.26),2.0,10.0)
 	if contract_family=="ring" or ability in ["gravity_ring","suction_waves"] or "vortex" in ability or "pulse" in ability:
-		draw_arc(origin,60+progress*170,0,TAU,50,color,3.0)
+		_draw_warning_arc(origin,60+progress*170,0,TAU,50,color,3.0)
 		# Ring attacks always publish the same angular corridor that their
 		# projectile builder will leave empty. This keeps the safe route visible
 		# throughout the warning instead of asking the player to discover it only
@@ -4781,20 +4836,20 @@ func _draw_telegraph() -> void:
 		var corridor_color := Color(VisualTheme.FRIENDLY,0.5+progress*0.38)
 		for boundary in [-safe_arc,safe_arc]:
 			var direction := Vector2.from_angle(safe_angle+boundary)
-			draw_dashed_line(origin+direction*54.0,origin+direction*235.0,corridor_color,3.0,11.0)
-		draw_arc(origin,78.0+progress*126.0,safe_angle-safe_arc,safe_angle+safe_arc,24,corridor_color,5.0)
+			_draw_warning_dashed_line(origin+direction*54.0,origin+direction*235.0,corridor_color,3.0,11.0)
+		_draw_warning_arc(origin,78.0+progress*126.0,safe_angle-safe_arc,safe_angle+safe_arc,24,corridor_color,5.0)
 	elif contract_family in ["lane","sweep"] or ability in ["laser_wings","echo_dash"] or "grid" in ability or "wall" in ability or "lane" in ability:
 		var gap_x:=clampf(float(_telegraph.get("gap_x",_player.position.x)),80.0,460.0)
 		var lane_contract:=_telegraph.get("attack_contract",{}) as Dictionary
 		var lane_pattern:=lane_contract.get("pattern",{}) as Dictionary
 		var gap_half_width:=clampf(float(lane_pattern.get("gap_half_width",62.0)),58.0,150.0)
 		var wall_y:=origin.y
-		draw_dashed_line(Vector2(0,wall_y),Vector2(maxf(0.0,gap_x-gap_half_width),wall_y),color,5.0,12.0)
-		draw_dashed_line(Vector2(minf(540.0,gap_x+gap_half_width),wall_y),Vector2(540,wall_y),color,5.0,12.0)
+		_draw_warning_dashed_line(Vector2(0,wall_y),Vector2(maxf(0.0,gap_x-gap_half_width),wall_y),color,5.0,12.0)
+		_draw_warning_dashed_line(Vector2(minf(540.0,gap_x+gap_half_width),wall_y),Vector2(540,wall_y),color,5.0,12.0)
 	else:
 		var target_position:=Vector2(_telegraph.get("target_position",_player.position))
-		draw_dashed_line(origin,target_position,color,4.0,13.0)
-		draw_circle(target_position,18+progress*12,color,false,3.0)
+		_draw_warning_dashed_line(origin,target_position,color,4.0,13.0)
+		_draw_warning_arc(target_position,18+progress*12,0.0,TAU,28,color,3.0)
 
 func _draw_room_pattern_telegraph() -> void:
 	var progress:=1.0-float(_telegraph.timer)/maxf(0.01,float(_telegraph.total))
@@ -4804,8 +4859,8 @@ func _draw_room_pattern_telegraph() -> void:
 	var safe_position := Vector2(_telegraph.get("safe_position",INTERNAL_COMBAT_BOUNDS.get_center()))
 	var safe_clearance := maxf(34.0,float((event.get("safe",{}) as Dictionary).get("clearance",0.1))*minf(INTERNAL_COMBAT_BOUNDS.size.x,INTERNAL_COMBAT_BOUNDS.size.y))
 	draw_circle(safe_position,safe_clearance,Color(VisualTheme.FRIENDLY,0.08+progress*0.10))
-	draw_arc(safe_position,safe_clearance,0.0,TAU,36,Color(VisualTheme.FRIENDLY,0.58+progress*0.34),3.0)
-	draw_dashed_line(_player.position,safe_position,Color(VisualTheme.FRIENDLY,0.28+progress*0.18),2.0,10.0)
+	_draw_warning_arc(safe_position,safe_clearance,0.0,TAU,36,Color(VisualTheme.FRIENDLY,0.58+progress*0.34),3.0)
+	_draw_warning_dashed_line(_player.position,safe_position,Color(VisualTheme.FRIENDLY,0.28+progress*0.18),2.0,10.0)
 	var world_positions := _room_event_world_positions(event,safe_position)
 	_draw_room_geometry(world_positions,collision,room_runtime_category(event),String(spawn.get("visual_token","")),Color(VisualTheme.TELEGRAPH,0.32+progress*0.58),true)
 	var projectile_specs := event.get("runtime_projectile_specs",[]) as Array
@@ -4827,21 +4882,21 @@ func _draw_room_pattern_telegraph() -> void:
 		var origin := points[0]
 		var initial_radius := maxf(4.0,float((samples[0] as Dictionary).get("radius",options.get("radius",7.0))))
 		draw_circle(origin,initial_radius,Color(projectile_color,0.12+progress*0.18))
-		draw_arc(origin,initial_radius+3.0,0.0,TAU,14,projectile_color,2.0)
+		_draw_warning_arc(origin,initial_radius+3.0,0.0,TAU,14,projectile_color,2.0)
 		if points.size()>=2:
-			draw_polyline(points,projectile_color,2.0,true)
+			_draw_warning_polyline(points,projectile_color,2.0)
 		if String(options.get("travel_model","linear"))=="expanding":
 			var radius_stride := maxi(1,ceili(float(samples.size())/8.0))
 			for sample_index in range(radius_stride,samples.size(),radius_stride):
 				var sample := samples[sample_index] as Dictionary
-				draw_arc(Vector2(sample.position),maxf(1.0,float(sample.radius)),0.0,TAU,16,Color(projectile_color,0.16+progress*0.20),1.5)
+				_draw_warning_arc(Vector2(sample.position),maxf(1.0,float(sample.radius)),0.0,TAU,16,Color(projectile_color,0.16+progress*0.20),1.5)
 			var final_sample := samples[samples.size()-1] as Dictionary
-			draw_arc(Vector2(final_sample.position),maxf(1.0,float(final_sample.radius)),0.0,TAU,18,Color(projectile_color,0.30+progress*0.32),2.0)
+			_draw_warning_arc(Vector2(final_sample.position),maxf(1.0,float(final_sample.radius)),0.0,TAU,18,Color(projectile_color,0.30+progress*0.32),2.0)
 		var delay_seconds := float(preview.get("delay_seconds",0.0))
 		if delay_seconds>0.0:
 			var delay_ratio := clampf(delay_seconds/ROOM_PROJECTILE_TELEGRAPH_HORIZON,0.0,1.0)
 			var delay_radius := initial_radius+6.0+delay_ratio*12.0
-			draw_arc(origin,delay_radius,-PI*0.5,-PI*0.5+TAU*maxf(0.12,delay_ratio),12,Color(projectile_color,0.48+progress*0.30),2.5)
+			_draw_warning_arc(origin,delay_radius,-PI*0.5,-PI*0.5+TAU*maxf(0.12,delay_ratio),12,Color(projectile_color,0.48+progress*0.30),2.5)
 
 func _draw_active_room_motifs() -> void:
 	for raw_wave_id in _active_room_motifs.keys():
@@ -4877,7 +4932,7 @@ func _draw_room_geometry(positions: Array, collision: Dictionary, category: Stri
 			var first := Vector2(positions[index])
 			var second := Vector2(positions[index+1])
 			if telegraph_only:
-				draw_dashed_line(first,second,color,rendered_width,10.0)
+				_draw_warning_dashed_line(first,second,color,rendered_width,10.0)
 			else:
 				draw_line(first,second,color,rendered_width)
 	for index in range(positions.size()):
@@ -4889,23 +4944,42 @@ func _draw_room_geometry(positions: Array, collision: Dictionary, category: Stri
 				var half_extents := Vector2(float(half_data[0])*INTERNAL_COMBAT_BOUNDS.size.x,float(half_data[1])*INTERNAL_COMBAT_BOUNDS.size.y)
 				var rect := Rect2(center-half_extents,half_extents*2.0)
 				draw_rect(rect,Color(color,0.12 if telegraph_only else 0.22),true)
-				draw_rect(rect,color,false,3.0)
+				if telegraph_only:
+					_draw_warning_rect_outline(rect,color,3.0)
+				else:
+					draw_rect(rect,color,false,3.0)
 			"arc":
 				var radius := maxf(20.0,float(collision.get("radius_normalized",0.24))*unit)
-				draw_arc(center,radius,-1.05+phase_offset,1.05+phase_offset,22,color,room_collision_render_width(collision,unit))
+				if telegraph_only:
+					_draw_warning_arc(center,radius,-1.05+phase_offset,1.05+phase_offset,22,color,room_collision_render_width(collision,unit))
+				else:
+					draw_arc(center,radius,-1.05+phase_offset,1.05+phase_offset,22,color,room_collision_render_width(collision,unit))
 			"force_field":
 				var radius := maxf(18.0,float(collision.get("radius_normalized",0.11))*unit)
 				draw_circle(center,radius,Color(color,0.08 if telegraph_only else 0.14))
 				for ring in range(1,4):
-					draw_arc(center,radius*float(ring)/3.0,phase_offset,phase_offset+PI*1.55,24,color,2.0)
+					if telegraph_only:
+						_draw_warning_arc(center,radius*float(ring)/3.0,phase_offset,phase_offset+PI*1.55,24,color,2.0)
+					else:
+						draw_arc(center,radius*float(ring)/3.0,phase_offset,phase_offset+PI*1.55,24,color,2.0)
 			_:
 				var radius := maxf(10.0,float(collision.get("radius_normalized",0.035))*unit)
 				draw_circle(center,radius,Color(color,0.12 if telegraph_only else 0.28))
-				draw_arc(center,radius,phase_offset,phase_offset+PI*1.65,16,color,3.0)
+				if telegraph_only:
+					_draw_warning_arc(center,radius,phase_offset,phase_offset+PI*1.65,16,color,3.0)
+				else:
+					draw_arc(center,radius,phase_offset,phase_offset+PI*1.65,16,color,3.0)
 		if category == "rain":
-			draw_line(center-Vector2(0,22),center+Vector2(0,22),color,3.0)
+			if telegraph_only:
+				_draw_warning_line(center-Vector2(0,22),center+Vector2(0,22),color,3.0)
+			else:
+				draw_line(center-Vector2(0,22),center+Vector2(0,22),color,3.0)
 		elif category == "echo":
-			draw_arc(center,12.0+sin(_decorative_motion_time()*8.0+phase_offset)*2.0,0.0,TAU,16,Color(VisualTheme.SHARD,color.a),2.0)
+			var echo_color := Color(VisualTheme.SHARD,color.a)
+			if telegraph_only:
+				_draw_warning_arc(center,12.0+sin(_decorative_motion_time()*8.0+phase_offset)*2.0,0.0,TAU,16,echo_color,2.0)
+			else:
+				draw_arc(center,12.0+sin(_decorative_motion_time()*8.0+phase_offset)*2.0,0.0,TAU,16,echo_color,2.0)
 
 static func room_collision_render_width(collision: Dictionary, unit: float) -> float:
 	return maxf(8.0,float(collision.get("thickness_normalized",0.025))*unit)*2.0

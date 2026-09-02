@@ -24,7 +24,7 @@ var health := 100.0
 var shield_hits := 0
 var responsiveness := 12.0
 var max_speed := 620.0
-var combat_bounds := Rect2(22.0, 390.0, 496.0, 455.0)
+var combat_bounds := Rect2(24.0, 395.0, 492.0, 425.0)
 var invulnerability := 0.0
 var dash_duration := 0.18
 var dash_invulnerability := 0.34
@@ -117,7 +117,13 @@ func _unhandled_input(event: InputEvent) -> void:
 					dash_gesture_requested.emit(flick.normalized())
 
 func _set_touch_target(screen_position: Vector2) -> void:
-	var local_target := get_viewport().get_canvas_transform().affine_inverse() * screen_position
+	# Convert into the coordinate space that owns `position`. The production run
+	# canvas is fitted inside the phone safe area, so the Viewport transform alone
+	# cannot account for its centered offset and scale on tall displays.
+	var parent_canvas_transform := get_viewport().get_canvas_transform()
+	if get_parent() is CanvasItem:
+		parent_canvas_transform = (get_parent() as CanvasItem).get_global_transform_with_canvas()
+	var local_target := parent_canvas_transform.affine_inverse() * screen_position
 	local_target += FINGER_OFFSET
 	local_target.x = clampf(local_target.x, combat_bounds.position.x, combat_bounds.end.x)
 	local_target.y = clampf(local_target.y, combat_bounds.position.y, combat_bounds.end.y)

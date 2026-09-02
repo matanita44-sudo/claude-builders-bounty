@@ -19,7 +19,7 @@ const EVENT_MOVEMENT_STARTED := &"movement_started"
 const EVENT_FIRST_SHOT := &"first_shot"
 const EVENT_FIRST_DASH := &"first_dash"
 const EVENT_TELEGRAPH_AVOIDED := &"telegraphed_attack_avoided"
-const EVENT_EXPOSED_ARMOR_HIT := &"exposed_armor_hit"
+const EVENT_ARMOR_BREACHED := &"armor_breached"
 const EVENT_FIRST_DIVE := &"first_dive"
 const EVENT_ORGAN_DESTROYED := &"organ_destroyed"
 const EVENT_MUTATION_SELECTED := &"mutation_selected"
@@ -47,7 +47,7 @@ const STEP_DEFINITIONS: Array[Dictionary] = [
 	{
 		"id": &"break_armor",
 		"message_key": &"tutorial.hit_exposed_armor",
-		"events": [EVENT_EXPOSED_ARMOR_HIT]
+		"events": [EVENT_ARMOR_BREACHED]
 	},
 	{
 		"id": &"enter_breach",
@@ -86,7 +86,7 @@ const EVENT_TO_STEP := {
 	EVENT_FIRST_SHOT: 1,
 	EVENT_FIRST_DASH: 2,
 	EVENT_TELEGRAPH_AVOIDED: 2,
-	EVENT_EXPOSED_ARMOR_HIT: 3,
+	EVENT_ARMOR_BREACHED: 3,
 	EVENT_FIRST_DIVE: 4,
 	EVENT_ORGAN_DESTROYED: 5,
 	EVENT_MUTATION_SELECTED: 6,

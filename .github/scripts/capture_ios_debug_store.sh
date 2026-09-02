@@ -12,6 +12,11 @@ bundle_id="com.matan.infinidive"
 device_type_id="com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro-Max"
 activation_token="ios-simulator-ci-v1"
 ready_filename="native-store-capture-ready.json"
+# Hosted iOS 26 Simulators can spend well over 30 seconds servicing a fresh
+# install while the display/audio services finish first-boot work. The app
+# marker is still a fail-closed state proof; this bound only prevents runner
+# contention from being mistaken for a gameplay-state failure.
+marker_timeout_seconds=120
 stages=(
   nest
   titan-exterior
@@ -223,9 +228,10 @@ for stage_index in "${!stages[@]}"; do
   fi
   launched_pids+=("${stage_pid}")
 
+  marker_wait_started="$(date +%s)"
   marker_path=""
   marker_listing="${output}/${stem}-marker-candidates.txt"
-  while (( $(date +%s) - launch_started < 30 )); do
+  while (( $(date +%s) - marker_wait_started < marker_timeout_seconds )); do
     find "${data_container}" -type f -name "${ready_filename}" -print \
       | sort > "${marker_listing}"
     marker_count="$(wc -l < "${marker_listing}" | tr -d '[:space:]')"
@@ -254,9 +260,20 @@ PY
     sleep 1
   done
   if [[ -z "${marker_path}" ]]; then
-    echo "Debug app did not publish the ${stage} readiness marker within 30 seconds" >&2
+    # Preserve bounded, explicitly diagnostic evidence for a genuine timeout;
+    # these files are never accepted by the six-stage store-capture validator.
+    timeout_screenshot="${output}/${stem}-marker-timeout-diagnostic.png"
+    python3 -c \
+      'import subprocess,sys; subprocess.run(["xcrun","simctl","io",sys.argv[1],"screenshot","--type=png",sys.argv[2]],check=False,timeout=45)' \
+      "${simulator_udid}" "${timeout_screenshot}" || true
+    sample "${stage_pid}" 5 \
+      -file "${output}/${stem}-marker-timeout-process-sample.txt" || true
+    echo "Debug app did not publish the ${stage} readiness marker within ${marker_timeout_seconds} seconds" >&2
     exit 1
   fi
+  marker_ready_seconds="$(( $(date +%s) - marker_wait_started + 1 ))"
+  printf 'stage=%s marker_ready_seconds_upper_bound=%s marker_timeout_seconds=%s\n' \
+    "${stage}" "${marker_ready_seconds}" "${marker_timeout_seconds}" >> "${launch_log}"
 
   cp "${marker_path}" "${output}/${stem}.json"
   rm -f -- "${marker_listing}"

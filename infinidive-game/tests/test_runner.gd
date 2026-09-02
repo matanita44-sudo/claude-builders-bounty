@@ -893,6 +893,13 @@ func _test_safe_area_math() -> void:
 	_assert(is_equal_approx(safe.size.y, 880.0), "Native safe-area height must subtract top and bottom insets")
 	var fitted := SafeAreaHelperClass.fitted_design_rect(safe)
 	_assert(fitted.position.y >= safe.position.y and fitted.end.y <= safe.end.y + 0.01, "Fitted UI must remain inside the safe area")
+	var tall_visible := Rect2(Vector2.ZERO, Vector2(540.0,1173.0))
+	var tall_safe := Rect2(Vector2(0.0,24.0),Vector2(540.0,1135.0))
+	var tall_fitted := SafeAreaHelperClass.fitted_design_rect(tall_safe)
+	var tall_backdrop := SafeAreaHelperClass.design_space_viewport_rect(tall_visible,tall_fitted)
+	var tall_scale := tall_fitted.size / SafeAreaHelperClass.DEFAULT_DESIGN_SIZE
+	var backdrop_on_screen := Rect2(tall_fitted.position+tall_backdrop.position*tall_scale,tall_backdrop.size*tall_scale)
+	_assert(backdrop_on_screen.position.is_equal_approx(tall_visible.position) and backdrop_on_screen.size.is_equal_approx(tall_visible.size), "Design-space backdrop must cover the complete tall viewport outside the safe-area canvas")
 
 func _test_projectile_pool() -> void:
 	var pool := ProjectilePoolClass.new()
@@ -928,14 +935,18 @@ func _test_projectile_pool() -> void:
 	await get_tree().process_frame
 
 func _test_player_movement() -> void:
+	var fitted_parent := Node2D.new()
+	fitted_parent.position = Vector2(0,106.5)
+	fitted_parent.scale = Vector2(0.82,0.82)
+	add_child(fitted_parent)
 	var player := PlayerControllerClass.new()
 	player.position = Vector2(270,700)
 	player.combat_bounds = Rect2(24,395,492,450)
-	add_child(player)
+	fitted_parent.add_child(player)
 	var desired_target := Vector2(470,790)
-	var screen_target := player.get_viewport().get_canvas_transform() * (desired_target - PlayerControllerClass.FINGER_OFFSET)
+	var screen_target := fitted_parent.get_global_transform_with_canvas() * (desired_target - PlayerControllerClass.FINGER_OFFSET)
 	player._set_touch_target(screen_target)
-	_assert(player._target.distance_to(desired_target) < 0.75, "Touch targeting must apply the configured finger offset in canvas coordinates")
+	_assert(player._target.distance_to(desired_target) < 0.75, "Touch targeting must invert the fitted parent canvas and apply the configured finger offset")
 	var initial_distance := player.position.distance_to(desired_target)
 	player._dragging = true
 	for frame in 30:
@@ -952,7 +963,7 @@ func _test_player_movement() -> void:
 		and player._target.y <= player.combat_bounds.end.y,
 		"Out-of-range touch targets must be clamped to combat bounds"
 	)
-	player.queue_free()
+	fitted_parent.queue_free()
 
 	var player_60 := PlayerControllerClass.new()
 	var player_30 := PlayerControllerClass.new()
@@ -2115,7 +2126,7 @@ func _test_tutorial_scene_handoff() -> void:
 		TutorialFlowClass.EVENT_MOVEMENT_STARTED,
 		TutorialFlowClass.EVENT_FIRST_SHOT,
 		TutorialFlowClass.EVENT_FIRST_DASH,
-		TutorialFlowClass.EVENT_EXPOSED_ARMOR_HIT,
+		TutorialFlowClass.EVENT_ARMOR_BREACHED,
 		TutorialFlowClass.EVENT_FIRST_DIVE,
 		TutorialFlowClass.EVENT_ORGAN_DESTROYED,
 		TutorialFlowClass.EVENT_MUTATION_SELECTED,
@@ -2144,9 +2155,21 @@ func _test_tutorial_scene_handoff() -> void:
 
 func _test_first_core_hook() -> void:
 	var original_profile := SaveManager.profile.duplicate(true)
+	SaveManager.profile = SaveManager.default_profile()
+	# Arrive at the armor lesson without relying on synthetic movement/attack
+	# events; this isolates the live prompt-versus-Dive consistency contract.
+	SaveManager.profile.tutorial_state = {"version":1,"understood_mask":0x07}
 	var run := RunSceneClass.new()
 	run.initialize({"boss":"gravemaw","weapon":"pulse_needle","difficulty":"diver","seed":99213,"mode":"story","competitive":true})
 	add_child(run)
+	_assert(
+		run._world_canvas.get_parent() == run
+		and run._world.get_parent() == run._world_canvas
+		and run._hud.get_parent() == run
+		and run._world_canvas.position.is_equal_approx(run._hud.root.position)
+		and run._world_canvas.scale.is_equal_approx(run._hud.root.scale),
+		"Gameplay canvas and HUD must be fitted as aligned sibling surfaces exactly once"
+	)
 	for frame in 80:
 		await get_tree().physics_frame
 	_assert(run.state == RunScene.RunState.EXTERIOR, "Run must enter exterior combat")
@@ -2170,8 +2193,22 @@ func _test_first_core_hook() -> void:
 	release_touch.pressed = false
 	Input.parse_input_event(release_touch)
 	await get_tree().process_frame
-	run._damage_target({"id":"boss","damage":run.armor_max+1.0,"behavior":"pulse"})
+	run._damage_target({"id":"boss","damage":1.0,"behavior":"pulse"})
+	_assert(
+		run.state == RunScene.RunState.EXTERIOR
+		and run._tutorial_flow.current_step_id() == &"break_armor"
+		and run._hud._tutorial_message == LocalizationService.text("tutorial.hit_exposed_armor")
+		and run._hud.dive_button.disabled,
+		"Chip damage must retain the armor lesson while Dive is locked"
+	)
+	run._damage_target({"id":"boss","damage":run.armor_health+1.0,"behavior":"pulse"})
 	_assert(run.state == RunScene.RunState.BREACH_OPEN, "Armor destruction must open breach")
+	_assert(
+		run._tutorial_flow.current_step_id() == &"enter_breach"
+		and run._hud._tutorial_message == LocalizationService.text("tutorial.enter_breach")
+		and not run._hud.dive_button.disabled,
+		"The enter-breach lesson may appear only after the Dive action unlocks"
+	)
 	var breach_reward := run.run_bio
 	run._open_breach()
 	_assert(run.run_bio == breach_reward, "A breach cannot be opened or rewarded twice")

@@ -9,6 +9,10 @@ const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
 const TitanCollapseCatalogClass := preload("res://scripts/gameplay/titan_collapse_catalog.gd")
 
 const HIGH_CONTRAST_PROJECTILE := Color("#FF9B45")
+const COMBAT_BACKGROUND_PATHS := [
+	"res://assets/art/backgrounds/sky_battle.png",
+	"res://assets/art/backgrounds/divine_interior.png",
+]
 const VISUAL_SCRIPT_PATHS := [
 	"res://scripts/ui/visual_theme.gd",
 	"res://scripts/ui/nest_view.gd",
@@ -54,6 +58,14 @@ const EXPECTED_TARGET_RADII := {
 	"abyss_leviathan":88.0,
 	"null_twin":82.0,
 }
+const TARGET_PORTRAIT_PIXEL_SIZES := [
+	Vector2(540.0,960.0),
+	Vector2(1080.0,1920.0),
+	Vector2(1260.0,2736.0),
+	Vector2(1290.0,2796.0),
+	Vector2(1320.0,2868.0),
+]
+const DESIGN_SIZE := Vector2(540.0,960.0)
 
 var passed := 0
 var failures: Array[String] = []
@@ -77,8 +89,10 @@ func _run() -> void:
 	var original_settings := SettingsManager.values.duplicate(true)
 	_test_visual_resources_parse()
 	_test_asset_contract()
+	await _test_titan_hud_composition_contract()
 	await _test_projectile_contrast_contract()
 	await _test_reduced_motion_contract()
+	_test_titan_organ_anchor_contract()
 	await _test_boss_visual_states()
 	_test_titan_collapse_contract()
 	await _test_five_nest_states()
@@ -135,12 +149,79 @@ func _test_asset_contract() -> void:
 			_check(false,"Required vector dimensions could not be checked: %s" % path)
 
 
+func _test_titan_hud_composition_contract() -> void:
+	var focus_rect := BossVisualClass.exterior_focus_bounds_at(RunSceneClass.EXTERIOR_BOSS_POSITION)
+	var portrait_rect := BossVisualClass.exterior_portrait_bounds_at(RunSceneClass.EXTERIOR_BOSS_POSITION)
+	var phase_rect := RunHUDClass.PHASE_CHIP_RECT
+	var toast_rect := RunHUDClass.GUIDANCE_TOAST_RECT
+	var player_envelope := Rect2(
+		RunSceneClass.EXTERIOR_COMBAT_BOUNDS.position-Vector2(20.0,34.0),
+		RunSceneClass.EXTERIOR_COMBAT_BOUNDS.size+Vector2(40.0,68.0)
+	)
+	var left_action_ring := Rect2(14.0,836.0,104.0,104.0)
+	var right_action_ring := Rect2(422.0,836.0,104.0,104.0)
+	_check(RunSceneClass.EXTERIOR_BOSS_POSITION.is_equal_approx(Vector2(270.0,230.0)),"Exterior Titan must retain the reviewed lower composition anchor")
+	_check(focus_rect.position.y >= phase_rect.end.y+4.0,"Titan face and highest organ must keep a readable gap below the phase chip")
+	_check(
+		toast_rect.position.y >= portrait_rect.end.y+24.0
+		and toast_rect.position.y >= player_envelope.end.y+4.0
+		and not toast_rect.intersects(left_action_ring)
+		and not toast_rect.intersects(right_action_ring),
+		"Tutorial guidance must own the bottom-center HUD lane without covering the Titan, Diver, or action rings"
+	)
+	_check(not focus_rect.intersects(phase_rect) and not focus_rect.intersects(toast_rect),"Titan face/highest organ cannot be covered by persistent guidance HUD")
+	for target_size in TARGET_PORTRAIT_PIXEL_SIZES:
+		var screen_focus := _shared_design_rect_on_target(focus_rect,target_size)
+		var screen_portrait := _shared_design_rect_on_target(portrait_rect,target_size)
+		var screen_phase := _shared_design_rect_on_target(phase_rect,target_size)
+		var screen_toast := _shared_design_rect_on_target(toast_rect,target_size)
+		var context := "%dx%d" % [int(target_size.x),int(target_size.y)]
+		_check(not screen_focus.intersects(screen_phase),"%s shared portrait fit must keep the Titan face/top organ clear of the phase chip" % context)
+		_check(not screen_portrait.intersects(screen_toast),"%s shared portrait fit must keep tutorial guidance below the Titan portrait" % context)
+
+	var hud := RunHUDClass.new()
+	add_child(hud)
+	await get_tree().process_frame
+	var phase_panel := hud.root.get_node_or_null("CombatPhaseChip") as Control
+	_check(phase_panel != null and Rect2(phase_panel.position,phase_panel.size) == phase_rect,"Runtime phase chip must consume the tested composition rectangle")
+	hud.show_toast("FIRST LINE\nSECOND LINE")
+	_check(hud.toast_panel.position.is_equal_approx(toast_rect.position) and is_equal_approx(hud.toast_panel.size.x,toast_rect.size.x) and hud.toast_panel.size.y <= toast_rect.size.y,"Runtime one/two-line guidance must remain inside the tested composition rectangle")
+	if is_instance_valid(hud._toast_tween):
+		hud._toast_tween.kill()
+	hud.queue_free()
+	await get_tree().process_frame
+
+
+func _shared_design_rect_on_target(design_rect: Rect2, target_size: Vector2) -> Rect2:
+	var scale_factor := minf(target_size.x/DESIGN_SIZE.x,target_size.y/DESIGN_SIZE.y)
+	var origin := (target_size-DESIGN_SIZE*scale_factor)*0.5
+	return Rect2(origin+design_rect.position*scale_factor,design_rect.size*scale_factor)
+
+
 func _test_projectile_contrast_contract() -> void:
 	var source_file := FileAccess.open("res://scripts/gameplay/projectile_pool.gd",FileAccess.READ)
 	_check(source_file != null,"Projectile renderer source must be readable")
 	var source := source_file.get_as_text() if source_file != null else ""
 	_check(source.contains("SettingsManager.get_value(\"projectile_contrast\""),"Enemy projectile renderer must consume the projectile-contrast setting")
 	_check(source.contains("Color(\"#FF9B45\")"),"Enemy projectile renderer must retain the authored high-contrast hue")
+	_check(ProjectilePoolClass.MYTHIC_INK.is_equal_approx(Color("#17324B")),"Every projectile family must share the mythic-ink readability edge")
+	_check(ProjectilePoolClass.INK_EDGE_WIDTH_PX >= 2.0 and ProjectilePoolClass.INK_EDGE_WIDTH_PX <= 3.0,"Projectile readability edge must stay within 2-3 logical pixels")
+	_check(is_equal_approx(ProjectilePoolClass.ink_stroke_width(4.0),9.0),"A projectile under-stroke must add the ink edge on both sides of its bright core")
+	for helper_name in ["_draw_ink_line","_draw_ink_arc","_draw_ink_polygon","_draw_ink_circle"]:
+		_check(source.contains(String(helper_name)),"Projectile renderer must retain its shared %s primitive" % helper_name)
+	var run_source_file := FileAccess.open("res://scripts/gameplay/run_scene.gd",FileAccess.READ)
+	_check(run_source_file != null,"Telegraph renderer source must be readable")
+	var run_source := run_source_file.get_as_text() if run_source_file != null else ""
+	for helper_name in ["_draw_warning_line","_draw_warning_dashed_line","_draw_warning_arc","_draw_warning_polyline","_draw_warning_rect_outline"]:
+		_check(run_source.contains(String(helper_name)),"Telegraph renderer must retain its shared %s primitive" % helper_name)
+	_check(run_source.count("_draw_warning_dashed_line(") >= 13,"Exterior, room, defender, and safe-path dashed warnings must all use the shared ink edge")
+	_check(run_source.count("_draw_warning_arc(") >= 16,"Exterior, room-projectile, defender, and safe-path rings must all use the shared ink edge")
+	_check(run_source.contains("if telegraph_only:") and run_source.contains("_draw_warning_rect_outline(rect,color,3.0)"),"Authored room geometry must outline only its warning state, not ambient active art")
+	var early_warning_ink := RunSceneClass.telegraph_ink_color(Color(VisualTheme.TELEGRAPH,0.2))
+	var final_warning_ink := RunSceneClass.telegraph_ink_color(Color(VisualTheme.TELEGRAPH,0.95))
+	_check(Color(early_warning_ink,1.0).is_equal_approx(Color(ProjectilePoolClass.MYTHIC_INK,1.0)),"Telegraphs must share the exact projectile mythic-ink hue")
+	_check(early_warning_ink.a >= 0.64 and final_warning_ink.a > early_warning_ink.a and final_warning_ink.a <= ProjectilePoolClass.INK_OPACITY,"Telegraph ink must stay visible early while preserving readiness progress")
+	_check(_rgb_distance(VisualTheme.FRIENDLY,VisualTheme.TELEGRAPH) >= 0.8,"Aqua safe paths must remain unmistakable from gold danger warnings")
 	for background in [VisualTheme.SPACE,VisualTheme.DEEP_SPACE,VisualTheme.TISSUE]:
 		var normal_ratio := _contrast_ratio(VisualTheme.ENEMY,background)
 		var high_ratio := _contrast_ratio(HIGH_CONTRAST_PROJECTILE,background)
@@ -150,12 +231,60 @@ func _test_projectile_contrast_contract() -> void:
 	_check(_contrast_ratio(VisualTheme.FRIENDLY,VisualTheme.DEEP_SPACE) >= 7.0,"Friendly projectiles must remain visually distinct against exterior space")
 	_check(_rgb_distance(HIGH_CONTRAST_PROJECTILE,VisualTheme.FRIENDLY) >= 0.45,"High-contrast hostile and friendly projectiles must not converge on the same hue")
 
+	var projectile_cores := {
+		"hostile_default":VisualTheme.ENEMY,
+		"hostile_high_contrast":HIGH_CONTRAST_PROJECTILE,
+		"telegraph":VisualTheme.TELEGRAPH,
+		"safe_path":VisualTheme.FRIENDLY,
+		"room_vulnerable":VisualTheme.VULNERABLE,
+		"room_shard":VisualTheme.SHARD,
+		"room_bio":VisualTheme.BIO,
+	}
+	for raw_weapon in GameData.weapons:
+		var weapon := raw_weapon as Dictionary
+		projectile_cores["weapon:%s" % String(weapon.get("id","unknown"))] = Color(String(weapon.get("color","#54F2E7")))
+	for core_name_value in projectile_cores:
+		var core_name := String(core_name_value)
+		var core_color := projectile_cores[core_name] as Color
+		_check(_contrast_ratio(core_color,ProjectilePoolClass.MYTHIC_INK) >= 3.0,"%s core must remain distinct from its mythic-ink edge" % core_name)
+	for background_path_value in COMBAT_BACKGROUND_PATHS:
+		var background_path := String(background_path_value)
+		var background_texture := ResourceLoader.load(background_path) as Texture2D
+		_check(background_texture != null,"Current combat background must load for image-backed contrast: %s" % background_path)
+		if background_texture == null:
+			continue
+		var background_image := background_texture.get_image()
+		_check(background_image != null and not background_image.is_empty(),"Current combat background must expose pixels for contrast: %s" % background_path)
+		if background_image == null or background_image.is_empty():
+			continue
+		for core_name_value in projectile_cores:
+			var core_name := String(core_name_value)
+			var core_color := projectile_cores[core_name] as Color
+			var pair_samples := _image_backed_projectile_pair_contrast(background_image,core_color,ProjectilePoolClass.MYTHIC_INK)
+			_check(float(pair_samples.get("minimum",0.0)) >= 1.8,"%s ink/core pair must never disappear into %s" % [core_name,background_path])
+			_check(float(pair_samples.get("enhanced_fraction",0.0)) >= 0.875,"%s ink/core pair must reach 3:1 across at least 87.5%% of %s" % [core_name,background_path])
+
 	var pool := ProjectilePoolClass.new()
 	add_child(pool)
+	for behavior_index in ["pulse","scatter","rail","arc","orbitals"].size():
+		var behavior := String(["pulse","scatter","rail","arc","orbitals"][behavior_index])
+		_check(pool.spawn_player(Vector2(76+behavior_index*88,220),Vector2.UP*600.0,12.0,{"behavior":behavior,"color":Color(String((GameData.weapons[behavior_index] as Dictionary).get("color","#54F2E7")))}),"Every player projectile family must reach the outlined draw pool: %s" % behavior)
 	for index in ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS.size():
 		var travel_model := String(ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS[index])
 		_check(pool.spawn_enemy(Vector2(80+index*48,320),Vector2(0,120),8.0,{"travel_model":travel_model,"radius":7.0}),"Projectile renderer must accept visual travel model %s" % travel_model)
 	_check(pool.enemy_active.size() == ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS.size(),"Every hostile travel silhouette must reach the draw pool")
+	var titan_visual_families: Dictionary = {}
+	for visual_token_value in ProjectilePoolClass.TITAN_VISUAL_FAMILIES:
+		var visual_token := String(visual_token_value)
+		var expected_family := String(ProjectilePoolClass.TITAN_VISUAL_FAMILIES[visual_token])
+		var actual_family := ProjectilePoolClass.enemy_visual_family(visual_token,"","linear")
+		_check(actual_family==expected_family,"%s must route to its authored outlined projectile family" % visual_token)
+		_check(not titan_visual_families.has(actual_family),"Titan projectile silhouettes must remain unique: %s" % actual_family)
+		titan_visual_families[actual_family]=visual_token
+		var family_index := titan_visual_families.size()-1
+		_check(pool.spawn_enemy(Vector2(70+(family_index%6)*78,430+(family_index/6)*90),Vector2(0,120),8.0,{"visual_token":visual_token,"radius":8.0}),"Outlined Titan projectile family must reach the live draw pool: %s" % actual_family)
+	_check(titan_visual_families.size()==ProjectilePoolClass.TITAN_VISUAL_FAMILIES.size(),"Every authored Titan projectile family must own a distinct outlined silhouette")
+	_check(pool.enemy_active.size()==ProjectilePoolClass.SUPPORTED_TRAVEL_MODELS.size()+ProjectilePoolClass.TITAN_VISUAL_FAMILIES.size(),"Travel fallbacks and all Titan projectile families must redraw together")
 	SettingsManager.set_value("projectile_contrast",false,false)
 	pool.queue_redraw()
 	await get_tree().process_frame
@@ -166,6 +295,27 @@ func _test_projectile_contrast_contract() -> void:
 	pool.clear_all()
 	pool.queue_free()
 	await get_tree().process_frame
+
+
+func _image_backed_projectile_pair_contrast(background: Image, core_color: Color, ink_color: Color) -> Dictionary:
+	var sample_count := 0
+	var enhanced_count := 0
+	var minimum_ratio := INF
+	# An eight-pixel grid covers 8,160 real pixels per 540x960 launch image,
+	# including painted clouds, marble, energy, shadows, and empty field.
+	for sample_y in range(0,background.get_height(),8):
+		for sample_x in range(0,background.get_width(),8):
+			var background_color := background.get_pixel(sample_x,sample_y)
+			var pair_ratio := maxf(_contrast_ratio(core_color,background_color),_contrast_ratio(ink_color,background_color))
+			minimum_ratio=minf(minimum_ratio,pair_ratio)
+			sample_count+=1
+			if pair_ratio>=3.0:
+				enhanced_count+=1
+	return {
+		"minimum":minimum_ratio if sample_count>0 else 0.0,
+		"enhanced_fraction":float(enhanced_count)/float(sample_count) if sample_count>0 else 0.0,
+		"samples":sample_count,
+	}
 
 
 func _test_reduced_motion_contract() -> void:
@@ -230,6 +380,49 @@ func _test_reduced_motion_contract() -> void:
 		hud._toast_tween.kill()
 	hud.queue_free()
 	await get_tree().process_frame
+
+
+func _test_titan_organ_anchor_contract() -> void:
+	var catalog := BossVisualClass.titan_organ_anchor_catalog()
+	var seen_organs: Dictionary = {}
+	var anchor_signatures: Dictionary = {}
+	_check(catalog.size()==4,"Titan organ-anchor catalog must cover all four launch portraits")
+	for raw_boss in GameData.bosses:
+		var boss := raw_boss as Dictionary
+		var boss_id := String(boss.get("id",""))
+		var portrait_rect := BossVisualClass.titan_portrait_rect(boss_id)
+		var anchors: Dictionary = catalog.get(boss_id,{})
+		var positions: Array[Vector2] = []
+		var signature_parts: Array[String] = []
+		_check(anchors.size()==3,"%s must own exactly three portrait-specific organ anchors" % boss_id)
+		for raw_organ in boss.get("organs",[]):
+			var organ := raw_organ as Dictionary
+			var organ_id := String(organ.get("id",""))
+			var token := String((organ.get("loss",{}) as Dictionary).get("visual_token",""))
+			var normalized := BossVisualClass.titan_organ_anchor_normalized(boss_id,organ_id)
+			var position := BossVisualClass.titan_organ_anchor_position(boss_id,organ_id)
+			var token_position := BossVisualClass.titan_visual_token_anchor_position(boss_id,token)
+			_check(anchors.has(organ_id),"%s/%s must have an authored normalized anchor" % [boss_id,organ_id])
+			_check(normalized.x>=0.10 and normalized.x<=0.90 and normalized.y>=0.08 and normalized.y<=0.92,"%s/%s normalized anchor must stay inside the readable portrait field" % [boss_id,organ_id])
+			_check(position.is_finite() and portrait_rect.grow(-6.0).has_point(position),"%s/%s anchor must map through its actual texture aspect into the portrait" % [boss_id,organ_id])
+			_check(token_position.is_equal_approx(position),"%s destroyed visual %s must reuse its intact on-body anchor" % [organ_id,token])
+			_check(BossVisualClass.ORGAN_NODE_COLORS.has(organ_id),"%s must retain a readable authored node color" % organ_id)
+			_check(not seen_organs.has(organ_id),"Organ anchors must remain globally unique: %s" % organ_id)
+			seen_organs[organ_id]=boss_id
+			positions.append(position)
+			signature_parts.append("%.2f,%.2f" % [normalized.x,normalized.y])
+		for left_index in positions.size():
+			for right_index in range(left_index+1,positions.size()):
+				_check(positions[left_index].distance_to(positions[right_index])>=42.0,"%s on-body organ nodes must not visually merge" % boss_id)
+		var signature := "|".join(signature_parts)
+		_check(not anchor_signatures.has(signature),"%s must not reuse another Titan's anchor layout" % boss_id)
+		anchor_signatures[signature]=boss_id
+	_check(seen_organs.size()==12,"Portrait anchor catalog must map all twelve launch organs exactly once")
+	_check(anchor_signatures.size()==4,"All four Titans must retain distinct on-body organ layouts")
+	var source_file := FileAccess.open("res://scripts/gameplay/boss_visual.gd",FileAccess.READ)
+	var source := source_file.get_as_text() if source_file!=null else ""
+	_check(source_file!=null and source.contains("_draw_titan_organ_nodes"),"BossVisual must render the normalized on-body status layer")
+	_check(not source.contains("_draw_organ_status"),"Duplicate outer-orbit organ badges must remain removed")
 
 
 func _test_boss_visual_states() -> void:

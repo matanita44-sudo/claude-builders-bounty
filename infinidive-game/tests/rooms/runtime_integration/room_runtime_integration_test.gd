@@ -2,6 +2,7 @@ extends Node
 
 const Mechanics := preload("res://scripts/core/room_mechanics.gd")
 const Runtime := preload("res://scripts/core/room_pattern_runtime.gd")
+const PlayerControllerClass := preload("res://scripts/gameplay/player_controller.gd")
 const RunSceneClass := preload("res://scripts/gameplay/run_scene.gd")
 
 const FRAME_RATES := [30, 60]
@@ -532,8 +533,11 @@ func _safe_edge_position(event: Dictionary) -> Vector2:
 
 
 func _send_agent_touch(run: Node, world_target: Vector2, pressed: bool, release: bool = false) -> void:
-	var canvas_transform := run.get_viewport().get_canvas_transform()
-	var screen_target := canvas_transform * (world_target - Vector2(0.0, -82.0))
+	# Mirror the production touch pipeline exactly. PlayerController owns a
+	# position in its fitted parent canvas, so a synthetic screen touch must pass
+	# through that complete canvas transform before the controller inverts it.
+	var player_parent := run._player.get_parent() as CanvasItem
+	var screen_target := player_parent.get_global_transform_with_canvas() * (world_target - PlayerControllerClass.FINGER_OFFSET)
 	if pressed or release:
 		var touch := InputEventScreenTouch.new()
 		touch.index = 77

@@ -4,28 +4,29 @@ Last audited: 2026-09-02
 
 This file documents the creative media committed to the INFINIDIVE project. It distinguishes original project work, generated evidence, and third-party material. It is not a license for the source code as a whole.
 
-## Original brand and store art
+## Brand and store art
 
-Copyright © 2026 Matan. All rights reserved.
+The hand-authored vector portions of the SVG sources and the project documentation in this section are Copyright © 2026 Matan. All rights reserved. Generated raster sources and derivatives are governed by the provider-terms limitations recorded below and are not included in that blanket copyright claim.
 
 | Path | Kind | Creation method | External dependencies | Rights |
 |---|---|---|---|---|
 | `assets/brand/logo_mark.svg` | Brand mark source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
-| `assets/brand/app_icon.svg` | App icon source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
+| `assets/brand/app_icon_source_v2.png` | Current app-icon source of truth | Project-directed original image-generator output using only the project-owned CRONUS, unarmed Aion hero, and bright sky-battle images as visual references | Image-generator provider; use is subject to the provider terms applicable to the owner and service account | No independent copyrightability or exclusivity claim is made beyond the applicable provider terms; see the generated-art notice below. |
+| `assets/brand/app_icon.svg` | Legacy app-icon vector | Original hand-authored SVG geometry retained for historical provenance; no longer the app-icon source of truth | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/wordmark.svg` | Logo/wordmark source | Original hand-authored path geometry; no font file or `<text>` element | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/feature_graphic.svg` | Store key-art source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/social_card.svg` | Social key-art source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/android_adaptive_background.svg` | Android adaptive-icon background source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/android_adaptive_foreground.svg` | Android adaptive-icon foreground source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/android_adaptive_monochrome.svg` | Android themed/monochrome icon source | Original hand-authored SVG geometry | None | Copyright © 2026 Matan. All rights reserved. |
-| `assets/platform/ios/launch_screen.svg` | iOS launch-screen source | Original hand-authored SVG geometry; no font or external image | None | Copyright © 2026 Matan. All rights reserved. |
+| `assets/platform/ios/launch_screen.svg` | iOS launch-screen source | Original hand-authored Aion crest and path-only wordmark over the existing project-generated `sky_battle.png` background | Local project asset `assets/art/backgrounds/sky_battle.png`; no external font, icon, or third-party image | Vector geometry Copyright © 2026 Matan. Generated background use is subject to the provider terms recorded below. |
 | `assets/brand/brand-metadata.json` | Asset metadata | Original project metadata | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/README.md` | Asset documentation | Original project documentation | None | Copyright © 2026 Matan. All rights reserved. |
 | `assets/brand/*.svg.import` | Godot import metadata, when present | Generated automatically from the SVG sources by Godot | Godot Engine | Generated metadata; not a separate creative asset |
 
 The feature and social graphics are illustrative key art. They are not gameplay screenshots and must not be represented as such.
 
-The bright Greek-mythic SVG masters were fingerprinted after final raster QA on 2026-09-02:
+The bright Greek-mythic SVG masters were fingerprinted after final raster QA on 2026-09-02. `app_icon.svg` is retained in this inventory as the legacy app-icon vector and is not the source of the current raster icon family:
 
 | Source path | Size | SHA-256 |
 |---|---:|---|
@@ -37,49 +38,59 @@ The bright Greek-mythic SVG masters were fingerprinted after final raster QA on 
 | `assets/brand/android_adaptive_background.svg` | 1,114 bytes | `a7f6d6c006b5929bd4981a527bc7e8c42717d4fdce99e81198149c28247fec8a` |
 | `assets/brand/android_adaptive_foreground.svg` | 3,642 bytes | `31ef1eddf22964e8ef5e212d1e734fb6c712cd1633737740242d4066a2aa2ae8` |
 | `assets/brand/android_adaptive_monochrome.svg` | 1,204 bytes | `3944bb9fb7b745b785c5ffe184b9e1808a6c0f5dec85eec388b792b0723fca8b` |
-| `assets/platform/ios/launch_screen.svg` | 8,473 bytes | `2f1fafaadf76afe6c9331cee09c4334feb229459fd6ad0278a7add38442f3a39` |
+| `assets/platform/ios/launch_screen.svg` | 9,875 bytes | `1a458c66dc7627a21fe14b02d45357b3bfdcba7bb43ff44a134ec36bd113dcee` |
+
+The current app-icon source was created on 2026-09-02 specifically for INFINIDIVE at the project owner's direction. The generation workflow used `assets/art/titans/cronus.png`, `assets/art/heroes/aion_diver_unarmed.png`, and `assets/art/backgrounds/sky_battle.png` as project-owned visual references for the Titan, unarmed hero, and bright Greek-mythic sky identity. No separately sourced stock image, font, icon, texture, or third-party character asset was intentionally added. The source's embedded C2PA manifest identifies `gpt-image` version `2.0` and the digital-source type `trainedAlgorithmicMedia`. The source is an opaque full-frame raster; the platform files listed below are resized derivatives, not independent generated works.
+
+As with the other generated art recorded in this file, use of this output is subject to the image-generator provider terms applicable to the owner and service account. This record describes the workflow and does not make an independent claim about copyrightability, exclusivity, or the absence of incidental visual similarity beyond those terms.
+
+| Current source path | Verified format | Size | SHA-256 |
+|---|---|---:|---|
+| `assets/brand/app_icon_source_v2.png` | PNG, 1254×1254, 8-bit/color RGB, opaque/no alpha | 2,805,506 bytes | `a3543a1d1ba0340594afad7d233301bff88396860106a7550deb0e2c3dce2b6a` |
 
 ### Store raster exports
 
-The following files are deterministic raster exports of the original SVG sources above. `file(1)` inspection on 2026-09-02 verified the stated dimensions and channel formats. The Google Play icon, wordmark, and social card are RGBA; the app icon and feature graphic are RGB without alpha.
+The current app-icon files are resized raster derivatives of `assets/brand/app_icon_source_v2.png`; they are not exports of the legacy `app_icon.svg`. The remaining store rasters are exports of their corresponding SVG sources above. `file(1)` inspection on 2026-09-02 verified the stated dimensions and channel formats. Both current app-icon rasters are RGB without alpha; the wordmark and social card are RGBA, and the feature graphic is RGB without alpha.
 
 | Path | Verified format | Size | SHA-256 | Rights |
 |---|---|---:|---|---|
-| `assets/store/app-icon-1024.png` | PNG, 1024×1024, 8-bit/color RGB | 143,963 bytes | `69a38953ac5403f7db0c287dec796ca905684013da6b53936ccce2623630627c` | Copyright © 2026 Matan. All rights reserved. |
-| `assets/store/google-play-icon-512.png` | PNG, 512×512, 8-bit/color RGBA | 72,562 bytes | `eb161d7102cc2d73f1859a53775f38d52350d8355bd9342763772d7653540244` | Copyright © 2026 Matan. All rights reserved. |
+| `assets/store/app-icon-1024.png` | PNG, 1024×1024, 8-bit/color RGB, opaque/no alpha | 1,929,348 bytes | `ea21459bafafd32851bc0e56a791ac6fdc253e58b64e8d7624bec69fff95f22f` | Generated-art use subject to the provider terms recorded above. |
+| `assets/store/google-play-icon-512.png` | PNG, 512×512, 8-bit/color RGB, opaque/no alpha | 546,245 bytes | `e1fbcf95badb833282da7d5eb12031fbe8a7e91d3d58c4046664f87f6fd7d187` | Generated-art use subject to the provider terms recorded above. |
 | `assets/store/google-play-feature-1024x500.png` | PNG, 1024×500, 8-bit/color RGB | 112,731 bytes | `b1c85302917e766e40869dfa22c01c58e1fa6d71deef3eb284716833eef7daa8` | Copyright © 2026 Matan. All rights reserved. |
 | `assets/store/wordmark-2400.png` | PNG, 2400×630, 8-bit/color RGBA | 122,479 bytes | `52dd7ad56152e1916d6c0166ecbec7ecc06e4cf6ef895215e86747e90534ff12` | Copyright © 2026 Matan. All rights reserved. |
 | `assets/store/social-card-1200x630.png` | PNG, 1200×630, 8-bit/color RGBA | 157,601 bytes | `45dffcfb19beed61ac5d6ad4166f3ab04b1ee59459928471333433bf84809777` | Copyright © 2026 Matan. All rights reserved. |
 
-`assets/platform/ios/icon-{40,58,60,76,80,87,114,120,128,136,152,167,180,192,1024}.png` are deterministic exact-size RGB/no-alpha derivatives of the same original app-icon source, wired through `export_presets.cfg`. Their generated `.import` files are Godot metadata, not separate creative assets. The exact derivative fingerprints are:
+`assets/platform/ios/icon-{40,58,60,76,80,87,114,120,128,136,152,167,180,192,1024}.png` are exact-size 8-bit/color RGB, opaque/no-alpha derivatives of `assets/brand/app_icon_source_v2.png`, wired through `export_presets.cfg`. Their generated `.import` files are Godot metadata, not separate creative assets. The exact derivative fingerprints are:
 
-| iOS icon | Size | SHA-256 |
-|---|---:|---|
-| `icon-40.png` | 2,716 bytes | `f58a3fb4f30eeb2dd9296af3c8b2e414a580587ce6241ecd37a6e4b18b27d0e8` |
-| `icon-58.png` | 4,807 bytes | `3a82966af16c568c5b5235004eca3f0935dd736060e9747641d2ad4bf7aa00ca` |
-| `icon-60.png` | 5,093 bytes | `8eae7838ca59acf79c9f7b2c37d9a6acc5a078d647213b84ea7018aadf84ef91` |
-| `icon-76.png` | 7,161 bytes | `afff2ecb0123d230b4021e0b862df74b4f58e63941c9a1d828b860abcaab96d1` |
-| `icon-80.png` | 7,639 bytes | `50eb995d6c8fad48ee497ddec09d5e6e85fee66124dc6474ccf09160f0cefbc5` |
-| `icon-87.png` | 8,707 bytes | `14477455949281218ef07d3fcec125b34a6c5bbdd5a81fc70b54b9c9c9fcaee1` |
-| `icon-114.png` | 12,251 bytes | `13444a7486d2640fd475ae0a6de23e95673cf4fb2d60e19111a9e22c5fd83508` |
-| `icon-120.png` | 13,115 bytes | `b48431324802375ba8dfcf8e436a2baa85fe9b730bc942489ae6437e3327a271` |
-| `icon-128.png` | 14,101 bytes | `6a4de57ee3c0be00e80075d8615c5f4171fb9743226cce65987d4cd61c43a190` |
-| `icon-136.png` | 15,187 bytes | `04b38f67de033e8abf9b2827c7cbedc6691b454445af9a6b4f05f1a8ed36eca9` |
-| `icon-152.png` | 17,394 bytes | `1e20b494b0c9d7e82ef4ae900184afccd1a61d6e7f9d8db513d9b83241362ad4` |
-| `icon-167.png` | 19,256 bytes | `5b25e1da29f11eeb27c15ae371a2104ac9bf5eb94aad0b401acace73593a6dc3` |
-| `icon-180.png` | 21,146 bytes | `6ac4a57546d0e2a5f88cea9bb5c66eea35abf05f6fe25ae713282c193768af17` |
-| `icon-192.png` | 22,722 bytes | `c4ac3acba7d4f52beb7708ae0c4d6908b9f9af3eee1c8fcfbab32fe805ba5e63` |
-| `icon-1024.png` | 143,963 bytes | `69a38953ac5403f7db0c287dec796ca905684013da6b53936ccce2623630627c` |
+| iOS icon | Verified format | Size | SHA-256 |
+|---|---|---:|---|
+| `icon-40.png` | PNG, 40×40, 8-bit/color RGB, opaque/no alpha | 4,440 bytes | `cf469765ef193d41ab6b79d63c91d63096ad5319caa4a83736ce747c6a872d8d` |
+| `icon-58.png` | PNG, 58×58, 8-bit/color RGB, opaque/no alpha | 9,020 bytes | `73f064343168a2aca2e63265b82b83d91675a16262ce9a034cbcbec2102a64cf` |
+| `icon-60.png` | PNG, 60×60, 8-bit/color RGB, opaque/no alpha | 9,612 bytes | `73c112cac5ef9b9ff7707b8c192c7f4889d8fbc5e764811ee2c3fea46f9017a6` |
+| `icon-76.png` | PNG, 76×76, 8-bit/color RGB, opaque/no alpha | 15,088 bytes | `e491f16911204d420911de2f50a11d5f11e5c02cdcc33aefc716c1bb56a0ef54` |
+| `icon-80.png` | PNG, 80×80, 8-bit/color RGB, opaque/no alpha | 16,645 bytes | `7f7846c4ddf59edef2f796e0843cddfe7313d5bfad8c23c6c247309f898c17f5` |
+| `icon-87.png` | PNG, 87×87, 8-bit/color RGB, opaque/no alpha | 19,521 bytes | `99559cb15e28061e0f77fc1a69b7e3c8229341b6a1c950daa676dbe566ba356d` |
+| `icon-114.png` | PNG, 114×114, 8-bit/color RGB, opaque/no alpha | 32,734 bytes | `40c2d678942c352edc8aaa5c46942c58a36a0b6f4bb19cce7959aa2594bf8fc0` |
+| `icon-120.png` | PNG, 120×120, 8-bit/color RGB, opaque/no alpha | 36,093 bytes | `d392e593e25cf498086cc66bc6e9f34a0654de2a1cbbb74b8360f961686e01d8` |
+| `icon-128.png` | PNG, 128×128, 8-bit/color RGB, opaque/no alpha | 40,852 bytes | `0c89497a83d712df53d1f2f653a114be6ecbf12f0ff31fef0fdbf1c0575935bf` |
+| `icon-136.png` | PNG, 136×136, 8-bit/color RGB, opaque/no alpha | 45,817 bytes | `86e27a7b4d7edc5bb1615f234fb401c2551ce9e46e652f0b8131d9ccc0e42a7d` |
+| `icon-152.png` | PNG, 152×152, 8-bit/color RGB, opaque/no alpha | 56,582 bytes | `70ebf6bd41826a4aa1216eb882d0583f8785e90acf4a1e7ce2476095086f9ca9` |
+| `icon-167.png` | PNG, 167×167, 8-bit/color RGB, opaque/no alpha | 67,619 bytes | `623c186d122dc04906b4fe62d58d3c1e98480d64140cf88f3a477d98ce499f88` |
+| `icon-180.png` | PNG, 180×180, 8-bit/color RGB, opaque/no alpha | 77,829 bytes | `dbff38cc49a70c6163d1d23982f7d84bf7608908660f7926a092cb6c6483aac8` |
+| `icon-192.png` | PNG, 192×192, 8-bit/color RGB, opaque/no alpha | 88,002 bytes | `71d3a03322255fcebb95f491160b63b9b49fe707e44756d487591f14fc224b6d` |
+| `icon-1024.png` | PNG, 1024×1024, 8-bit/color RGB, opaque/no alpha | 1,929,348 bytes | `ea21459bafafd32851bc0e56a791ac6fdc253e58b64e8d7624bec69fff95f22f` |
 
-`assets/platform/ios/launch_screen@2x.png` and `launch_screen.png` are the 780×1688 and 1170×2532, 8-bit sRGB RGB/no-alpha rasters exported from `launch_screen.svg` and wired to the iOS storyboard as its 2x/3x images. Source size/hash: 8,473 bytes, `2f1fafaadf76afe6c9331cee09c4334feb229459fd6ad0278a7add38442f3a39`; 2x raster size/hash: 201,788 bytes, `905cf3045c20775fe5a1ca25835fd352fe48dc8c01738c49307d7e4c86ca0f12`; 3x raster size/hash: 313,398 bytes, `c17a2df0f4bd695888c74157d6f9c341a9efe8c6b952bfd5991a863db9f686e6`.
+`assets/platform/ios/launch_screen@2x.png` and `launch_screen.png` are the 780×1688 and 1170×2532, 8-bit sRGB RGB/no-alpha rasters exported from `launch_screen.svg` and wired to the iOS storyboard as its 2x/3x images. The source composes the already documented project-generated `assets/art/backgrounds/sky_battle.png` with an original vector Aion crest and custom path-only wordmark; it is static illustrative brand art, not gameplay, a captured screen, or a loading/progress indicator. Source size/hash: 9,875 bytes, `1a458c66dc7627a21fe14b02d45357b3bfdcba7bb43ff44a134ec36bd113dcee`; 2x raster size/hash: 1,053,086 bytes, `9b43acec7db8a8046a4ed88e48d53be79ade7ee85bb959bd4b398743097819bb`; 3x raster size/hash: 1,863,629 bytes, `7011671570f697ee87a5b007cbb548408bdd9ea33cc82ad49269519c421177ff`.
 
-The feature graphic satisfies the recorded no-alpha channel requirement. The Play icon has the recorded 512×512, 32-bit RGBA format and size limit; final visual and console-upload validation still remain before submission.
+The feature graphic satisfies the recorded no-alpha channel requirement. The current Play listing icon is 512×512 and below the recorded 1,024 KB size limit, but it is 8-bit/color RGB without alpha rather than the 32-bit RGBA format recorded in `STORE_METADATA.md`; regenerate or obtain explicit Play Console acceptance before treating that asset as submission-ready. Final visual and console-upload validation still remain for every store raster.
 
 ## Project-generated runtime artwork
 
 The runtime images below were created on 2026-09-02 specifically for INFINIDIVE at the project owner's direction using the image generator built into the development environment. The generation briefs requested original Greek-mythic characters and environments with a bright, readable mobile-game presentation; they did not request imitation of a named artist or the reproduction of an existing game asset.
 
 A user-supplied reference image was consulted only for broad visual direction such as readability, color, scale, and energy. The reference image is not included in this repository, was not composited into these files, and is not redistributed by the project.
+
+The current app-icon source recorded above is a separate project-directed generated output. Its reference inputs were limited to the already project-owned CRONUS, unarmed Aion hero, and sky-battle artwork in this repository. It was not derived from the legacy `app_icon.svg`, and that vector must not be used to regenerate the current icon family.
 
 Use of the generated outputs is subject to the image-generator provider terms applicable to the owner and the relevant service account. This provenance record does not make an independent claim about copyrightability, exclusivity, or ownership beyond those terms. No third-party stock asset, texture pack, character file, font, or watermarked element was intentionally incorporated.
 
